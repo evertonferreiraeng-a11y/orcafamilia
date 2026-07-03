@@ -1,0 +1,106 @@
+'use client';
+
+import { useFormState, useFormStatus } from 'react-dom';
+import type { Divida } from '@/types/database';
+import type { DividaFormState } from '@/app/(dashboard)/dividas/actions';
+
+function BotaoSalvar({ label }: { label: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" className="btn-primary" disabled={pending}>
+      {pending ? 'Salvando...' : label}
+    </button>
+  );
+}
+
+export function DividaForm({
+  action,
+  divida,
+  onSucesso,
+}: {
+  action: (state: DividaFormState, formData: FormData) => Promise<DividaFormState>;
+  divida?: Divida;
+  onSucesso: () => void;
+}) {
+  const [state, formAction] = useFormState(async (state: DividaFormState, formData: FormData) => {
+    const resultado = await action(state, formData);
+    if (!resultado.error) onSucesso();
+    return resultado;
+  }, {});
+
+  return (
+    <form action={formAction} className="space-y-4">
+      <div>
+        <label className="label-field" htmlFor="descricao">Descrição</label>
+        <input
+          id="descricao"
+          name="descricao"
+          type="text"
+          required
+          defaultValue={divida?.descricao}
+          className="input-field"
+          placeholder="Ex: Financiamento carro"
+        />
+      </div>
+
+      <div>
+        <label className="label-field" htmlFor="credor">Credor</label>
+        <input
+          id="credor"
+          name="credor"
+          type="text"
+          defaultValue={divida?.credor ?? ''}
+          className="input-field"
+          placeholder="Ex: Banco Itaú"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="label-field" htmlFor="valor_total">Valor total</label>
+          <input
+            id="valor_total"
+            name="valor_total"
+            type="number"
+            step="0.01"
+            min="0.01"
+            required
+            defaultValue={divida?.valor_total}
+            className="input-field"
+            placeholder="0,00"
+          />
+        </div>
+        <div>
+          <label className="label-field" htmlFor="parcelas_total">Parcelas</label>
+          <input
+            id="parcelas_total"
+            name="parcelas_total"
+            type="number"
+            min="1"
+            defaultValue={divida?.parcelas_total ?? ''}
+            className="input-field"
+            placeholder="Ex: 12"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="label-field" htmlFor="data_vencimento">Próximo vencimento</label>
+        <input
+          id="data_vencimento"
+          name="data_vencimento"
+          type="date"
+          required
+          defaultValue={divida?.data_vencimento}
+          className="input-field"
+        />
+      </div>
+
+      {state.error && <p className="text-sm text-negative">{state.error}</p>}
+
+      <div className="flex justify-end pt-2">
+        <BotaoSalvar label={divida ? 'Salvar alterações' : 'Cadastrar dívida'} />
+      </div>
+    </form>
+  );
+}

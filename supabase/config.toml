@@ -1,0 +1,4 @@
+project_id = "orcafamilia"
+
+[functions.alertas-diarios]
+verify_jwt = false
