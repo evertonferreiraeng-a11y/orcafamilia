@@ -139,22 +139,28 @@ export interface NotificacaoLog {
   status: StatusNotificacao;
 }
 
+type TableDef<Row> = { Row: Row; Insert: Partial<Row>; Update: Partial<Row>; Relationships: [] };
+
 export interface Database {
   public: {
     Tables: {
-      familias: { Row: Familia; Insert: Partial<Familia>; Update: Partial<Familia> };
-      familia_membros: { Row: FamiliaMembro; Insert: Partial<FamiliaMembro>; Update: Partial<FamiliaMembro> };
-      perfis: { Row: Perfil; Insert: Partial<Perfil>; Update: Partial<Perfil> };
-      contas: { Row: Conta; Insert: Partial<Conta>; Update: Partial<Conta> };
-      cartoes: { Row: Cartao; Insert: Partial<Cartao>; Update: Partial<Cartao> };
-      categorias: { Row: Categoria; Insert: Partial<Categoria>; Update: Partial<Categoria> };
-      transacoes: { Row: Transacao; Insert: Partial<Transacao>; Update: Partial<Transacao> };
-      orcamentos: { Row: Orcamento; Insert: Partial<Orcamento>; Update: Partial<Orcamento> };
-      dividas: { Row: Divida; Insert: Partial<Divida>; Update: Partial<Divida> };
-      metas: { Row: Meta; Insert: Partial<Meta>; Update: Partial<Meta> };
-      investimentos: { Row: Investimento; Insert: Partial<Investimento>; Update: Partial<Investimento> };
-      alertas_config: { Row: AlertasConfig; Insert: Partial<AlertasConfig>; Update: Partial<AlertasConfig> };
-      notificacoes_log: { Row: NotificacaoLog; Insert: Partial<NotificacaoLog>; Update: Partial<NotificacaoLog> };
+      familias: TableDef<Familia>;
+      familia_membros: TableDef<FamiliaMembro>;
+      perfis: TableDef<Perfil>;
+      contas: TableDef<Conta>;
+      cartoes: TableDef<Cartao>;
+      categorias: TableDef<Categoria>;
+      transacoes: TableDef<Transacao>;
+      orcamentos: TableDef<Orcamento>;
+      dividas: TableDef<Divida>;
+      metas: TableDef<Meta>;
+      investimentos: TableDef<Investimento>;
+      alertas_config: TableDef<AlertasConfig>;
+      notificacoes_log: TableDef<NotificacaoLog>;
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 }
