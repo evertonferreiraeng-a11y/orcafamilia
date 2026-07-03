@@ -38,7 +38,7 @@ export default function LoginPage() {
 
       <p className="text-center text-sm text-gray-500">
         Não tem conta?{' '}
-        <Link href="/cadastro" className="font-medium text-brand-600 hover:underline">
+        <Link href="/criar-conta" className="font-medium text-brand-600 hover:underline">
           Criar conta
         </Link>
       </p>
