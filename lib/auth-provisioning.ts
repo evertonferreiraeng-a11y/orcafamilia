@@ -1,5 +1,6 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/types/database';
+import type { createServerSupabase } from '@/lib/supabase-server';
+
+type SupabaseClient = ReturnType<typeof createServerSupabase>;
 
 export interface DadosProvisionamento {
   nome: string;
@@ -14,7 +15,7 @@ export interface DadosProvisionamento {
  * perfil já existir, não faz nada.
  */
 export async function provisionarPerfil(
-  supabase: SupabaseClient<Database>,
+  supabase: SupabaseClient,
   userId: string,
   dados: DadosProvisionamento
 ): Promise<{ error?: string }> {
