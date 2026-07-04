@@ -24,6 +24,10 @@ import {
   PanelLeft,
   Eye,
   EyeOff,
+  AlertTriangle,
+  Calendar,
+  Search,
+  CreditCard,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -60,3 +64,7 @@ export const IconSidebarClose = withDefaultStroke(PanelLeftClose);
 export const IconSidebarOpen = withDefaultStroke(PanelLeft);
 export const IconEye = withDefaultStroke(Eye);
 export const IconEyeOff = withDefaultStroke(EyeOff);
+export const IconAlerta = withDefaultStroke(AlertTriangle);
+export const IconCalendario = withDefaultStroke(Calendar);
+export const IconSearch = withDefaultStroke(Search);
+export const IconCartao = withDefaultStroke(CreditCard);
