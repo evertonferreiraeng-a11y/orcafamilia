@@ -20,6 +20,8 @@ import {
   Wallet,
   TrendingDown,
   LineChart,
+  PanelLeftClose,
+  PanelLeft,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -52,3 +54,5 @@ export const IconPiggyBank = withDefaultStroke(PiggyBank);
 export const IconTrendUp = withDefaultStroke(TrendingUp);
 export const IconTrendDown = withDefaultStroke(TrendingDown);
 export const IconChart = withDefaultStroke(LineChart);
+export const IconSidebarClose = withDefaultStroke(PanelLeftClose);
+export const IconSidebarOpen = withDefaultStroke(PanelLeft);

@@ -87,15 +87,25 @@ function NavGroups({ pathname, onNavigate }: { pathname: string; onNavigate?: ()
   );
 }
 
-export function Sidebar({ mobileOpen = false, onClose }: { mobileOpen?: boolean; onClose?: () => void }) {
+export function Sidebar({
+  mobileOpen = false,
+  onClose,
+  desktopOpen = true,
+}: {
+  mobileOpen?: boolean;
+  onClose?: () => void;
+  desktopOpen?: boolean;
+}) {
   const pathname = usePathname();
 
   return (
     <>
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-gray-100 bg-white px-4 py-6 md:flex">
-        <Logo />
-        <NavGroups pathname={pathname} />
-      </aside>
+      {desktopOpen && (
+        <aside className="hidden w-64 shrink-0 flex-col border-r border-gray-100 bg-white px-4 py-6 md:flex">
+          <Logo />
+          <NavGroups pathname={pathname} />
+        </aside>
+      )}
 
       {mobileOpen && (
         <div className="fixed inset-0 z-40 md:hidden">

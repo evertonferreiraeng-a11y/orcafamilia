@@ -1,6 +1,6 @@
 import { NotificationBell } from '@/components/layout/NotificationBell';
 import { UserMenu } from '@/components/layout/UserMenu';
-import { IconMenu } from '@/components/icons';
+import { IconMenu, IconSidebarClose, IconSidebarOpen } from '@/components/icons';
 import type { NotificacaoLog } from '@/types/database';
 
 export function Topbar({
@@ -8,12 +8,16 @@ export function Topbar({
   email,
   notificacoes,
   onMenuClick,
+  onToggleSidebar,
+  sidebarOpen = true,
   children,
 }: {
   nome: string;
   email: string;
   notificacoes: NotificacaoLog[];
   onMenuClick?: () => void;
+  onToggleSidebar?: () => void;
+  sidebarOpen?: boolean;
   children?: React.ReactNode;
 }) {
   const primeiroNome = nome.split(' ')[0];
@@ -28,6 +32,14 @@ export function Topbar({
           aria-label="Abrir menu"
         >
           <IconMenu className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          onClick={onToggleSidebar}
+          className="hidden rounded-lg p-2 text-gray-500 hover:bg-gray-100 md:inline-flex"
+          aria-label={sidebarOpen ? 'Ocultar menu lateral' : 'Mostrar menu lateral'}
+        >
+          {sidebarOpen ? <IconSidebarClose className="h-5 w-5" /> : <IconSidebarOpen className="h-5 w-5" />}
         </button>
         <h1 className="text-lg font-semibold text-gray-900">Olá, {primeiroNome}</h1>
       </div>
