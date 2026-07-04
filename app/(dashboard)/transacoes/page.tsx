@@ -3,7 +3,7 @@ import { createServerSupabase } from '@/lib/supabase-server';
 import { parseMesParam, primeiroDiaMes, ultimoDiaMes } from '@/lib/utils';
 import { FiltrosTransacoes } from '@/components/transacoes/FiltrosTransacoes';
 import { TransacoesClient, type TransacaoComSaldo } from '@/components/transacoes/TransacoesClient';
-import type { Categoria, Conta, Cartao } from '@/types/database';
+import type { Categoria, Conta, Cartao, TipoLancamento } from '@/types/database';
 
 export default async function TransacoesPage({
   searchParams,
@@ -33,7 +33,9 @@ export default async function TransacoesPage({
     .gte('data', inicio)
     .lte('data', fim);
 
-  if (searchParams.tipo) query = query.eq('tipo', searchParams.tipo);
+    if (searchParams.tipo === 'receita' || searchParams.tipo === 'despesa') {
+    query = query.eq('tipo', searchParams.tipo satisfies TipoLancamento);
+  }
   if (searchParams.categoria) query = query.eq('categoria_id', searchParams.categoria);
   if (searchParams.conta) query = query.eq('conta_id', searchParams.conta);
 
