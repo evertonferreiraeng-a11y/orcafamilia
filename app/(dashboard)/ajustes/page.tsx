@@ -11,11 +11,17 @@ export default async function AjustesPage() {
   if (!user) return null;
 
   const [{ data: perfil }, { data: alertas }] = await Promise.all([
-    supabase.from('perfis').select('*').eq('id', user.id).single(),
+    supabase.from('perfis').select('*').eq('id', user.id).maybeSingle(),
     supabase.from('alertas_config').select('*').eq('user_id', user.id).maybeSingle(),
   ]);
 
-  if (!perfil) return null;
+  if (!perfil) {
+    return (
+      <div className="card p-6 text-sm text-gray-500">
+        Não foi possível carregar seu perfil agora. Tente recarregar a página em alguns instantes.
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
