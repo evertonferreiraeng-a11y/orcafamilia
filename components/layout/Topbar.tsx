@@ -27,12 +27,12 @@ export function Topbar({
   const { visivel, alternar } = useSaldoVisibilidade();
 
   return (
-    <header className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-100 px-4 py-4 sm:px-6">
+    <header className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 bg-white px-4 py-4 sm:px-6">
       <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={onMenuClick}
-          className="rounded-lg p-2 text-gray-500 hover:bg-gray-200 md:hidden"
+          className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 md:hidden"
           aria-label="Abrir menu"
         >
           <IconMenu className="h-5 w-5" />
@@ -40,7 +40,7 @@ export function Topbar({
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="hidden rounded-lg p-2 text-gray-500 hover:bg-gray-200 md:inline-flex"
+          className="hidden rounded-lg p-2 text-gray-500 hover:bg-gray-100 md:inline-flex"
           aria-label={sidebarOpen ? 'Ocultar menu lateral' : 'Mostrar menu lateral'}
         >
           {sidebarOpen ? <IconSidebarClose className="h-5 w-5" /> : <IconSidebarOpen className="h-5 w-5" />}
@@ -53,7 +53,7 @@ export function Topbar({
         <button
           type="button"
           onClick={alternar}
-          className="rounded-lg p-2 text-gray-500 hover:bg-gray-200"
+          className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
           aria-label={visivel ? 'Ocultar saldos' : 'Mostrar saldos'}
         >
           {visivel ? <IconEye className="h-5 w-5" /> : <IconEyeOff className="h-5 w-5" />}

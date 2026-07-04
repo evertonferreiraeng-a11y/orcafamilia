@@ -27,7 +27,7 @@ export function UserMenu({ nome, email }: { nome: string; email: string }) {
       <button
         type="button"
         onClick={() => setAberto((v) => !v)}
-        className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 hover:bg-gray-200"
+        className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 hover:bg-gray-100"
       >
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-500 text-xs font-semibold text-white">
           {iniciais || 'U'}
