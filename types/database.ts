@@ -6,26 +6,26 @@ export type TipoInvestimento = 'renda_fixa' | 'renda_variavel' | 'fundo' | 'outr
 export type TipoNotificacao = 'saldo' | 'divida' | 'orcamento';
 export type StatusNotificacao = 'enviado' | 'erro';
 
-export interface Familia {
+export type Familia = {
   id: string;
   nome: string;
   criado_em: string;
-}
+};
 
-export interface FamiliaMembro {
+export type FamiliaMembro = {
   familia_id: string;
   user_id: string;
-}
+};
 
-export interface Perfil {
+export type Perfil = {
   id: string;
   nome: string;
   telefone: string | null;
   familia_id: string | null;
   criado_em: string;
-}
+};
 
-export interface Conta {
+export type Conta = {
   id: string;
   user_id: string;
   nome: string;
@@ -34,9 +34,9 @@ export interface Conta {
   cor: string | null;
   ativa: boolean;
   criado_em: string;
-}
+};
 
-export interface Cartao {
+export type Cartao = {
   id: string;
   user_id: string;
   nome: string;
@@ -47,9 +47,9 @@ export interface Cartao {
   conta_pagamento_id: string | null;
   ativo: boolean;
   criado_em: string;
-}
+};
 
-export interface Categoria {
+export type Categoria = {
   id: string;
   user_id: string;
   nome: string;
@@ -57,9 +57,9 @@ export interface Categoria {
   cor: string | null;
   icone: string | null;
   criado_em: string;
-}
+};
 
-export interface Transacao {
+export type Transacao = {
   id: string;
   user_id: string;
   conta_id: string | null;
@@ -72,18 +72,18 @@ export interface Transacao {
   recorrente: boolean;
   frequencia: Frequencia | null;
   criado_em: string;
-}
+};
 
-export interface Orcamento {
+export type Orcamento = {
   id: string;
   user_id: string;
   categoria_id: string;
   valor_limite: number;
   mes_referencia: string;
   criado_em: string;
-}
+};
 
-export interface Divida {
+export type Divida = {
   id: string;
   user_id: string;
   descricao: string;
@@ -95,9 +95,9 @@ export interface Divida {
   data_vencimento: string;
   status: StatusDivida;
   criado_em: string;
-}
+};
 
-export interface Meta {
+export type Meta = {
   id: string;
   user_id: string;
   nome: string;
@@ -105,9 +105,9 @@ export interface Meta {
   valor_atual: number;
   data_alvo: string | null;
   criado_em: string;
-}
+};
 
-export interface Investimento {
+export type Investimento = {
   id: string;
   user_id: string;
   nome: string;
@@ -117,9 +117,9 @@ export interface Investimento {
   valor_atual: number;
   data_aplicacao: string | null;
   criado_em: string;
-}
+};
 
-export interface AlertasConfig {
+export type AlertasConfig = {
   user_id: string;
   telefone: string | null;
   alerta_saldo_ativo: boolean;
@@ -128,18 +128,31 @@ export interface AlertasConfig {
   alerta_divida_dias_antes: number;
   alerta_orcamento_ativo: boolean;
   alerta_orcamento_percentual: number;
-}
+};
 
-export interface NotificacaoLog {
+export type NotificacaoLog = {
   id: string;
   user_id: string;
   tipo: TipoNotificacao;
   mensagem: string;
   enviado_em: string;
   status: StatusNotificacao;
-}
+};
 
-type TableDef<Row> = { Row: Row; Insert: Partial<Row>; Update: Partial<Row>; Relationships: [] };
+type Relationship = {
+  foreignKeyName: string;
+  columns: string[];
+  isOneToOne?: boolean;
+  referencedRelation: string;
+  referencedColumns: string[];
+};
+
+type TableDef<Row, Relationships extends Relationship[] = []> = {
+  Row: Row;
+  Insert: Partial<Row>;
+  Update: Partial<Row>;
+  Relationships: Relationships;
+};
 
 export interface Database {
   __InternalSupabase: {
@@ -148,13 +161,82 @@ export interface Database {
   public: {
     Tables: {
       familias: TableDef<Familia>;
-      familia_membros: TableDef<FamiliaMembro>;
-      perfis: TableDef<Perfil>;
+      familia_membros: TableDef<
+        FamiliaMembro,
+        [
+          {
+            foreignKeyName: 'familia_membros_familia_id_fkey';
+            columns: ['familia_id'];
+            isOneToOne: false;
+            referencedRelation: 'familias';
+            referencedColumns: ['id'];
+          },
+        ]
+      >;
+      perfis: TableDef<
+        Perfil,
+        [
+          {
+            foreignKeyName: 'perfis_familia_id_fkey';
+            columns: ['familia_id'];
+            isOneToOne: false;
+            referencedRelation: 'familias';
+            referencedColumns: ['id'];
+          },
+        ]
+      >;
       contas: TableDef<Conta>;
-      cartoes: TableDef<Cartao>;
+      cartoes: TableDef<
+        Cartao,
+        [
+          {
+            foreignKeyName: 'cartoes_conta_pagamento_id_fkey';
+            columns: ['conta_pagamento_id'];
+            isOneToOne: false;
+            referencedRelation: 'contas';
+            referencedColumns: ['id'];
+          },
+        ]
+      >;
       categorias: TableDef<Categoria>;
-      transacoes: TableDef<Transacao>;
-      orcamentos: TableDef<Orcamento>;
+      transacoes: TableDef<
+        Transacao,
+        [
+          {
+            foreignKeyName: 'transacoes_conta_id_fkey';
+            columns: ['conta_id'];
+            isOneToOne: false;
+            referencedRelation: 'contas';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'transacoes_cartao_id_fkey';
+            columns: ['cartao_id'];
+            isOneToOne: false;
+            referencedRelation: 'cartoes';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'transacoes_categoria_id_fkey';
+            columns: ['categoria_id'];
+            isOneToOne: false;
+            referencedRelation: 'categorias';
+            referencedColumns: ['id'];
+          },
+        ]
+      >;
+      orcamentos: TableDef<
+        Orcamento,
+        [
+          {
+            foreignKeyName: 'orcamentos_categoria_id_fkey';
+            columns: ['categoria_id'];
+            isOneToOne: false;
+            referencedRelation: 'categorias';
+            referencedColumns: ['id'];
+          },
+        ]
+      >;
       dividas: TableDef<Divida>;
       metas: TableDef<Meta>;
       investimentos: TableDef<Investimento>;
