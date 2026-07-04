@@ -1,4 +1,12 @@
 import { cn, formatCurrency } from '@/lib/utils';
+import { IconLandmark, IconPiggyBank, IconTrendUp, IconWallet } from '@/components/icons';
+
+const ICONE_POR_TIPO: Record<string, typeof IconWallet> = {
+  corrente: IconLandmark,
+  poupanca: IconPiggyBank,
+  investimento: IconTrendUp,
+  dinheiro: IconWallet,
+};
 
 export function AccountCard({
   nome,
@@ -11,13 +19,17 @@ export function AccountCard({
   saldo: number;
   cor: string | null;
 }) {
+  const Icone = ICONE_POR_TIPO[tipo] ?? IconWallet;
+
   return (
     <div className="card flex items-center justify-between p-4">
       <div className="flex items-center gap-3">
         <span
-          className="h-9 w-9 shrink-0 rounded-full"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white"
           style={{ backgroundColor: cor ?? '#2a78d6' }}
-        />
+        >
+          <Icone className="h-4 w-4" />
+        </span>
         <div>
           <p className="text-sm font-medium text-gray-800">{nome}</p>
           <p className="text-xs capitalize text-gray-400">{tipo}</p>

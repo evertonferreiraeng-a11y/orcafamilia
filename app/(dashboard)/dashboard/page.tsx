@@ -7,6 +7,7 @@ import { AccountCard } from '@/components/ui/AccountCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { CashFlowChart, type PontoFluxo } from '@/components/charts/CashFlowChart';
 import { RecentActivityList, type AtividadeRecente } from '@/components/RecentActivityList';
+import { IconTrendUp, IconTrendDown, IconWallet, IconChart } from '@/components/icons';
 
 export default async function DashboardPage({
   searchParams,
@@ -54,7 +55,6 @@ export default async function DashboardPage({
   const periodo = transacoesPeriodo ?? [];
   const receitaMes = periodo.filter((t) => t.tipo === 'receita').reduce((a, t) => a + Number(t.valor), 0);
   const despesaMes = periodo.filter((t) => t.tipo === 'despesa').reduce((a, t) => a + Number(t.valor), 0);
-  const saldoMes = receitaMes - despesaMes;
 
   const impactoRecorrente = impactoMensalRecorrentes(
     (recorrentes ?? []).map((r) => ({
@@ -96,10 +96,10 @@ export default async function DashboardPage({
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard titulo="Receita" valor={receitaMes} tom="positivo" subtitulo="no período" />
-        <SummaryCard titulo="Despesa" valor={despesaMes} tom="negativo" subtitulo="no período" />
-        <SummaryCard titulo="Saldo" valor={saldoMes} tom={saldoMes >= 0 ? 'positivo' : 'negativo'} subtitulo="receita - despesa" />
-        <SummaryCard titulo="Previsão" valor={previsao} tom={previsao >= 0 ? 'positivo' : 'negativo'} subtitulo="saldo + recorrentes" />
+        <SummaryCard titulo="Saldo" valor={saldoTotalContas} subtitulo="em todas as contas" icon={IconWallet} destaque />
+        <SummaryCard titulo="Receita" valor={receitaMes} tom="positivo" subtitulo="no período" icon={IconTrendUp} />
+        <SummaryCard titulo="Despesa" valor={despesaMes} tom="negativo" subtitulo="no período" icon={IconTrendDown} />
+        <SummaryCard titulo="Previsão" valor={previsao} tom={previsao >= 0 ? 'positivo' : 'negativo'} subtitulo="saldo + recorrentes" icon={IconChart} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

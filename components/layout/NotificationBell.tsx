@@ -33,7 +33,7 @@ export function NotificationBell({ notificacoes }: { notificacoes: NotificacaoLo
       {aberto && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setAberto(false)} />
-          <div className="absolute right-0 z-20 mt-2 w-80 rounded-2xl border border-gray-100 bg-white p-2 shadow-lg">
+          <div className="absolute right-0 z-20 mt-2 w-80 rounded-2xl border border-gray-100 bg-white p-2 shadow-elevated">
             <p className="px-3 py-2 text-xs font-semibold uppercase text-gray-400">Notificações recentes</p>
             {notificacoes.length === 0 ? (
               <p className="px-3 py-4 text-sm text-gray-400">Nenhuma notificação por aqui.</p>

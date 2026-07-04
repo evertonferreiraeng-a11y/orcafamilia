@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { IconClose } from '@/components/icons';
 
 export function Modal({
   open,
@@ -27,16 +28,16 @@ export function Modal({
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
       <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+      <div className="relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-elevated">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-semibold text-gray-900">{title}</h3>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="rounded-full p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
             aria-label="Fechar"
           >
-            ✕
+            <IconClose className="h-4 w-4" />
           </button>
         </div>
         {children}

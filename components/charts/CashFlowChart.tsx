@@ -8,6 +8,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  type TooltipProps,
 } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
 
@@ -15,6 +16,25 @@ export interface PontoFluxo {
   label: string;
   receita: number;
   despesa: number;
+}
+
+function ChartTooltip({ active, payload, label }: TooltipProps<number, string>) {
+  if (!active || !payload?.length) return null;
+
+  return (
+    <div className="rounded-xl bg-gray-900 px-3 py-2.5 text-xs text-white shadow-elevated">
+      <p className="mb-1.5 font-medium text-gray-300">Dia {label}</p>
+      <div className="space-y-1">
+        {payload.map((item) => (
+          <p key={item.dataKey as string} className="flex items-center gap-1.5 whitespace-nowrap">
+            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: item.color }} />
+            <span className="text-gray-300">{item.name}:</span>
+            <span className="font-semibold">{formatCurrency(Number(item.value ?? 0))}</span>
+          </p>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function CashFlowChart({ dados }: { dados: PontoFluxo[] }) {
@@ -40,10 +60,7 @@ export function CashFlowChart({ dados }: { dados: PontoFluxo[] }) {
           tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
           width={40}
         />
-        <Tooltip
-          formatter={(value: number) => formatCurrency(value)}
-          contentStyle={{ borderRadius: 12, border: '1px solid #eef0f3', fontSize: 13 }}
-        />
+        <Tooltip content={<ChartTooltip />} cursor={{ stroke: '#d1d5db', strokeWidth: 1 }} />
         <Area type="monotone" dataKey="receita" name="Receita" stroke="#16a34a" fill="url(#corReceita)" strokeWidth={2} />
         <Area type="monotone" dataKey="despesa" name="Despesa" stroke="#dc2626" fill="url(#corDespesa)" strokeWidth={2} />
       </AreaChart>

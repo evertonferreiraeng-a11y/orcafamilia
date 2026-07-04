@@ -41,7 +41,7 @@ export function UserMenu({ nome, email }: { nome: string; email: string }) {
       {aberto && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setAberto(false)} />
-          <div className="absolute right-0 z-20 mt-2 w-56 rounded-2xl border border-gray-100 bg-white p-2 shadow-lg">
+          <div className="absolute right-0 z-20 mt-2 w-56 rounded-2xl border border-gray-100 bg-white p-2 shadow-elevated">
             <div className="px-3 py-2">
               <p className="text-sm font-medium text-gray-800">{nome}</p>
               <p className="truncate text-xs text-gray-400">{email}</p>
