@@ -2,6 +2,7 @@ import { createServerSupabase } from '@/lib/supabase-server';
 import { PerfilForm } from '@/components/ajustes/PerfilForm';
 import { AlertasForm } from '@/components/ajustes/AlertasForm';
 import { CodigoFamilia } from '@/components/ajustes/CodigoFamilia';
+import { TemaSwitcher } from '@/components/ajustes/TemaSwitcher';
 
 export default async function AjustesPage() {
   const supabase = createServerSupabase();
@@ -28,6 +29,7 @@ export default async function AjustesPage() {
       <div className="space-y-6">
         <PerfilForm perfil={perfil} email={user.email ?? ''} />
         {perfil.familia_id && <CodigoFamilia codigo={perfil.familia_id} />}
+        <TemaSwitcher />
       </div>
       <AlertasForm config={alertas} />
     </div>
