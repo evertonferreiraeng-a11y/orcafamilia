@@ -43,6 +43,18 @@ export function MetaForm({
         />
       </div>
 
+      <div>
+        <label className="label-field" htmlFor="descricao">Descrição</label>
+        <textarea
+          id="descricao"
+          name="descricao"
+          rows={3}
+          defaultValue={meta?.descricao ?? ''}
+          className="input-field"
+          placeholder="Descreva sua meta e o que ela significa para você..."
+        />
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="label-field" htmlFor="valor_alvo">Valor alvo</label>
@@ -59,15 +71,29 @@ export function MetaForm({
           />
         </div>
         <div>
-          <label className="label-field" htmlFor="data_alvo">Data alvo</label>
+          <label className="label-field" htmlFor="valor_atual">Valor atual</label>
           <input
-            id="data_alvo"
-            name="data_alvo"
-            type="date"
-            defaultValue={meta?.data_alvo ?? ''}
+            id="valor_atual"
+            name="valor_atual"
+            type="number"
+            step="0.01"
+            min="0"
+            defaultValue={meta?.valor_atual ?? 0}
             className="input-field"
+            placeholder="0,00"
           />
         </div>
+      </div>
+
+      <div>
+        <label className="label-field" htmlFor="data_alvo">Data alvo</label>
+        <input
+          id="data_alvo"
+          name="data_alvo"
+          type="date"
+          defaultValue={meta?.data_alvo ?? ''}
+          className="input-field"
+        />
       </div>
 
       {state.error && <p className="text-sm text-negative">{state.error}</p>}

@@ -1,21 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
-import { ProgressBar } from '@/components/ui/ProgressBar';
-import { DeleteButton } from '@/components/ui/DeleteButton';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { IconPlus, IconEdit } from '@/components/icons';
+import { IconPlus, IconSearch } from '@/components/icons';
 import { MetaForm } from '@/components/metas/MetaForm';
-import { AporteForm } from '@/components/metas/AporteForm';
-import { criarMeta, atualizarMeta, registrarAporteMeta, excluirMeta } from '@/app/(dashboard)/metas/actions';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { MetaCard } from '@/components/metas/MetaCard';
+import { criarMeta, atualizarMeta } from '@/app/(dashboard)/metas/actions';
 import type { Meta } from '@/types/database';
+
+type StatusFiltro = 'todas' | 'ativa' | 'concluida';
 
 export function MetasClient({ metas }: { metas: Meta[] }) {
   const [modalForm, setModalForm] = useState(false);
-  const [modalAporte, setModalAporte] = useState(false);
   const [selecionada, setSelecionada] = useState<Meta | undefined>(undefined);
+  const [busca, setBusca] = useState('');
+  const [filtroStatus, setFiltroStatus] = useState<StatusFiltro>('todas');
 
   function abrirNova() {
     setSelecionada(undefined);
@@ -27,67 +27,59 @@ export function MetasClient({ metas }: { metas: Meta[] }) {
     setModalForm(true);
   }
 
-  function abrirAporte(m: Meta) {
-    setSelecionada(m);
-    setModalAporte(true);
-  }
+  const metasFiltradas = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    return metas.filter((m) => {
+      const concluida = Number(m.valor_atual) >= Number(m.valor_alvo);
+      if (filtroStatus === 'ativa' && concluida) return false;
+      if (filtroStatus === 'concluida' && !concluida) return false;
+      if (!termo) return true;
+      return m.nome.toLowerCase().includes(termo) || (m.descricao ?? '').toLowerCase().includes(termo);
+    });
+  }, [metas, busca, filtroStatus]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Vision Board - Metas</h1>
+          <p className="mt-1 text-sm text-gray-500">Visualize e acompanhe suas metas financeiras</p>
+        </div>
         <button type="button" onClick={abrirNova} className="btn-primary">
           <IconPlus className="h-4 w-4" />
-          Nova meta
+          Adicionar Meta
         </button>
       </div>
 
-      {metas.length === 0 ? (
-        <EmptyState mensagem="Nenhuma meta cadastrada." />
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="relative flex-1">
+          <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar metas..."
+            className="input-field pl-9"
+          />
+        </div>
+        <select
+          value={filtroStatus}
+          onChange={(e) => setFiltroStatus(e.target.value as StatusFiltro)}
+          className="input-field sm:w-48"
+        >
+          <option value="todas">Todas</option>
+          <option value="ativa">Ativa</option>
+          <option value="concluida">Concluída</option>
+        </select>
+      </div>
+
+      {metasFiltradas.length === 0 ? (
+        <EmptyState mensagem={metas.length === 0 ? 'Nenhuma meta cadastrada.' : 'Nenhuma meta encontrada.'} />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {metas.map((m) => {
-            const percentual = (Number(m.valor_atual) / Number(m.valor_alvo)) * 100;
-            const concluida = percentual >= 100;
-
-            return (
-              <div key={m.id} className="card p-5">
-                <div className="mb-2 flex items-start justify-between">
-                  <p className="font-medium text-gray-900">{m.nome}</p>
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => abrirEdicao(m)}
-                      className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-                      aria-label="Editar"
-                    >
-                      <IconEdit className="h-4 w-4" />
-                    </button>
-                    <DeleteButton action={() => excluirMeta(m.id)} confirmMessage="Excluir esta meta?" />
-                  </div>
-                </div>
-
-                <p className="text-sm text-gray-500">
-                  {formatCurrency(Number(m.valor_atual))} de {formatCurrency(Number(m.valor_alvo))}
-                </p>
-
-                <div className="mt-2">
-                  <ProgressBar percentual={percentual} tom="brand" />
-                </div>
-
-                <p className={`mt-2 text-xs font-medium ${concluida ? 'text-positive' : 'text-gray-400'}`}>
-                  {percentual.toFixed(0)}% concluída{concluida ? ' — meta atingida' : ''}
-                </p>
-
-                {m.data_alvo && <p className="mt-1 text-xs text-gray-400">Até {formatDate(m.data_alvo)}</p>}
-
-                {!concluida && (
-                  <button type="button" onClick={() => abrirAporte(m)} className="btn-secondary mt-4 w-full">
-                    Registrar aporte
-                  </button>
-                )}
-              </div>
-            );
-          })}
+          {metasFiltradas.map((m) => (
+            <MetaCard key={m.id} meta={m} onEditar={() => abrirEdicao(m)} />
+          ))}
         </div>
       )}
 
@@ -97,12 +89,6 @@ export function MetasClient({ metas }: { metas: Meta[] }) {
           meta={selecionada}
           onSucesso={() => setModalForm(false)}
         />
-      </Modal>
-
-      <Modal open={modalAporte} onClose={() => setModalAporte(false)} title="Registrar aporte">
-        {selecionada && (
-          <AporteForm action={registrarAporteMeta.bind(null, selecionada.id)} onSucesso={() => setModalAporte(false)} />
-        )}
       </Modal>
     </div>
   );

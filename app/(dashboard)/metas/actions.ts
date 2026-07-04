@@ -10,7 +10,9 @@ export interface MetaFormState {
 function parseFormData(formData: FormData) {
   return {
     nome: String(formData.get('nome') || '').trim(),
+    descricao: String(formData.get('descricao') || '').trim() || null,
     valor_alvo: Number(formData.get('valor_alvo') || 0),
+    valor_atual: Number(formData.get('valor_atual') || 0),
     data_alvo: String(formData.get('data_alvo') || '') || null,
   };
 }

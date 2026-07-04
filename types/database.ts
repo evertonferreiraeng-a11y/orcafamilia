@@ -101,6 +101,7 @@ export type Meta = {
   id: string;
   user_id: string;
   nome: string;
+  descricao: string | null;
   valor_alvo: number;
   valor_atual: number;
   data_alvo: string | null;
