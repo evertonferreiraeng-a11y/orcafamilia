@@ -22,22 +22,25 @@ export function AccountCard({
   const Icone = ICONE_POR_TIPO[tipo] ?? IconWallet;
 
   return (
-    <div className="card flex items-center justify-between p-4">
-      <div className="flex items-center gap-3">
+    <div className="card p-4">
+      <div className="flex items-center gap-2">
         <span
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white"
           style={{ backgroundColor: cor ?? '#2a78d6' }}
         >
           <Icone className="h-4 w-4" />
         </span>
-        <div>
-          <p className="text-sm font-medium text-gray-800">{nome}</p>
-          <p className="text-xs capitalize text-gray-400">{tipo}</p>
-        </div>
+        <p className="text-sm font-semibold text-gray-800">{nome}</p>
       </div>
-      <p className={cn('text-sm font-semibold', saldo < 0 ? 'text-negative' : 'text-gray-900')}>
+
+      <p className={cn('mt-3 text-xl font-bold', saldo < 0 ? 'text-negative' : 'text-gray-900')}>
         {formatCurrency(saldo)}
       </p>
+      <p className="mt-0.5 text-xs capitalize text-gray-400">{tipo}</p>
+
+      <span className="mt-3 inline-flex items-center rounded-full bg-positive/10 px-2.5 py-1 text-xs font-medium text-positive">
+        Ativa
+      </span>
     </div>
   );
 }

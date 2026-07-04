@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { eachDayOfInterval, format } from 'date-fns';
 import { createServerSupabase } from '@/lib/supabase-server';
 import { parseMesParam, primeiroDiaMes, ultimoDiaMes } from '@/lib/utils';
@@ -7,7 +8,7 @@ import { AccountCard } from '@/components/ui/AccountCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { CashFlowChart, type PontoFluxo } from '@/components/charts/CashFlowChart';
 import { RecentActivityList, type AtividadeRecente } from '@/components/RecentActivityList';
-import { IconTrendUp, IconTrendDown, IconWallet, IconChart } from '@/components/icons';
+import { IconTrendUp, IconTrendDown, IconWallet, IconChart, IconPlus } from '@/components/icons';
 
 export default async function DashboardPage({
   searchParams,
@@ -103,7 +104,16 @@ export default async function DashboardPage({
       </div>
 
       <div className="space-y-3">
-        <h2 className="text-sm font-semibold text-gray-700">Minhas contas</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-700">Minhas contas</h2>
+          <Link
+            href="/cadastro"
+            className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"
+          >
+            <IconPlus className="h-3.5 w-3.5" />
+            Adicionar
+          </Link>
+        </div>
         {(contas ?? []).length === 0 ? (
           <EmptyState mensagem="Nenhuma conta cadastrada ainda." />
         ) : (
