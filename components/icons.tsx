@@ -22,6 +22,8 @@ import {
   LineChart,
   PanelLeftClose,
   PanelLeft,
+  Eye,
+  EyeOff,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -56,3 +58,5 @@ export const IconTrendDown = withDefaultStroke(TrendingDown);
 export const IconChart = withDefaultStroke(LineChart);
 export const IconSidebarClose = withDefaultStroke(PanelLeftClose);
 export const IconSidebarOpen = withDefaultStroke(PanelLeft);
+export const IconEye = withDefaultStroke(Eye);
+export const IconEyeOff = withDefaultStroke(EyeOff);

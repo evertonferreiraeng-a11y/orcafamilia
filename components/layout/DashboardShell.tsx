@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Topbar } from '@/components/layout/Topbar';
+import { SaldoVisibilidadeProvider } from '@/components/layout/SaldoVisibilidadeContext';
 import type { NotificacaoLog } from '@/types/database';
 
 const STORAGE_KEY = 'orcafamilia:sidebar-aberta';
@@ -37,21 +38,23 @@ export function DashboardShell({
   }
 
   return (
-    <div className="flex min-h-screen bg-surface">
-      <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} desktopOpen={desktopOpen} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar
-          nome={nome}
-          email={email}
-          notificacoes={notificacoes}
-          onMenuClick={() => setMobileOpen(true)}
-          onToggleSidebar={alternarSidebarDesktop}
-          sidebarOpen={desktopOpen}
-        >
-          {topbarSlot}
-        </Topbar>
-        <main className="flex-1 px-4 py-6 sm:px-6">{children}</main>
+    <SaldoVisibilidadeProvider>
+      <div className="flex min-h-screen bg-surface">
+        <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} desktopOpen={desktopOpen} />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Topbar
+            nome={nome}
+            email={email}
+            notificacoes={notificacoes}
+            onMenuClick={() => setMobileOpen(true)}
+            onToggleSidebar={alternarSidebarDesktop}
+            sidebarOpen={desktopOpen}
+          >
+            {topbarSlot}
+          </Topbar>
+          <main className="flex-1 px-4 py-6 sm:px-6">{children}</main>
+        </div>
       </div>
-    </div>
+    </SaldoVisibilidadeProvider>
   );
 }

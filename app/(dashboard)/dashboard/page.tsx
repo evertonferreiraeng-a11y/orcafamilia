@@ -8,15 +8,14 @@ import {
   addMeses,
   calcularVariacaoPercentual,
   formatPercent,
-  formatCurrency,
 } from '@/lib/utils';
 import { SummaryCard } from '@/components/ui/SummaryCard';
-import { AccountCard } from '@/components/ui/AccountCard';
-import { EmptyState } from '@/components/ui/EmptyState';
+import { ValorMonetario } from '@/components/ui/ValorMonetario';
 import { ProgressBar } from '@/components/ui/ProgressBar';
+import { MinhasContasCard } from '@/components/dashboard/MinhasContasCard';
 import { CashFlowChart, type PontoFluxo } from '@/components/charts/CashFlowChart';
 import { RecentActivityList, type AtividadeRecente } from '@/components/RecentActivityList';
-import { IconTrendUp, IconTrendDown, IconWallet, IconMetas, IconPlus } from '@/components/icons';
+import { IconTrendUp, IconTrendDown, IconWallet, IconMetas } from '@/components/icons';
 
 export default async function DashboardPage({
   searchParams,
@@ -155,7 +154,7 @@ export default async function DashboardPage({
           }
           footer={
             <span className="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-600">
-              Saldo acumulado: {formatCurrency(saldoTotalContas)}
+              Saldo acumulado: <ValorMonetario valor={saldoTotalContas} />
             </span>
           }
         />
@@ -171,7 +170,7 @@ export default async function DashboardPage({
           }
           footer={
             <span className="inline-flex items-center rounded-full bg-positive/10 px-2.5 py-1 text-xs font-medium text-positive">
-              Pendente: {formatCurrency(pendenteReceita)}
+              Pendente: <ValorMonetario valor={pendenteReceita} />
             </span>
           }
         />
@@ -187,7 +186,7 @@ export default async function DashboardPage({
           }
           footer={
             <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
-              Pendente: {formatCurrency(pendenteDespesa)}
+              Pendente: <ValorMonetario valor={pendenteDespesa} />
             </span>
           }
         />
@@ -205,8 +204,12 @@ export default async function DashboardPage({
               <div className="space-y-2">
                 <ProgressBar percentual={percentualOrcamento} />
                 <div className="flex justify-between text-xs text-gray-500">
-                  <span>Gasto: {formatCurrency(gastoOrcamento)}</span>
-                  <span>Restante: {formatCurrency(restanteOrcamento)}</span>
+                  <span>
+                    Gasto: <ValorMonetario valor={gastoOrcamento} />
+                  </span>
+                  <span>
+                    Restante: <ValorMonetario valor={restanteOrcamento} />
+                  </span>
                 </div>
                 {categoriasAcima > 0 && (
                   <p className="text-xs font-medium text-negative">
@@ -224,33 +227,15 @@ export default async function DashboardPage({
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="card p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-700">Minhas contas</h2>
-            <Link
-              href="/cadastro"
-              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"
-            >
-              <IconPlus className="h-3.5 w-3.5" />
-              Adicionar
-            </Link>
-          </div>
-          {(contas ?? []).length === 0 ? (
-            <EmptyState mensagem="Nenhuma conta cadastrada ainda." />
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {(contas ?? []).map((conta) => (
-                <AccountCard
-                  key={conta.id}
-                  nome={conta.nome}
-                  tipo={conta.tipo}
-                  saldo={saldoPorConta.get(conta.id) ?? 0}
-                  cor={conta.cor}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        <MinhasContasCard
+          contas={(contas ?? []).map((conta) => ({
+            id: conta.id,
+            nome: conta.nome,
+            tipo: conta.tipo,
+            saldo: saldoPorConta.get(conta.id) ?? 0,
+            cor: conta.cor,
+          }))}
+        />
 
         <div className="card p-5">
           <h2 className="mb-4 text-sm font-semibold text-gray-700">Fluxo de caixa do período</h2>

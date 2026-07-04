@@ -1,6 +1,9 @@
+'use client';
+
 import { NotificationBell } from '@/components/layout/NotificationBell';
 import { UserMenu } from '@/components/layout/UserMenu';
-import { IconMenu, IconSidebarClose, IconSidebarOpen } from '@/components/icons';
+import { useSaldoVisibilidade } from '@/components/layout/SaldoVisibilidadeContext';
+import { IconMenu, IconSidebarClose, IconSidebarOpen, IconEye, IconEyeOff } from '@/components/icons';
 import type { NotificacaoLog } from '@/types/database';
 
 export function Topbar({
@@ -21,6 +24,7 @@ export function Topbar({
   children?: React.ReactNode;
 }) {
   const primeiroNome = nome.split(' ')[0];
+  const { visivel, alternar } = useSaldoVisibilidade();
 
   return (
     <header className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 bg-white px-4 py-4 sm:px-6">
@@ -46,6 +50,14 @@ export function Topbar({
 
       <div className="flex items-center gap-3">
         {children}
+        <button
+          type="button"
+          onClick={alternar}
+          className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+          aria-label={visivel ? 'Ocultar saldos' : 'Mostrar saldos'}
+        >
+          {visivel ? <IconEye className="h-5 w-5" /> : <IconEyeOff className="h-5 w-5" />}
+        </button>
         <NotificationBell notificacoes={notificacoes} />
         <UserMenu nome={nome} email={email} />
       </div>

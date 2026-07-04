@@ -1,4 +1,5 @@
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import { ValorMonetario } from '@/components/ui/ValorMonetario';
 import { IconLandmark, IconPiggyBank, IconTrendUp, IconWallet } from '@/components/icons';
 
 const ICONE_POR_TIPO: Record<string, typeof IconWallet> = {
@@ -34,7 +35,7 @@ export function AccountCard({
       </div>
 
       <p className={cn('mt-3 text-lg font-bold', saldo < 0 ? 'text-negative' : 'text-gray-900')}>
-        {formatCurrency(saldo)}
+        <ValorMonetario valor={saldo} />
       </p>
       <p className="mt-0.5 text-xs capitalize text-gray-400">{tipo}</p>
 

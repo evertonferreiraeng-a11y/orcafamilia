@@ -26,7 +26,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <DashboardShell
-      nome={perfil?.nome ?? user.email ?? 'Usuário'}
+      nome={perfil?.nome || 'Usuário'}
       email={user.email ?? ''}
       notificacoes={notificacoes ?? []}
       topbarSlot={

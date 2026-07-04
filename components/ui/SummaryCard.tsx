@@ -1,4 +1,5 @@
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import { ValorMonetario } from '@/components/ui/ValorMonetario';
 import type { SVGProps } from 'react';
 
 export function SummaryCard({
@@ -50,7 +51,7 @@ export function SummaryCard({
           tom === 'positivo' ? 'text-positive' : tom === 'negativo' ? 'text-negative' : 'text-gray-900'
         )}
       >
-        {formatCurrency(valor)}
+        <ValorMonetario valor={valor} />
       </p>
 
       {footer && <div className="mt-3">{footer}</div>}
