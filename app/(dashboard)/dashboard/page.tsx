@@ -1,14 +1,22 @@
 import Link from 'next/link';
 import { eachDayOfInterval, format } from 'date-fns';
 import { createServerSupabase } from '@/lib/supabase-server';
-import { parseMesParam, primeiroDiaMes, ultimoDiaMes } from '@/lib/utils';
-import { impactoMensalRecorrentes } from '@/lib/forecast';
+import {
+  parseMesParam,
+  primeiroDiaMes,
+  ultimoDiaMes,
+  addMeses,
+  calcularVariacaoPercentual,
+  formatPercent,
+  formatCurrency,
+} from '@/lib/utils';
 import { SummaryCard } from '@/components/ui/SummaryCard';
 import { AccountCard } from '@/components/ui/AccountCard';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ProgressBar } from '@/components/ui/ProgressBar';
 import { CashFlowChart, type PontoFluxo } from '@/components/charts/CashFlowChart';
 import { RecentActivityList, type AtividadeRecente } from '@/components/RecentActivityList';
-import { IconTrendUp, IconTrendDown, IconWallet, IconChart, IconPlus } from '@/components/icons';
+import { IconTrendUp, IconTrendDown, IconWallet, IconMetas, IconPlus } from '@/components/icons';
 
 export default async function DashboardPage({
   searchParams,
@@ -25,20 +33,39 @@ export default async function DashboardPage({
   const mesSelecionado = parseMesParam(searchParams.mes);
   const inicio = primeiroDiaMes(mesSelecionado);
   const fim = ultimoDiaMes(mesSelecionado);
+  const hoje = format(new Date(), 'yyyy-MM-dd');
 
-  const [{ data: contas }, { data: transacoesContas }, { data: transacoesPeriodo }, { data: recorrentes }] =
-    await Promise.all([
-      supabase.from('contas').select('*').eq('user_id', user.id).eq('ativa', true).order('nome'),
-      supabase.from('transacoes').select('conta_id, tipo, valor').eq('user_id', user.id).not('conta_id', 'is', null),
-      supabase
-        .from('transacoes')
-        .select('id, descricao, valor, data, tipo, conta_id, categorias(nome, cor)')
-        .eq('user_id', user.id)
-        .gte('data', inicio)
-        .lte('data', fim)
-        .order('data', { ascending: false }),
-      supabase.from('transacoes').select('tipo, valor, frequencia').eq('user_id', user.id).eq('recorrente', true),
-    ]);
+  const mesAnterior = addMeses(mesSelecionado, -1);
+  const inicioAnterior = primeiroDiaMes(mesAnterior);
+  const fimAnterior = ultimoDiaMes(mesAnterior);
+
+  const [
+    { data: contas },
+    { data: transacoesContas },
+    { data: transacoesPeriodo },
+    { data: transacoesMesAnterior },
+    { data: orcamentosMes },
+    { data: despesasPorCategoriaMes },
+  ] = await Promise.all([
+    supabase.from('contas').select('*').eq('user_id', user.id).eq('ativa', true).order('nome'),
+    supabase.from('transacoes').select('conta_id, tipo, valor').eq('user_id', user.id).not('conta_id', 'is', null),
+    supabase
+      .from('transacoes')
+      .select('id, descricao, valor, data, tipo, conta_id, categorias(nome, cor)')
+      .eq('user_id', user.id)
+      .gte('data', inicio)
+      .lte('data', fim)
+      .order('data', { ascending: false }),
+    supabase.from('transacoes').select('tipo, valor').eq('user_id', user.id).gte('data', inicioAnterior).lte('data', fimAnterior),
+    supabase.from('orcamentos').select('valor_limite, categoria_id').eq('user_id', user.id).eq('mes_referencia', inicio),
+    supabase
+      .from('transacoes')
+      .select('categoria_id, valor')
+      .eq('user_id', user.id)
+      .eq('tipo', 'despesa')
+      .gte('data', inicio)
+      .lte('data', fim),
+  ]);
 
   const saldoPorConta = new Map<string, number>();
   for (const conta of contas ?? []) {
@@ -54,17 +81,36 @@ export default async function DashboardPage({
   const saldoTotalContas = Array.from(saldoPorConta.values()).reduce((a, b) => a + b, 0);
 
   const periodo = transacoesPeriodo ?? [];
-  const receitaMes = periodo.filter((t) => t.tipo === 'receita').reduce((a, t) => a + Number(t.valor), 0);
-  const despesaMes = periodo.filter((t) => t.tipo === 'despesa').reduce((a, t) => a + Number(t.valor), 0);
+  const realizado = periodo.filter((t) => t.data <= hoje);
+  const pendente = periodo.filter((t) => t.data > hoje);
 
-  const impactoRecorrente = impactoMensalRecorrentes(
-    (recorrentes ?? []).map((r) => ({
-      tipo: r.tipo as 'receita' | 'despesa',
-      valor: Number(r.valor),
-      frequencia: r.frequencia as 'mensal' | 'semanal' | null,
-    }))
-  );
-  const previsao = saldoTotalContas + impactoRecorrente;
+  const receitaMes = realizado.filter((t) => t.tipo === 'receita').reduce((a, t) => a + Number(t.valor), 0);
+  const despesaMes = realizado.filter((t) => t.tipo === 'despesa').reduce((a, t) => a + Number(t.valor), 0);
+  const saldoMes = receitaMes - despesaMes;
+
+  const pendenteReceita = pendente.filter((t) => t.tipo === 'receita').reduce((a, t) => a + Number(t.valor), 0);
+  const pendenteDespesa = pendente.filter((t) => t.tipo === 'despesa').reduce((a, t) => a + Number(t.valor), 0);
+
+  const mesAnteriorTransacoes = transacoesMesAnterior ?? [];
+  const receitaMesAnterior = mesAnteriorTransacoes.filter((t) => t.tipo === 'receita').reduce((a, t) => a + Number(t.valor), 0);
+  const despesaMesAnterior = mesAnteriorTransacoes.filter((t) => t.tipo === 'despesa').reduce((a, t) => a + Number(t.valor), 0);
+  const saldoMesAnterior = receitaMesAnterior - despesaMesAnterior;
+
+  const variacaoSaldo = calcularVariacaoPercentual(saldoMes, saldoMesAnterior);
+  const variacaoReceita = calcularVariacaoPercentual(receitaMes, receitaMesAnterior);
+  const variacaoDespesa = calcularVariacaoPercentual(despesaMes, despesaMesAnterior);
+
+  const gastoPorCategoria = new Map<string, number>();
+  for (const t of despesasPorCategoriaMes ?? []) {
+    gastoPorCategoria.set(t.categoria_id, (gastoPorCategoria.get(t.categoria_id) ?? 0) + Number(t.valor));
+  }
+  const planejado = (orcamentosMes ?? []).reduce((a, o) => a + Number(o.valor_limite), 0);
+  const gastoOrcamento = (orcamentosMes ?? []).reduce((a, o) => a + (gastoPorCategoria.get(o.categoria_id) ?? 0), 0);
+  const restanteOrcamento = planejado - gastoOrcamento;
+  const percentualOrcamento = planejado > 0 ? (gastoOrcamento / planejado) * 100 : 0;
+  const categoriasAcima = (orcamentosMes ?? []).filter(
+    (o) => (gastoPorCategoria.get(o.categoria_id) ?? 0) > Number(o.valor_limite)
+  ).length;
 
   const diasDoMes = eachDayOfInterval({
     start: new Date(`${inicio}T00:00:00`),
@@ -97,10 +143,84 @@ export default async function DashboardPage({
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard titulo="Saldo" valor={saldoTotalContas} subtitulo="em todas as contas" icon={IconWallet} destaque />
-        <SummaryCard titulo="Receita" valor={receitaMes} tom="positivo" subtitulo="no período" icon={IconTrendUp} />
-        <SummaryCard titulo="Despesa" valor={despesaMes} tom="negativo" subtitulo="no período" icon={IconTrendDown} />
-        <SummaryCard titulo="Previsão" valor={previsao} tom={previsao >= 0 ? 'positivo' : 'negativo'} subtitulo="saldo + recorrentes" icon={IconChart} />
+        <SummaryCard
+          titulo="Saldo (Este mês)"
+          valor={saldoMes}
+          tom={saldoMes >= 0 ? 'positivo' : 'negativo'}
+          icon={IconWallet}
+          badge={
+            variacaoSaldo === null
+              ? undefined
+              : { texto: formatPercent(variacaoSaldo), tom: variacaoSaldo >= 0 ? 'positivo' : 'negativo' }
+          }
+          footer={
+            <span className="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-600">
+              Saldo acumulado: {formatCurrency(saldoTotalContas)}
+            </span>
+          }
+        />
+        <SummaryCard
+          titulo="Receitas"
+          valor={receitaMes}
+          tom="positivo"
+          icon={IconTrendUp}
+          badge={
+            variacaoReceita === null
+              ? undefined
+              : { texto: formatPercent(variacaoReceita), tom: variacaoReceita >= 0 ? 'positivo' : 'negativo' }
+          }
+          footer={
+            <span className="inline-flex items-center rounded-full bg-positive/10 px-2.5 py-1 text-xs font-medium text-positive">
+              Pendente: {formatCurrency(pendenteReceita)}
+            </span>
+          }
+        />
+        <SummaryCard
+          titulo="Despesas"
+          valor={despesaMes}
+          tom="negativo"
+          icon={IconTrendDown}
+          badge={
+            variacaoDespesa === null
+              ? undefined
+              : { texto: formatPercent(variacaoDespesa), tom: variacaoDespesa <= 0 ? 'positivo' : 'negativo' }
+          }
+          footer={
+            <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+              Pendente: {formatCurrency(pendenteDespesa)}
+            </span>
+          }
+        />
+        <SummaryCard
+          titulo="Planejado"
+          valor={planejado}
+          icon={IconMetas}
+          badge={
+            planejado > 0
+              ? { texto: `${percentualOrcamento.toFixed(0)}% usado`, tom: percentualOrcamento > 100 ? 'negativo' : 'positivo' }
+              : undefined
+          }
+          footer={
+            planejado > 0 ? (
+              <div className="space-y-2">
+                <ProgressBar percentual={percentualOrcamento} />
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>Gasto: {formatCurrency(gastoOrcamento)}</span>
+                  <span>Restante: {formatCurrency(restanteOrcamento)}</span>
+                </div>
+                {categoriasAcima > 0 && (
+                  <p className="text-xs font-medium text-negative">
+                    {categoriasAcima} {categoriasAcima === 1 ? 'categoria acima' : 'categorias acima'} do orçamento
+                  </p>
+                )}
+              </div>
+            ) : (
+              <Link href="/orcamentos" className="text-xs font-medium text-brand-600 hover:underline">
+                Definir orçamento do mês
+              </Link>
+            )
+          }
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

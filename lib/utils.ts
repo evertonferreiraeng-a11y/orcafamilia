@@ -28,6 +28,15 @@ export function cn(...classes: Array<string | false | null | undefined>): string
   return classes.filter(Boolean).join(' ');
 }
 
+export function calcularVariacaoPercentual(atual: number, anterior: number): number | null {
+  if (anterior === 0) return atual === 0 ? 0 : null;
+  return ((atual - anterior) / Math.abs(anterior)) * 100;
+}
+
+export function formatPercent(valor: number): string {
+  return `${valor >= 0 ? '+' : ''}${valor.toFixed(1)}%`;
+}
+
 export function parseMesParam(mesParam?: string): Date {
   if (mesParam && /^\d{4}-\d{2}$/.test(mesParam)) {
     const [ano, mes] = mesParam.split('-').map(Number);

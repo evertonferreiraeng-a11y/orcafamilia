@@ -7,47 +7,53 @@ export function SummaryCard({
   tom = 'neutro',
   subtitulo,
   icon: Icon,
-  destaque = false,
+  badge,
+  footer,
 }: {
   titulo: string;
   valor: number;
   tom?: 'positivo' | 'negativo' | 'neutro';
   subtitulo?: string;
   icon?: (props: SVGProps<SVGSVGElement>) => React.ReactElement;
-  destaque?: boolean;
+  badge?: { texto: string; tom: 'positivo' | 'negativo' };
+  footer?: React.ReactNode;
 }) {
   return (
-    <div className={cn('card p-5', destaque && 'border-brand-600 bg-brand-600')}>
-      <div className="flex items-center gap-3">
-        {Icon && (
+    <div className="card p-5">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-3">
+          {Icon && (
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+              <Icon className="h-5 w-5" />
+            </span>
+          )}
+          <div>
+            <p className="text-sm font-medium text-gray-500">{titulo}</p>
+            {subtitulo && <p className="text-xs text-gray-400">{subtitulo}</p>}
+          </div>
+        </div>
+        {badge && (
           <span
             className={cn(
-              'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
-              destaque ? 'bg-white/15 text-white' : 'bg-brand-50 text-brand-600'
+              'shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold',
+              badge.tom === 'positivo' ? 'bg-positive/10 text-positive' : 'bg-negative/10 text-negative'
             )}
           >
-            <Icon className="h-5 w-5" />
+            {badge.texto}
           </span>
         )}
-        <div>
-          <p className={cn('text-sm font-medium', destaque ? 'text-white/80' : 'text-gray-500')}>{titulo}</p>
-          {subtitulo && <p className={cn('text-xs', destaque ? 'text-white/60' : 'text-gray-400')}>{subtitulo}</p>}
-        </div>
       </div>
+
       <p
         className={cn(
           'mt-4 text-xl font-bold',
-          destaque
-            ? 'text-white'
-            : tom === 'positivo'
-              ? 'text-positive'
-              : tom === 'negativo'
-                ? 'text-negative'
-                : 'text-gray-900'
+          tom === 'positivo' ? 'text-positive' : tom === 'negativo' ? 'text-negative' : 'text-gray-900'
         )}
       >
         {formatCurrency(valor)}
       </p>
+
+      {footer && <div className="mt-3">{footer}</div>}
     </div>
   );
 }
