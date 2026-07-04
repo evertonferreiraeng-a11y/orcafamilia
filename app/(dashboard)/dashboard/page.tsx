@@ -102,13 +102,13 @@ export default async function DashboardPage({
         <SummaryCard titulo="Previsão" valor={previsao} tom={previsao >= 0 ? 'positivo' : 'negativo'} subtitulo="saldo + recorrentes" icon={IconChart} />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="space-y-3 lg:col-span-1">
-          <h2 className="text-sm font-semibold text-gray-700">Minhas contas</h2>
-          {(contas ?? []).length === 0 ? (
-            <EmptyState mensagem="Nenhuma conta cadastrada ainda." />
-          ) : (
-            (contas ?? []).map((conta) => (
+      <div className="space-y-3">
+        <h2 className="text-sm font-semibold text-gray-700">Minhas contas</h2>
+        {(contas ?? []).length === 0 ? (
+          <EmptyState mensagem="Nenhuma conta cadastrada ainda." />
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {(contas ?? []).map((conta) => (
               <AccountCard
                 key={conta.id}
                 nome={conta.nome}
@@ -116,14 +116,14 @@ export default async function DashboardPage({
                 saldo={saldoPorConta.get(conta.id) ?? 0}
                 cor={conta.cor}
               />
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
+      </div>
 
-        <div className="card p-5 lg:col-span-2">
-          <h2 className="mb-4 text-sm font-semibold text-gray-700">Fluxo de caixa do período</h2>
-          <CashFlowChart dados={fluxo} />
-        </div>
+      <div className="card p-5">
+        <h2 className="mb-4 text-sm font-semibold text-gray-700">Fluxo de caixa do período</h2>
+        <CashFlowChart dados={fluxo} />
       </div>
 
       <div className="card p-5">
