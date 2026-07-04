@@ -103,37 +103,39 @@ export default async function DashboardPage({
         <SummaryCard titulo="Previsão" valor={previsao} tom={previsao >= 0 ? 'positivo' : 'negativo'} subtitulo="saldo + recorrentes" icon={IconChart} />
       </div>
 
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-700">Minhas contas</h2>
-          <Link
-            href="/cadastro"
-            className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"
-          >
-            <IconPlus className="h-3.5 w-3.5" />
-            Adicionar
-          </Link>
-        </div>
-        {(contas ?? []).length === 0 ? (
-          <EmptyState mensagem="Nenhuma conta cadastrada ainda." />
-        ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {(contas ?? []).map((conta) => (
-              <AccountCard
-                key={conta.id}
-                nome={conta.nome}
-                tipo={conta.tipo}
-                saldo={saldoPorConta.get(conta.id) ?? 0}
-                cor={conta.cor}
-              />
-            ))}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="card p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-700">Minhas contas</h2>
+            <Link
+              href="/cadastro"
+              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"
+            >
+              <IconPlus className="h-3.5 w-3.5" />
+              Adicionar
+            </Link>
           </div>
-        )}
-      </div>
+          {(contas ?? []).length === 0 ? (
+            <EmptyState mensagem="Nenhuma conta cadastrada ainda." />
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {(contas ?? []).map((conta) => (
+                <AccountCard
+                  key={conta.id}
+                  nome={conta.nome}
+                  tipo={conta.tipo}
+                  saldo={saldoPorConta.get(conta.id) ?? 0}
+                  cor={conta.cor}
+                />
+              ))}
+            </div>
+          )}
+        </div>
 
-      <div className="card p-5">
-        <h2 className="mb-4 text-sm font-semibold text-gray-700">Fluxo de caixa do período</h2>
-        <CashFlowChart dados={fluxo} />
+        <div className="card p-5">
+          <h2 className="mb-4 text-sm font-semibold text-gray-700">Fluxo de caixa do período</h2>
+          <CashFlowChart dados={fluxo} />
+        </div>
       </div>
 
       <div className="card p-5">
