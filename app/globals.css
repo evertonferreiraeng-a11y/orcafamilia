@@ -12,9 +12,19 @@ body {
   color: #1a1f2b;
 }
 
+@layer base {
+  h1 {
+    @apply tracking-tight;
+  }
+  h2,
+  h3 {
+    @apply tracking-tight;
+  }
+}
+
 @layer components {
   .card {
-    @apply bg-white rounded-2xl border border-gray-100 shadow-sm;
+    @apply bg-white rounded-2xl border border-gray-100 shadow-card;
   }
 
   .btn-primary {
