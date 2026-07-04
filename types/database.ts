@@ -102,6 +102,7 @@ export type Meta = {
   user_id: string;
   nome: string;
   descricao: string | null;
+  imagem_url: string | null;
   valor_alvo: number;
   valor_atual: number;
   data_alvo: string | null;

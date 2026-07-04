@@ -28,6 +28,7 @@ import {
   Calendar,
   Search,
   CreditCard,
+  Image,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -68,3 +69,4 @@ export const IconAlerta = withDefaultStroke(AlertTriangle);
 export const IconCalendario = withDefaultStroke(Calendar);
 export const IconSearch = withDefaultStroke(Search);
 export const IconCartao = withDefaultStroke(CreditCard);
+export const IconImagem = withDefaultStroke(Image);

@@ -1,6 +1,7 @@
 'use client';
 
 import { useFormState, useFormStatus } from 'react-dom';
+import { ImagemMetaInput } from '@/components/metas/ImagemMetaInput';
 import type { Meta } from '@/types/database';
 import type { MetaFormState } from '@/app/(dashboard)/metas/actions';
 
@@ -30,6 +31,8 @@ export function MetaForm({
 
   return (
     <form action={formAction} className="space-y-4">
+      <ImagemMetaInput imagemAtual={meta?.imagem_url} />
+
       <div>
         <label className="label-field" htmlFor="nome">Nome da meta</label>
         <input

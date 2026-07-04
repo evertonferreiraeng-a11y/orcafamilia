@@ -3,9 +3,13 @@
 import { revalidatePath } from 'next/cache';
 import { createServerSupabase } from '@/lib/supabase-server';
 
+type SupabaseClient = ReturnType<typeof createServerSupabase>;
+
 export interface MetaFormState {
   error?: string;
 }
+
+const TAMANHO_MAXIMO_IMAGEM = 5 * 1024 * 1024;
 
 function parseFormData(formData: FormData) {
   return {
@@ -15,6 +19,31 @@ function parseFormData(formData: FormData) {
     valor_atual: Number(formData.get('valor_atual') || 0),
     data_alvo: String(formData.get('data_alvo') || '') || null,
   };
+}
+
+async function processarImagem(
+  supabase: SupabaseClient,
+  userId: string,
+  formData: FormData
+): Promise<{ url?: string; error?: string }> {
+  const arquivo = formData.get('imagem');
+  if (!(arquivo instanceof File) || arquivo.size === 0) return {};
+
+  if (arquivo.size > TAMANHO_MAXIMO_IMAGEM) {
+    return { error: 'A imagem deve ter no máximo 5MB.' };
+  }
+
+  const extensao = arquivo.name.split('.').pop() || 'jpg';
+  const caminho = `${userId}/${Date.now()}-${crypto.randomUUID()}.${extensao}`;
+
+  const { error } = await supabase.storage.from('metas').upload(caminho, arquivo, {
+    contentType: arquivo.type,
+    upsert: true,
+  });
+  if (error) return { error: 'Não foi possível enviar a imagem.' };
+
+  const { data } = supabase.storage.from('metas').getPublicUrl(caminho);
+  return { url: data.publicUrl };
 }
 
 export async function criarMeta(_prevState: MetaFormState, formData: FormData): Promise<MetaFormState> {
@@ -29,7 +58,12 @@ export async function criarMeta(_prevState: MetaFormState, formData: FormData): 
     return { error: 'Preencha nome e valor alvo.' };
   }
 
-  const { error } = await supabase.from('metas').insert({ user_id: user.id, ...dados });
+  const imagem = await processarImagem(supabase, user.id, formData);
+  if (imagem.error) return { error: imagem.error };
+
+  const { error } = await supabase
+    .from('metas')
+    .insert({ user_id: user.id, ...dados, ...(imagem.url ? { imagem_url: imagem.url } : {}) });
   if (error) return { error: error.message };
 
   revalidatePath('/metas');
@@ -52,7 +86,14 @@ export async function atualizarMeta(
     return { error: 'Preencha nome e valor alvo.' };
   }
 
-  const { error } = await supabase.from('metas').update(dados).eq('id', id).eq('user_id', user.id);
+  const imagem = await processarImagem(supabase, user.id, formData);
+  if (imagem.error) return { error: imagem.error };
+
+  const { error } = await supabase
+    .from('metas')
+    .update({ ...dados, ...(imagem.url ? { imagem_url: imagem.url } : {}) })
+    .eq('id', id)
+    .eq('user_id', user.id);
   if (error) return { error: error.message };
 
   revalidatePath('/metas');
