@@ -27,7 +27,7 @@ export function Topbar({
   const { visivel, alternar } = useSaldoVisibilidade();
 
   return (
-    <header className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 bg-white px-4 py-4 sm:px-6">
+    <header className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 bg-white px-4 py-4 sm:px-6">
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -41,7 +41,7 @@ export function Topbar({
           type="button"
           onClick={onToggleSidebar}
           className="hidden rounded-lg p-2 text-gray-500 hover:bg-gray-100 md:inline-flex"
-          aria-label={sidebarOpen ? 'Ocultar menu lateral' : 'Mostrar menu lateral'}
+          aria-label={sidebarOpen ? 'Recolher menu lateral' : 'Expandir menu lateral'}
         >
           {sidebarOpen ? <IconSidebarClose className="h-5 w-5" /> : <IconSidebarOpen className="h-5 w-5" />}
         </button>

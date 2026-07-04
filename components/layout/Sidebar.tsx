@@ -44,6 +44,8 @@ const NAV_GROUPS = [
   },
 ];
 
+const NAV_ITEMS_FLAT = NAV_GROUPS.flatMap((grupo) => grupo.items);
+
 function Logo() {
   return (
     <div className="mb-8 flex items-center gap-2 px-2">
@@ -51,6 +53,16 @@ function Logo() {
         <IconWallet className="h-5 w-5" />
       </span>
       <span className="text-base font-bold text-gray-900">OrçaFamília</span>
+    </div>
+  );
+}
+
+function LogoCompacto() {
+  return (
+    <div className="mb-8 flex items-center justify-center">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white">
+        <IconWallet className="h-5 w-5" />
+      </span>
     </div>
   );
 }
@@ -87,6 +99,31 @@ function NavGroups({ pathname, onNavigate }: { pathname: string; onNavigate?: ()
   );
 }
 
+function NavIconsCompactos({ pathname }: { pathname: string }) {
+  return (
+    <nav className="flex flex-1 flex-col items-center gap-1 overflow-y-auto">
+      {NAV_ITEMS_FLAT.map((item) => {
+        const ativo = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const ItemIcon = item.icon;
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            title={item.label}
+            aria-label={item.label}
+            className={cn(
+              'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors',
+              ativo ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+            )}
+          >
+            <ItemIcon className="h-5 w-5" />
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 export function Sidebar({
   mobileOpen = false,
   onClose,
@@ -100,12 +137,24 @@ export function Sidebar({
 
   return (
     <>
-      {desktopOpen && (
-        <aside className="hidden w-64 shrink-0 flex-col border-r border-gray-100 bg-white px-4 py-6 md:flex">
-          <Logo />
-          <NavGroups pathname={pathname} />
-        </aside>
-      )}
+      <aside
+        className={cn(
+          'sticky top-0 hidden h-screen shrink-0 flex-col border-r border-gray-100 bg-white py-6 md:flex',
+          desktopOpen ? 'w-64 px-4' : 'w-[4.5rem] px-2'
+        )}
+      >
+        {desktopOpen ? (
+          <>
+            <Logo />
+            <NavGroups pathname={pathname} />
+          </>
+        ) : (
+          <>
+            <LogoCompacto />
+            <NavIconsCompactos pathname={pathname} />
+          </>
+        )}
+      </aside>
 
       {mobileOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
