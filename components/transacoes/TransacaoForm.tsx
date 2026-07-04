@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
-import type { Categoria, Conta, Cartao, Transacao } from '@/types/database';
+import type { Categoria, Subcategoria, Conta, Cartao, Transacao } from '@/types/database';
 import type { TransacaoFormState } from '@/app/(dashboard)/transacoes/actions';
 
 function BotaoSalvar({ label }: { label: string }) {
@@ -14,9 +14,18 @@ function BotaoSalvar({ label }: { label: string }) {
   );
 }
 
+type Aba = 'despesa' | 'receita' | 'transferencia';
+
+const ABA_LABEL: Record<Aba, string> = {
+  despesa: 'Despesa',
+  receita: 'Receita',
+  transferencia: 'Transferência',
+};
+
 export function TransacaoForm({
   action,
   categorias,
+  subcategorias,
   contas,
   cartoes,
   transacao,
@@ -24,6 +33,7 @@ export function TransacaoForm({
 }: {
   action: (state: TransacaoFormState, formData: FormData) => Promise<TransacaoFormState>;
   categorias: Categoria[];
+  subcategorias: Subcategoria[];
   contas: Conta[];
   cartoes: Cartao[];
   transacao?: Transacao;
@@ -35,43 +45,66 @@ export function TransacaoForm({
     return resultado;
   }, {});
 
-  const [tipo, setTipo] = useState<'receita' | 'despesa'>(transacao?.tipo ?? 'despesa');
+  const [aba, setAba] = useState<Aba>(transacao?.eh_transferencia ? 'transferencia' : (transacao?.tipo ?? 'despesa'));
+  const [formaPagamento, setFormaPagamento] = useState<'debito' | 'credito'>(transacao?.cartao_id ? 'credito' : 'debito');
+  const [categoriaId, setCategoriaId] = useState(transacao?.categoria_id ?? '');
+  const [pago, setPago] = useState(transacao?.pago ?? true);
   const [recorrente, setRecorrente] = useState(transacao?.recorrente ?? false);
 
-  const categoriasFiltradas = categorias.filter((c) => c.tipo === tipo);
+  const tipoLancamento: 'despesa' | 'receita' = aba === 'transferencia' ? 'despesa' : aba;
+  const categoriasFiltradas = categorias.filter((c) => c.tipo === tipoLancamento);
+  const subcategoriasFiltradas = subcategorias.filter((s) => s.categoria_id === categoriaId);
 
   return (
     <form action={formAction} className="space-y-4">
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setTipo('despesa')}
-          className={tipo === 'despesa' ? 'btn-danger flex-1' : 'btn-secondary flex-1'}
-        >
-          Despesa
-        </button>
-        <button
-          type="button"
-          onClick={() => setTipo('receita')}
-          className={tipo === 'receita' ? 'flex-1 rounded-xl bg-positive px-4 py-2 text-sm font-medium text-white' : 'btn-secondary flex-1'}
-        >
-          Receita
-        </button>
-        <input type="hidden" name="tipo" value={tipo} />
-      </div>
+      <input type="hidden" name="aba" value={aba} />
 
-      <div>
-        <label className="label-field" htmlFor="descricao">Descrição</label>
-        <input
-          id="descricao"
-          name="descricao"
-          type="text"
-          required
-          defaultValue={transacao?.descricao}
-          className="input-field"
-          placeholder="Ex: Supermercado"
-        />
-      </div>
+      {transacao ? (
+        <p className="text-sm font-medium text-gray-500">{ABA_LABEL[aba]}</p>
+      ) : (
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            onClick={() => setAba('despesa')}
+            className={aba === 'despesa' ? 'btn-danger' : 'btn-secondary'}
+          >
+            Despesa
+          </button>
+          <button
+            type="button"
+            onClick={() => setAba('receita')}
+            className={
+              aba === 'receita'
+                ? 'rounded-xl bg-positive px-4 py-2 text-sm font-medium text-white'
+                : 'btn-secondary'
+            }
+          >
+            Receita
+          </button>
+          <button
+            type="button"
+            onClick={() => setAba('transferencia')}
+            className={aba === 'transferencia' ? 'btn-primary' : 'btn-secondary'}
+          >
+            Transferência
+          </button>
+        </div>
+      )}
+
+      {aba !== 'transferencia' && (
+        <div>
+          <label className="label-field" htmlFor="descricao">Descrição</label>
+          <input
+            id="descricao"
+            name="descricao"
+            type="text"
+            required
+            defaultValue={transacao?.descricao}
+            className="input-field"
+            placeholder="Ex: Supermercado"
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -89,7 +122,7 @@ export function TransacaoForm({
           />
         </div>
         <div>
-          <label className="label-field" htmlFor="data">Data</label>
+          <label className="label-field" htmlFor="data">Data de Pagamento</label>
           <input
             id="data"
             name="data"
@@ -101,69 +134,174 @@ export function TransacaoForm({
         </div>
       </div>
 
-      <div>
-        <label className="label-field" htmlFor="categoria_id">Categoria</label>
-        <select
-          id="categoria_id"
-          name="categoria_id"
-          required
-          defaultValue={transacao?.categoria_id}
-          className="input-field"
-        >
-          <option value="">Selecione...</option>
-          {categoriasFiltradas.map((c) => (
-            <option key={c.id} value={c.id}>{c.nome}</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="label-field" htmlFor="conta_id">Conta</label>
-          <select id="conta_id" name="conta_id" defaultValue={transacao?.conta_id ?? ''} className="input-field">
-            <option value="">Nenhuma</option>
-            {contas.map((c) => (
-              <option key={c.id} value={c.id}>{c.nome}</option>
-            ))}
-          </select>
+      {aba !== 'transferencia' && (
+        <div className="flex items-center gap-2">
+          <input
+            id="pago"
+            name="pago"
+            type="checkbox"
+            checked={pago}
+            onChange={(e) => setPago(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+          />
+          <label htmlFor="pago" className="text-sm text-gray-700">Marcar como paga</label>
         </div>
+      )}
+
+      {aba === 'despesa' && (
+        <div>
+          <label className="label-field">Forma de Pagamento</label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setFormaPagamento('debito')}
+              className={
+                formaPagamento === 'debito'
+                  ? 'rounded-xl border-2 border-brand-500 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700'
+                  : 'rounded-xl border-2 border-transparent bg-gray-100 px-4 py-2 text-sm font-medium text-gray-600'
+              }
+            >
+              Débito
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormaPagamento('credito')}
+              className={
+                formaPagamento === 'credito'
+                  ? 'rounded-xl border-2 border-brand-500 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700'
+                  : 'rounded-xl border-2 border-transparent bg-gray-100 px-4 py-2 text-sm font-medium text-gray-600'
+              }
+            >
+              Crédito
+            </button>
+          </div>
+        </div>
+      )}
+
+      {aba === 'transferencia' ? (
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label-field" htmlFor="conta_origem_id">Conta de Origem</label>
+            <select
+              id="conta_origem_id"
+              name="conta_origem_id"
+              required
+              defaultValue={transacao?.conta_id ?? ''}
+              className="input-field"
+            >
+              <option value="">Selecione a conta</option>
+              {contas.map((c) => (
+                <option key={c.id} value={c.id}>{c.nome}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label-field" htmlFor="conta_destino_id">Conta de Destino</label>
+            <select id="conta_destino_id" name="conta_destino_id" required defaultValue="" className="input-field">
+              <option value="">Selecione a conta</option>
+              {contas.map((c) => (
+                <option key={c.id} value={c.id}>{c.nome}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      ) : formaPagamento === 'credito' && aba === 'despesa' ? (
         <div>
           <label className="label-field" htmlFor="cartao_id">Cartão</label>
-          <select id="cartao_id" name="cartao_id" defaultValue={transacao?.cartao_id ?? ''} className="input-field">
-            <option value="">Nenhum</option>
+          <select id="cartao_id" name="cartao_id" required defaultValue={transacao?.cartao_id ?? ''} className="input-field">
+            <option value="">Selecione o cartão</option>
             {cartoes.map((c) => (
               <option key={c.id} value={c.id}>{c.nome}</option>
             ))}
           </select>
         </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <input
-          id="recorrente"
-          name="recorrente"
-          type="checkbox"
-          checked={recorrente}
-          onChange={(e) => setRecorrente(e.target.checked)}
-          className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
-        />
-        <label htmlFor="recorrente" className="text-sm text-gray-700">Transação recorrente</label>
-      </div>
-
-      {recorrente && (
+      ) : (
         <div>
-          <label className="label-field" htmlFor="frequencia">Frequência</label>
-          <select id="frequencia" name="frequencia" defaultValue={transacao?.frequencia ?? 'mensal'} className="input-field">
-            <option value="mensal">Mensal</option>
-            <option value="semanal">Semanal</option>
+          <label className="label-field" htmlFor="conta_id">Conta</label>
+          <select id="conta_id" name="conta_id" required defaultValue={transacao?.conta_id ?? ''} className="input-field">
+            <option value="">Selecione a conta</option>
+            {contas.map((c) => (
+              <option key={c.id} value={c.id}>{c.nome}</option>
+            ))}
           </select>
+        </div>
+      )}
+
+      {aba !== 'transferencia' && (
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label-field" htmlFor="categoria_id">Categoria</label>
+            <select
+              id="categoria_id"
+              name="categoria_id"
+              required
+              value={categoriaId}
+              onChange={(e) => setCategoriaId(e.target.value)}
+              className="input-field"
+            >
+              <option value="">Selecione...</option>
+              {categoriasFiltradas.map((c) => (
+                <option key={c.id} value={c.id}>{c.nome}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label-field" htmlFor="subcategoria_id">Subcategoria</label>
+            <select
+              id="subcategoria_id"
+              name="subcategoria_id"
+              defaultValue={transacao?.subcategoria_id ?? ''}
+              disabled={subcategoriasFiltradas.length === 0}
+              className="input-field disabled:bg-gray-50 disabled:text-gray-400"
+            >
+              {subcategoriasFiltradas.length === 0 ? (
+                <option value="">Sem subcategorias</option>
+              ) : (
+                <>
+                  <option value="">Nenhuma</option>
+                  {subcategoriasFiltradas.map((s) => (
+                    <option key={s.id} value={s.id}>{s.nome}</option>
+                  ))}
+                </>
+              )}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {aba !== 'transferencia' && !transacao && (
+        <div className="flex items-center gap-2">
+          <input
+            id="recorrente"
+            name="recorrente"
+            type="checkbox"
+            checked={recorrente}
+            onChange={(e) => setRecorrente(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+          />
+          <label htmlFor="recorrente" className="text-sm text-gray-700">Transação Recorrente</label>
+        </div>
+      )}
+
+      {recorrente && aba !== 'transferencia' && !transacao && (
+        <div>
+          <label className="label-field" htmlFor="meses_recorrencia">Repetir por quantos meses?</label>
+          <input
+            id="meses_recorrencia"
+            name="meses_recorrencia"
+            type="number"
+            min="2"
+            max="60"
+            defaultValue={2}
+            className="input-field"
+          />
         </div>
       )}
 
       {state.error && <p className="text-sm text-negative">{state.error}</p>}
 
       <div className="flex justify-end gap-2 pt-2">
-        <BotaoSalvar label={transacao ? 'Salvar alterações' : 'Adicionar transação'} />
+        <BotaoSalvar label={transacao ? 'Salvar alterações' : 'Salvar Transação'} />
       </div>
     </form>
   );

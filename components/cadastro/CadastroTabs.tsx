@@ -5,7 +5,7 @@ import { ContasSection } from '@/components/cadastro/ContasSection';
 import { CartoesSection } from '@/components/cadastro/CartoesSection';
 import { CategoriasSection } from '@/components/cadastro/CategoriasSection';
 import { InvestimentosSection } from '@/components/cadastro/InvestimentosSection';
-import type { Conta, Cartao, Categoria, Investimento } from '@/types/database';
+import type { Conta, Cartao, Categoria, Subcategoria, Investimento } from '@/types/database';
 
 type Aba = 'contas' | 'cartoes' | 'categorias' | 'investimentos';
 
@@ -20,11 +20,13 @@ export function CadastroTabs({
   contas,
   cartoes,
   categorias,
+  subcategorias,
   investimentos,
 }: {
   contas: Conta[];
   cartoes: Cartao[];
   categorias: Categoria[];
+  subcategorias: Subcategoria[];
   investimentos: Investimento[];
 }) {
   const [aba, setAba] = useState<Aba>('contas');
@@ -50,7 +52,7 @@ export function CadastroTabs({
 
       {aba === 'contas' && <ContasSection contas={contas} />}
       {aba === 'cartoes' && <CartoesSection cartoes={cartoes} contas={contas} />}
-      {aba === 'categorias' && <CategoriasSection categorias={categorias} />}
+      {aba === 'categorias' && <CategoriasSection categorias={categorias} subcategorias={subcategorias} />}
       {aba === 'investimentos' && <InvestimentosSection investimentos={investimentos} />}
     </div>
   );

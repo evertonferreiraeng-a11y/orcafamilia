@@ -180,6 +180,51 @@ export async function excluirCategoria(id: string): Promise<void> {
 }
 
 // ============================================
+// SUBCATEGORIAS
+// ============================================
+export async function criarSubcategoria(_prevState: CadastroFormState, formData: FormData): Promise<CadastroFormState> {
+  const { supabase, user } = await getUser();
+  if (!user) return { error: 'Sessão expirada.' };
+
+  const nome = String(formData.get('nome') || '').trim();
+  const categoria_id = String(formData.get('categoria_id') || '');
+
+  if (!nome) return { error: 'Informe o nome da subcategoria.' };
+  if (!categoria_id) return { error: 'Categoria inválida.' };
+
+  const { error } = await supabase.from('subcategorias').insert({ user_id: user.id, categoria_id, nome });
+  if (error) return { error: error.message };
+
+  revalidatePath('/cadastro');
+  return {};
+}
+
+export async function atualizarSubcategoria(
+  id: string,
+  _prevState: CadastroFormState,
+  formData: FormData
+): Promise<CadastroFormState> {
+  const { supabase, user } = await getUser();
+  if (!user) return { error: 'Sessão expirada.' };
+
+  const nome = String(formData.get('nome') || '').trim();
+  if (!nome) return { error: 'Informe o nome da subcategoria.' };
+
+  const { error } = await supabase.from('subcategorias').update({ nome }).eq('id', id).eq('user_id', user.id);
+  if (error) return { error: error.message };
+
+  revalidatePath('/cadastro');
+  return {};
+}
+
+export async function excluirSubcategoria(id: string): Promise<void> {
+  const { supabase, user } = await getUser();
+  if (!user) return;
+  await supabase.from('subcategorias').delete().eq('id', id).eq('user_id', user.id);
+  revalidatePath('/cadastro');
+}
+
+// ============================================
 // INVESTIMENTOS
 // ============================================
 export async function criarInvestimento(_prevState: CadastroFormState, formData: FormData): Promise<CadastroFormState> {

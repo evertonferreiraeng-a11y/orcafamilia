@@ -59,16 +59,31 @@ export type Categoria = {
   criado_em: string;
 };
 
+export type Subcategoria = {
+  id: string;
+  categoria_id: string;
+  user_id: string;
+  nome: string;
+  criado_em: string;
+};
+
 export type Transacao = {
   id: string;
   user_id: string;
   conta_id: string | null;
   cartao_id: string | null;
-  categoria_id: string;
+  categoria_id: string | null;
+  subcategoria_id: string | null;
   tipo: TipoLancamento;
   descricao: string;
   valor: number;
   data: string;
+  pago: boolean;
+  eh_transferencia: boolean;
+  grupo_transferencia: string | null;
+  grupo_parcelamento: string | null;
+  parcela_atual: number | null;
+  parcela_total: number | null;
   recorrente: boolean;
   frequencia: Frequencia | null;
   criado_em: string;
@@ -201,6 +216,18 @@ export interface Database {
         ]
       >;
       categorias: TableDef<Categoria>;
+      subcategorias: TableDef<
+        Subcategoria,
+        [
+          {
+            foreignKeyName: 'subcategorias_categoria_id_fkey';
+            columns: ['categoria_id'];
+            isOneToOne: false;
+            referencedRelation: 'categorias';
+            referencedColumns: ['id'];
+          },
+        ]
+      >;
       transacoes: TableDef<
         Transacao,
         [
@@ -223,6 +250,13 @@ export interface Database {
             columns: ['categoria_id'];
             isOneToOne: false;
             referencedRelation: 'categorias';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'transacoes_subcategoria_id_fkey';
+            columns: ['subcategoria_id'];
+            isOneToOne: false;
+            referencedRelation: 'subcategorias';
             referencedColumns: ['id'];
           },
         ]

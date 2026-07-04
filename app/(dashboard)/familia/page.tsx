@@ -25,8 +25,19 @@ export default async function FamiliaPage({
   const [{ data: contas }, { data: transacoesContas }, { data: transacoesPeriodo }, { data: dividas }, { data: metas }] =
     await Promise.all([
       supabase.from('contas').select('*').in('user_id', userIds).eq('ativa', true),
-      supabase.from('transacoes').select('user_id, conta_id, tipo, valor').in('user_id', userIds).not('conta_id', 'is', null),
-      supabase.from('transacoes').select('user_id, tipo, valor').in('user_id', userIds).gte('data', inicio).lte('data', fim),
+      supabase
+        .from('transacoes')
+        .select('user_id, conta_id, tipo, valor')
+        .in('user_id', userIds)
+        .eq('pago', true)
+        .not('conta_id', 'is', null),
+      supabase
+        .from('transacoes')
+        .select('user_id, tipo, valor')
+        .in('user_id', userIds)
+        .eq('eh_transferencia', false)
+        .gte('data', inicio)
+        .lte('data', fim),
       supabase.from('dividas').select('*').in('user_id', userIds).eq('status', 'ativa').order('data_vencimento'),
       supabase.from('metas').select('*').in('user_id', userIds).order('criado_em', { ascending: false }),
     ]);

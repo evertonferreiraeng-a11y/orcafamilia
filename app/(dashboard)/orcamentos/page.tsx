@@ -30,12 +30,14 @@ export default async function OrcamentosPage({
       .select('categoria_id, valor')
       .eq('user_id', user.id)
       .eq('tipo', 'despesa')
+      .eq('eh_transferencia', false)
       .gte('data', inicio)
       .lte('data', fim),
   ]);
 
   const gastoPorCategoria = new Map<string, number>();
   for (const t of transacoes ?? []) {
+    if (!t.categoria_id) continue;
     gastoPorCategoria.set(t.categoria_id, (gastoPorCategoria.get(t.categoria_id) ?? 0) + Number(t.valor));
   }
 

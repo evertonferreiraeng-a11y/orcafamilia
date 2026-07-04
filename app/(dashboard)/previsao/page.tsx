@@ -16,8 +16,19 @@ export default async function PrevisaoPage() {
 
   const [{ data: contas }, { data: transacoesContas }, { data: recorrentes }] = await Promise.all([
     supabase.from('contas').select('id, saldo_inicial').eq('user_id', user.id).eq('ativa', true),
-    supabase.from('transacoes').select('conta_id, tipo, valor').eq('user_id', user.id).not('conta_id', 'is', null),
-    supabase.from('transacoes').select('tipo, valor, frequencia').eq('user_id', user.id).eq('recorrente', true),
+    supabase
+      .from('transacoes')
+      .select('conta_id, tipo, valor')
+      .eq('user_id', user.id)
+      .eq('pago', true)
+      .not('conta_id', 'is', null),
+    supabase
+      .from('transacoes')
+      .select('tipo, valor, frequencia')
+      .eq('user_id', user.id)
+      .eq('recorrente', true)
+      .eq('eh_transferencia', false)
+      .is('parcela_total', null),
   ]);
 
   let saldoAtual = (contas ?? []).reduce((acc, c) => acc + Number(c.saldo_inicial), 0);

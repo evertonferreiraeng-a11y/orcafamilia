@@ -47,21 +47,34 @@ export default async function DashboardPage({
     { data: despesasPorCategoriaMes },
   ] = await Promise.all([
     supabase.from('contas').select('*').eq('user_id', user.id).eq('ativa', true).order('nome'),
-    supabase.from('transacoes').select('conta_id, tipo, valor').eq('user_id', user.id).not('conta_id', 'is', null),
+    supabase
+      .from('transacoes')
+      .select('conta_id, tipo, valor')
+      .eq('user_id', user.id)
+      .eq('pago', true)
+      .not('conta_id', 'is', null),
     supabase
       .from('transacoes')
       .select('id, descricao, valor, data, tipo, conta_id, categorias(nome, cor)')
       .eq('user_id', user.id)
+      .eq('eh_transferencia', false)
       .gte('data', inicio)
       .lte('data', fim)
       .order('data', { ascending: false }),
-    supabase.from('transacoes').select('tipo, valor').eq('user_id', user.id).gte('data', inicioAnterior).lte('data', fimAnterior),
+    supabase
+      .from('transacoes')
+      .select('tipo, valor')
+      .eq('user_id', user.id)
+      .eq('eh_transferencia', false)
+      .gte('data', inicioAnterior)
+      .lte('data', fimAnterior),
     supabase.from('orcamentos').select('valor_limite, categoria_id').eq('user_id', user.id).eq('mes_referencia', inicio),
     supabase
       .from('transacoes')
       .select('categoria_id, valor')
       .eq('user_id', user.id)
       .eq('tipo', 'despesa')
+      .eq('eh_transferencia', false)
       .gte('data', inicio)
       .lte('data', fim),
   ]);
@@ -101,6 +114,7 @@ export default async function DashboardPage({
 
   const gastoPorCategoria = new Map<string, number>();
   for (const t of despesasPorCategoriaMes ?? []) {
+    if (!t.categoria_id) continue;
     gastoPorCategoria.set(t.categoria_id, (gastoPorCategoria.get(t.categoria_id) ?? 0) + Number(t.valor));
   }
   const planejado = (orcamentosMes ?? []).reduce((a, o) => a + Number(o.valor_limite), 0);

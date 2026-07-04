@@ -29,6 +29,10 @@ import {
   Search,
   CreditCard,
   Image,
+  Clock,
+  ArrowUpDown,
+  Filter,
+  Check,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -70,3 +74,7 @@ export const IconCalendario = withDefaultStroke(Calendar);
 export const IconSearch = withDefaultStroke(Search);
 export const IconCartao = withDefaultStroke(CreditCard);
 export const IconImagem = withDefaultStroke(Image);
+export const IconRelogio = withDefaultStroke(Clock);
+export const IconOrdenar = withDefaultStroke(ArrowUpDown);
+export const IconFiltro = withDefaultStroke(Filter);
+export const IconCheck = withDefaultStroke(Check);
