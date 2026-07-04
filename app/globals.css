@@ -7,6 +7,10 @@ body {
   height: 100%;
 }
 
+html {
+  font-size: 93.75%;
+}
+
 body {
   background-color: #f7f8fa;
   color: #1a1f2b;

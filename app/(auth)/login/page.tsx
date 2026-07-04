@@ -20,7 +20,7 @@ export default function LoginPage() {
 
   return (
     <form action={formAction} className="space-y-4">
-      <h2 className="text-lg font-semibold text-gray-900">Entrar na sua conta</h2>
+      <h2 className="text-base font-semibold text-gray-900">Entrar na sua conta</h2>
 
       <div>
         <label className="label-field" htmlFor="email">E-mail</label>

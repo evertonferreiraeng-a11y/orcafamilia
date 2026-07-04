@@ -33,7 +33,7 @@ export function AccountCard({
         <p className="text-sm font-semibold text-gray-800">{nome}</p>
       </div>
 
-      <p className={cn('mt-3 text-xl font-bold', saldo < 0 ? 'text-negative' : 'text-gray-900')}>
+      <p className={cn('mt-3 text-lg font-bold', saldo < 0 ? 'text-negative' : 'text-gray-900')}>
         {formatCurrency(saldo)}
       </p>
       <p className="mt-0.5 text-xs capitalize text-gray-400">{tipo}</p>

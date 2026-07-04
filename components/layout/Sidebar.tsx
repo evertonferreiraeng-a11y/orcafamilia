@@ -50,7 +50,7 @@ function Logo() {
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white">
         <IconWallet className="h-5 w-5" />
       </span>
-      <span className="text-lg font-bold text-gray-900">OrçaFamília</span>
+      <span className="text-base font-bold text-gray-900">OrçaFamília</span>
     </div>
   );
 }

@@ -36,7 +36,7 @@ export function SummaryCard({
       </div>
       <p
         className={cn(
-          'mt-4 text-2xl font-bold',
+          'mt-4 text-xl font-bold',
           destaque
             ? 'text-white'
             : tom === 'positivo'

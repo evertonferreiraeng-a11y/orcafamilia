@@ -10,11 +10,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15">
             <IconWallet className="h-5 w-5" />
           </span>
-          <span className="text-lg font-bold">OrçaFamília</span>
+          <span className="text-base font-bold">OrçaFamília</span>
         </div>
 
         <div>
-          <h2 className="text-3xl font-bold leading-tight">Controle financeiro do casal, em um só lugar.</h2>
+          <h2 className="text-2xl font-bold leading-tight">Controle financeiro do casal, em um só lugar.</h2>
           <p className="mt-4 max-w-sm text-white/70">
             Contas, cartões, orçamentos e metas organizados para vocês dois tomarem decisões financeiras juntos.
           </p>
@@ -30,7 +30,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500 text-white">
                 <IconWallet className="h-5 w-5" />
               </span>
-              <span className="text-xl font-bold text-gray-900">OrçaFamília</span>
+              <span className="text-lg font-bold text-gray-900">OrçaFamília</span>
             </div>
             <p className="text-sm text-gray-500">Controle financeiro do casal, em um só lugar</p>
           </div>

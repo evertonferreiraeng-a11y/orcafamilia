@@ -41,7 +41,7 @@ export function Topbar({
         >
           {sidebarOpen ? <IconSidebarClose className="h-5 w-5" /> : <IconSidebarOpen className="h-5 w-5" />}
         </button>
-        <h1 className="text-lg font-semibold text-gray-900">Olá, {primeiroNome}</h1>
+        <h1 className="text-base font-semibold text-gray-900">Olá, {primeiroNome}</h1>
       </div>
 
       <div className="flex items-center gap-3">
