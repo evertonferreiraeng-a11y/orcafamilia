@@ -72,7 +72,7 @@ function NavGroups({ pathname, onNavigate }: { pathname: string; onNavigate?: ()
                   onClick={onNavigate}
                   className={cn(
                     'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
-                    ativo ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    ativo ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
                   )}
                 >
                   <ItemIcon className="h-5 w-5" />
@@ -101,7 +101,7 @@ export function Sidebar({
   return (
     <>
       {desktopOpen && (
-        <aside className="hidden w-64 shrink-0 flex-col border-r border-gray-100 bg-white px-4 py-6 md:flex">
+        <aside className="hidden w-64 shrink-0 flex-col border-r border-gray-200 bg-gray-100 px-4 py-6 md:flex">
           <Logo />
           <NavGroups pathname={pathname} />
         </aside>
@@ -110,7 +110,7 @@ export function Sidebar({
       {mobileOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-          <aside className="relative z-10 flex h-full w-72 flex-col bg-white px-4 py-6 shadow-elevated">
+          <aside className="relative z-10 flex h-full w-72 flex-col bg-gray-100 px-4 py-6 shadow-elevated">
             <button
               type="button"
               onClick={onClose}

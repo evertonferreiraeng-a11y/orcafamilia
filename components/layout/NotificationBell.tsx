@@ -21,7 +21,7 @@ export function NotificationBell({ notificacoes }: { notificacoes: NotificacaoLo
       <button
         type="button"
         onClick={() => setAberto((v) => !v)}
-        className="relative rounded-full p-2 text-gray-500 hover:bg-gray-100"
+        className="relative rounded-full p-2 text-gray-500 hover:bg-gray-200"
         aria-label="Notificações"
       >
         <IconBell className="h-5 w-5" />
