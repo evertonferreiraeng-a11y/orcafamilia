@@ -12,6 +12,7 @@ function parseFormData(formData: FormData) {
     descricao: String(formData.get('descricao') || '').trim(),
     credor: String(formData.get('credor') || '').trim() || null,
     categoria_id: String(formData.get('categoria_id') || '') || null,
+    subcategoria_id: String(formData.get('subcategoria_id') || '') || null,
     valor_total: Number(formData.get('valor_total') || 0),
     parcelas_total: formData.get('parcelas_total') ? Number(formData.get('parcelas_total')) : null,
     data_vencimento: String(formData.get('data_vencimento') || ''),
@@ -95,7 +96,9 @@ export async function registrarPagamentoDivida(
 
   const { data: divida } = await supabase
     .from('dividas')
-    .select('descricao, categoria_id, valor_total, valor_pago, parcelas_total, parcelas_pagas, data_vencimento')
+    .select(
+      'descricao, categoria_id, subcategoria_id, valor_total, valor_pago, parcelas_total, parcelas_pagas, data_vencimento'
+    )
     .eq('id', id)
     .eq('user_id', user.id)
     .single();
@@ -118,14 +121,18 @@ export async function registrarPagamentoDivida(
     parcelasPagas = novasParcelasPagas;
   }
 
-  const { error: erroPagamento } = await supabase.from('pagamentos_dividas').insert({
-    divida_id: id,
-    user_id: user.id,
-    valor: valorPagamento,
-    data_pagamento: dataPagamento,
-    observacao,
-  });
-  if (erroPagamento) return { error: erroPagamento.message };
+  const { data: pagamento, error: erroPagamento } = await supabase
+    .from('pagamentos_dividas')
+    .insert({
+      divida_id: id,
+      user_id: user.id,
+      valor: valorPagamento,
+      data_pagamento: dataPagamento,
+      observacao,
+    })
+    .select('id')
+    .single();
+  if (erroPagamento || !pagamento) return { error: erroPagamento?.message ?? 'Não foi possível registrar o pagamento.' };
 
   const { error } = await supabase
     .from('dividas')
@@ -146,8 +153,10 @@ export async function registrarPagamentoDivida(
     valor: valorPagamento,
     data: dataPagamento,
     categoria_id: divida.categoria_id,
+    subcategoria_id: divida.subcategoria_id,
     conta_id: contaId,
     pago: true,
+    pagamento_divida_id: pagamento.id,
   });
   if (erroTransacao) return { error: erroTransacao.message };
 

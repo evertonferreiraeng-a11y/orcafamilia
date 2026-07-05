@@ -8,11 +8,19 @@ export default async function DividasPage() {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [{ data: dividas }, { data: categorias }, { data: contas }] = await Promise.all([
+  const [{ data: dividas }, { data: categorias }, { data: subcategorias }, { data: contas }] = await Promise.all([
     supabase.from('dividas').select('*').eq('user_id', user.id).order('data_vencimento', { ascending: true }),
     supabase.from('categorias').select('*').eq('user_id', user.id).eq('tipo', 'despesa').order('nome'),
+    supabase.from('subcategorias').select('*').eq('user_id', user.id).order('nome'),
     supabase.from('contas').select('*').eq('user_id', user.id).eq('ativa', true).order('nome'),
   ]);
 
-  return <DividasClient dividas={dividas ?? []} categorias={categorias ?? []} contas={contas ?? []} />;
+  return (
+    <DividasClient
+      dividas={dividas ?? []}
+      categorias={categorias ?? []}
+      subcategorias={subcategorias ?? []}
+      contas={contas ?? []}
+    />
+  );
 }

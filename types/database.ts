@@ -84,6 +84,7 @@ export type Transacao = {
   grupo_parcelamento: string | null;
   parcela_atual: number | null;
   parcela_total: number | null;
+  pagamento_divida_id: string | null;
   recorrente: boolean;
   frequencia: Frequencia | null;
   criado_em: string;
@@ -104,6 +105,7 @@ export type Divida = {
   descricao: string;
   credor: string | null;
   categoria_id: string | null;
+  subcategoria_id: string | null;
   valor_total: number;
   valor_pago: number;
   parcelas_total: number | null;
@@ -270,6 +272,13 @@ export interface Database {
             referencedRelation: 'subcategorias';
             referencedColumns: ['id'];
           },
+          {
+            foreignKeyName: 'transacoes_pagamento_divida_id_fkey';
+            columns: ['pagamento_divida_id'];
+            isOneToOne: false;
+            referencedRelation: 'pagamentos_dividas';
+            referencedColumns: ['id'];
+          },
         ]
       >;
       orcamentos: TableDef<
@@ -292,6 +301,13 @@ export interface Database {
             columns: ['categoria_id'];
             isOneToOne: false;
             referencedRelation: 'categorias';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'dividas_subcategoria_id_fkey';
+            columns: ['subcategoria_id'];
+            isOneToOne: false;
+            referencedRelation: 'subcategorias';
             referencedColumns: ['id'];
           },
         ]

@@ -25,7 +25,7 @@ import {
   excluirDivida,
 } from '@/app/(dashboard)/dividas/actions';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
-import type { Divida, Categoria, Conta } from '@/types/database';
+import type { Divida, Categoria, Subcategoria, Conta } from '@/types/database';
 
 type StatusChave = 'pendente' | 'parcial' | 'vencida' | 'quitada';
 type StatusFiltro = 'todos' | StatusChave;
@@ -54,10 +54,12 @@ function statusDivida(d: Divida, hoje: string): StatusChave {
 export function DividasClient({
   dividas,
   categorias,
+  subcategorias,
   contas,
 }: {
   dividas: Divida[];
   categorias: Categoria[];
+  subcategorias: Subcategoria[];
   contas: Conta[];
 }) {
   const [modalForm, setModalForm] = useState(false);
@@ -258,6 +260,7 @@ export function DividasClient({
           action={selecionada ? atualizarDivida.bind(null, selecionada.id) : criarDivida}
           divida={selecionada}
           categorias={categorias}
+          subcategorias={subcategorias}
           onSucesso={() => setModalForm(false)}
         />
       </Modal>

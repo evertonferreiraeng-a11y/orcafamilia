@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
-import type { Divida, Categoria } from '@/types/database';
+import type { Divida, Categoria, Subcategoria } from '@/types/database';
 import type { DividaFormState } from '@/app/(dashboard)/dividas/actions';
 
 function BotaoSalvar({ label }: { label: string }) {
@@ -17,11 +18,13 @@ export function DividaForm({
   action,
   divida,
   categorias,
+  subcategorias,
   onSucesso,
 }: {
   action: (state: DividaFormState, formData: FormData) => Promise<DividaFormState>;
   divida?: Divida;
   categorias: Categoria[];
+  subcategorias: Subcategoria[];
   onSucesso: () => void;
 }) {
   const [state, formAction] = useFormState(async (state: DividaFormState, formData: FormData) => {
@@ -29,6 +32,9 @@ export function DividaForm({
     if (!resultado.error) onSucesso();
     return resultado;
   }, {});
+
+  const [categoriaId, setCategoriaId] = useState(divida?.categoria_id ?? '');
+  const subcategoriasFiltradas = subcategorias.filter((s) => s.categoria_id === categoriaId);
 
   return (
     <form action={formAction} className="space-y-4">
@@ -86,23 +92,47 @@ export function DividaForm({
         </div>
       </div>
 
-      <div>
-        <label className="label-field" htmlFor="categoria_id">Categoria</label>
-        <select
-          id="categoria_id"
-          name="categoria_id"
-          defaultValue={divida?.categoria_id ?? ''}
-          className="input-field"
-        >
-          <option value="">Sem categoria</option>
-          {categorias.map((c) => (
-            <option key={c.id} value={c.id}>{c.nome}</option>
-          ))}
-        </select>
-        <p className="mt-1 text-xs text-gray-400">
-          Usada para categorizar automaticamente as transações geradas ao registrar pagamentos.
-        </p>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="label-field" htmlFor="categoria_id">Categoria</label>
+          <select
+            id="categoria_id"
+            name="categoria_id"
+            value={categoriaId}
+            onChange={(e) => setCategoriaId(e.target.value)}
+            className="input-field"
+          >
+            <option value="">Sem categoria</option>
+            {categorias.map((c) => (
+              <option key={c.id} value={c.id}>{c.nome}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="label-field" htmlFor="subcategoria_id">Subcategoria</label>
+          <select
+            id="subcategoria_id"
+            name="subcategoria_id"
+            defaultValue={divida?.subcategoria_id ?? ''}
+            disabled={subcategoriasFiltradas.length === 0}
+            className="input-field disabled:bg-gray-50 disabled:text-gray-400"
+          >
+            {subcategoriasFiltradas.length === 0 ? (
+              <option value="">Sem subcategorias</option>
+            ) : (
+              <>
+                <option value="">Nenhuma</option>
+                {subcategoriasFiltradas.map((s) => (
+                  <option key={s.id} value={s.id}>{s.nome}</option>
+                ))}
+              </>
+            )}
+          </select>
+        </div>
       </div>
+      <p className="-mt-2 text-xs text-gray-400">
+        Usadas para categorizar automaticamente as transações geradas ao registrar pagamentos.
+      </p>
 
       <div>
         <label className="label-field" htmlFor="data_vencimento">Próximo vencimento</label>

@@ -8,6 +8,7 @@ export interface TransacaoFormState {
 }
 
 type Aba = 'despesa' | 'receita' | 'transferencia';
+type SupabaseClient = ReturnType<typeof createServerSupabase>;
 
 function adicionarMeses(dataStr: string, meses: number): string {
   const [ano, mes, dia] = dataStr.split('-').map(Number);
@@ -217,18 +218,62 @@ export async function alternarPagoTransacao(id: string, pago: boolean): Promise<
   revalidatePath('/dashboard');
 }
 
+async function reverterPagamentoDivida(supabase: SupabaseClient, userId: string, pagamentoId: string): Promise<void> {
+  const { data: pagamento } = await supabase
+    .from('pagamentos_dividas')
+    .select('divida_id, valor')
+    .eq('id', pagamentoId)
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (!pagamento) return;
+
+  const { data: divida } = await supabase
+    .from('dividas')
+    .select('valor_total, valor_pago, parcelas_total, parcelas_pagas, data_vencimento')
+    .eq('id', pagamento.divida_id)
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (!divida) return;
+
+  const novoValorPago = Math.max(0, Number(divida.valor_pago) - Number(pagamento.valor));
+
+  let parcelasPagas = divida.parcelas_pagas ?? 0;
+  let dataVencimento = divida.data_vencimento;
+
+  if (divida.parcelas_total) {
+    const valorParcela = Number(divida.valor_total) / divida.parcelas_total;
+    const novasParcelasPagas = Math.max(0, Math.min(divida.parcelas_total, Math.floor((novoValorPago + 0.01) / valorParcela)));
+    const parcelasPerdidas = parcelasPagas - novasParcelasPagas;
+    if (parcelasPerdidas > 0) {
+      dataVencimento = adicionarMeses(dataVencimento, -parcelasPerdidas);
+    }
+    parcelasPagas = novasParcelasPagas;
+  }
+
+  await supabase
+    .from('dividas')
+    .update({ valor_pago: novoValorPago, parcelas_pagas: parcelasPagas, data_vencimento: dataVencimento })
+    .eq('id', pagamento.divida_id)
+    .eq('user_id', userId);
+
+  await supabase.from('pagamentos_dividas').delete().eq('id', pagamentoId).eq('user_id', userId);
+}
+
 export async function excluirTransacao(id: string): Promise<void> {
   const { supabase, user } = await getUser();
   if (!user) return;
 
   const { data: linha } = await supabase
     .from('transacoes')
-    .select('grupo_transferencia')
+    .select('grupo_transferencia, pagamento_divida_id')
     .eq('id', id)
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (linha?.grupo_transferencia) {
+  if (linha?.pagamento_divida_id) {
+    await reverterPagamentoDivida(supabase, user.id, linha.pagamento_divida_id);
+    await supabase.from('transacoes').delete().eq('id', id).eq('user_id', user.id);
+  } else if (linha?.grupo_transferencia) {
     await supabase.from('transacoes').delete().eq('grupo_transferencia', linha.grupo_transferencia).eq('user_id', user.id);
   } else {
     await supabase.from('transacoes').delete().eq('id', id).eq('user_id', user.id);
@@ -236,4 +281,5 @@ export async function excluirTransacao(id: string): Promise<void> {
 
   revalidatePath('/transacoes');
   revalidatePath('/dashboard');
+  revalidatePath('/dividas');
 }
