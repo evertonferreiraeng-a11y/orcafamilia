@@ -2,7 +2,8 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import type { DividaFormState } from '@/app/(dashboard)/dividas/actions';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatDate } from '@/lib/utils';
+import type { Conta } from '@/types/database';
 
 function BotaoRegistrar() {
   const { pending } = useFormStatus();
@@ -16,11 +17,21 @@ function BotaoRegistrar() {
 export function PagamentoForm({
   action,
   saldoDevedor,
+  parcelaAtual,
+  parcelasTotal,
+  valorParcela,
+  dataVencimento,
+  contas,
   onSucesso,
   onCancelar,
 }: {
   action: (state: DividaFormState, formData: FormData) => Promise<DividaFormState>;
   saldoDevedor: number;
+  parcelaAtual: number | null;
+  parcelasTotal: number | null;
+  valorParcela: number | null;
+  dataVencimento: string;
+  contas: Conta[];
   onSucesso: () => void;
   onCancelar: () => void;
 }) {
@@ -32,6 +43,18 @@ export function PagamentoForm({
 
   return (
     <form action={formAction} className="space-y-4">
+      {parcelasTotal && (
+        <div className="rounded-xl bg-brand-50 p-3">
+          <p className="text-sm font-semibold text-brand-700">
+            Parcela {parcelaAtual} de {parcelasTotal}
+          </p>
+          <p className="mt-0.5 text-xs text-brand-600">
+            Vencimento: {formatDate(dataVencimento)}
+            {valorParcela && ` · Valor da parcela: ${formatCurrency(valorParcela)}`}
+          </p>
+        </div>
+      )}
+
       <div>
         <label className="label-field" htmlFor="valor_pagamento">Valor do Pagamento *</label>
         <input
@@ -43,6 +66,7 @@ export function PagamentoForm({
           max={saldoDevedor}
           required
           autoFocus
+          defaultValue={valorParcela ? valorParcela.toFixed(2) : undefined}
           className="input-field"
           placeholder="0,00"
         />
@@ -59,6 +83,17 @@ export function PagamentoForm({
           defaultValue={new Date().toISOString().slice(0, 10)}
           className="input-field"
         />
+      </div>
+
+      <div>
+        <label className="label-field" htmlFor="conta_id">Conta *</label>
+        <select id="conta_id" name="conta_id" required defaultValue="" className="input-field">
+          <option value="" disabled>Selecione a conta</option>
+          {contas.map((c) => (
+            <option key={c.id} value={c.id}>{c.nome}</option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-gray-400">De onde o valor será debitado (gera uma transação automaticamente).</p>
       </div>
 
       <div>

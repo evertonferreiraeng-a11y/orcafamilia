@@ -1,7 +1,7 @@
 'use client';
 
 import { useFormState, useFormStatus } from 'react-dom';
-import type { Divida } from '@/types/database';
+import type { Divida, Categoria } from '@/types/database';
 import type { DividaFormState } from '@/app/(dashboard)/dividas/actions';
 
 function BotaoSalvar({ label }: { label: string }) {
@@ -16,10 +16,12 @@ function BotaoSalvar({ label }: { label: string }) {
 export function DividaForm({
   action,
   divida,
+  categorias,
   onSucesso,
 }: {
   action: (state: DividaFormState, formData: FormData) => Promise<DividaFormState>;
   divida?: Divida;
+  categorias: Categoria[];
   onSucesso: () => void;
 }) {
   const [state, formAction] = useFormState(async (state: DividaFormState, formData: FormData) => {
@@ -82,6 +84,24 @@ export function DividaForm({
             placeholder="Ex: 12"
           />
         </div>
+      </div>
+
+      <div>
+        <label className="label-field" htmlFor="categoria_id">Categoria</label>
+        <select
+          id="categoria_id"
+          name="categoria_id"
+          defaultValue={divida?.categoria_id ?? ''}
+          className="input-field"
+        >
+          <option value="">Sem categoria</option>
+          {categorias.map((c) => (
+            <option key={c.id} value={c.id}>{c.nome}</option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-gray-400">
+          Usada para categorizar automaticamente as transações geradas ao registrar pagamentos.
+        </p>
       </div>
 
       <div>

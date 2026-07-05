@@ -103,6 +103,7 @@ export type Divida = {
   user_id: string;
   descricao: string;
   credor: string | null;
+  categoria_id: string | null;
   valor_total: number;
   valor_pago: number;
   parcelas_total: number | null;
@@ -283,7 +284,18 @@ export interface Database {
           },
         ]
       >;
-      dividas: TableDef<Divida>;
+      dividas: TableDef<
+        Divida,
+        [
+          {
+            foreignKeyName: 'dividas_categoria_id_fkey';
+            columns: ['categoria_id'];
+            isOneToOne: false;
+            referencedRelation: 'categorias';
+            referencedColumns: ['id'];
+          },
+        ]
+      >;
       pagamentos_dividas: TableDef<
         PagamentoDivida,
         [

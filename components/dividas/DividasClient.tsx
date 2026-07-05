@@ -25,7 +25,7 @@ import {
   excluirDivida,
 } from '@/app/(dashboard)/dividas/actions';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
-import type { Divida } from '@/types/database';
+import type { Divida, Categoria, Conta } from '@/types/database';
 
 type StatusChave = 'pendente' | 'parcial' | 'vencida' | 'quitada';
 type StatusFiltro = 'todos' | StatusChave;
@@ -51,7 +51,15 @@ function statusDivida(d: Divida, hoje: string): StatusChave {
   return 'pendente';
 }
 
-export function DividasClient({ dividas }: { dividas: Divida[] }) {
+export function DividasClient({
+  dividas,
+  categorias,
+  contas,
+}: {
+  dividas: Divida[];
+  categorias: Categoria[];
+  contas: Conta[];
+}) {
   const [modalForm, setModalForm] = useState(false);
   const [modalPagamento, setModalPagamento] = useState(false);
   const [selecionada, setSelecionada] = useState<Divida | undefined>(undefined);
@@ -249,6 +257,7 @@ export function DividasClient({ dividas }: { dividas: Divida[] }) {
         <DividaForm
           action={selecionada ? atualizarDivida.bind(null, selecionada.id) : criarDivida}
           divida={selecionada}
+          categorias={categorias}
           onSucesso={() => setModalForm(false)}
         />
       </Modal>
@@ -258,6 +267,13 @@ export function DividasClient({ dividas }: { dividas: Divida[] }) {
           <PagamentoForm
             action={registrarPagamentoDivida.bind(null, selecionada.id)}
             saldoDevedor={Number(selecionada.valor_total) - Number(selecionada.valor_pago)}
+            parcelaAtual={selecionada.parcelas_total ? (selecionada.parcelas_pagas ?? 0) + 1 : null}
+            parcelasTotal={selecionada.parcelas_total}
+            valorParcela={
+              selecionada.parcelas_total ? Number(selecionada.valor_total) / selecionada.parcelas_total : null
+            }
+            dataVencimento={selecionada.data_vencimento}
+            contas={contas}
             onSucesso={() => setModalPagamento(false)}
             onCancelar={() => setModalPagamento(false)}
           />
