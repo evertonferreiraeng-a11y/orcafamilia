@@ -16,7 +16,7 @@ import { MinhasContasCard } from '@/components/dashboard/MinhasContasCard';
 import { BalancoMensalChart, type PontoBalanco } from '@/components/dashboard/BalancoMensalChart';
 import { AnaliseCategoriaChart } from '@/components/dashboard/AnaliseCategoriaChart';
 import { GastosPorCategoriaChart } from '@/components/dashboard/GastosPorCategoriaChart';
-import { TransacoesRecentesCard, type TransacaoRecente } from '@/components/dashboard/TransacoesRecentesCard';
+import { RecentActivityList, type AtividadeRecente } from '@/components/RecentActivityList';
 import { IconTrendUp, IconTrendDown, IconWallet, IconMetas } from '@/components/icons';
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -62,7 +62,7 @@ export default async function DashboardPage({
       .not('conta_id', 'is', null),
     supabase
       .from('transacoes')
-      .select('id, descricao, valor, data, tipo, conta_id, pago, categorias(nome, cor)')
+      .select('id, descricao, valor, data, tipo, conta_id, categorias(nome, cor)')
       .eq('user_id', user.id)
       .eq('eh_transferencia', false)
       .gte('data', inicio)
@@ -167,7 +167,7 @@ export default async function DashboardPage({
     else porAno[anoT][idx].despesa += Number(t.valor);
   }
 
-  const atividades: TransacaoRecente[] = periodo.slice(0, 5).map((t) => {
+  const atividades: AtividadeRecente[] = periodo.slice(0, 8).map((t) => {
     const categoria = t.categorias as unknown as { nome: string; cor: string | null } | null;
     return {
       id: t.id,
@@ -177,7 +177,6 @@ export default async function DashboardPage({
       tipo: t.tipo as 'receita' | 'despesa',
       valor: Number(t.valor),
       data: t.data,
-      pago: t.pago,
     };
   });
 
@@ -268,21 +267,25 @@ export default async function DashboardPage({
         />
       </div>
 
-      <MinhasContasCard
-        contas={(contas ?? []).map((conta) => ({
-          id: conta.id,
-          nome: conta.nome,
-          tipo: conta.tipo,
-          saldo: saldoPorConta.get(conta.id) ?? 0,
-          cor: conta.cor,
-        }))}
-      />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <MinhasContasCard
+          contas={(contas ?? []).map((conta) => ({
+            id: conta.id,
+            nome: conta.nome,
+            tipo: conta.tipo,
+            saldo: saldoPorConta.get(conta.id) ?? 0,
+            cor: conta.cor,
+          }))}
+        />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="card p-5 lg:col-span-2">
+        <div className="card p-5">
           <BalancoMensalChart diario={fluxo} porAno={porAno} anoInicial={anoAtual} />
         </div>
-        <TransacoesRecentesCard transacoes={atividades} />
+      </div>
+
+      <div className="card p-5">
+        <h2 className="mb-4 text-sm font-semibold text-gray-700">Últimas atividades</h2>
+        <RecentActivityList atividades={atividades} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
