@@ -13,9 +13,13 @@ import { SummaryCard } from '@/components/ui/SummaryCard';
 import { ValorMonetario } from '@/components/ui/ValorMonetario';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { MinhasContasCard } from '@/components/dashboard/MinhasContasCard';
-import { CashFlowChart, type PontoFluxo } from '@/components/charts/CashFlowChart';
+import { BalancoMensalChart, type PontoBalanco } from '@/components/dashboard/BalancoMensalChart';
+import { AnaliseCategoriaChart } from '@/components/dashboard/AnaliseCategoriaChart';
+import { GastosPorCategoriaChart } from '@/components/dashboard/GastosPorCategoriaChart';
 import { RecentActivityList, type AtividadeRecente } from '@/components/RecentActivityList';
 import { IconTrendUp, IconTrendDown, IconWallet, IconMetas } from '@/components/icons';
+
+const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 export default async function DashboardPage({
   searchParams,
@@ -37,6 +41,7 @@ export default async function DashboardPage({
   const mesAnterior = addMeses(mesSelecionado, -1);
   const inicioAnterior = primeiroDiaMes(mesAnterior);
   const fimAnterior = ultimoDiaMes(mesAnterior);
+  const anoAtual = mesSelecionado.getFullYear();
 
   const [
     { data: contas },
@@ -45,6 +50,8 @@ export default async function DashboardPage({
     { data: transacoesMesAnterior },
     { data: orcamentosMes },
     { data: despesasPorCategoriaMes },
+    { data: categoriasTodas },
+    { data: transacoesMultiAno },
   ] = await Promise.all([
     supabase.from('contas').select('*').eq('user_id', user.id).eq('ativa', true).order('nome'),
     supabase
@@ -71,12 +78,20 @@ export default async function DashboardPage({
     supabase.from('orcamentos').select('valor_limite, categoria_id').eq('user_id', user.id).eq('mes_referencia', inicio),
     supabase
       .from('transacoes')
-      .select('categoria_id, valor')
+      .select('categoria_id, valor, pago')
       .eq('user_id', user.id)
       .eq('tipo', 'despesa')
       .eq('eh_transferencia', false)
       .gte('data', inicio)
       .lte('data', fim),
+    supabase.from('categorias').select('id, nome, cor, tipo').eq('user_id', user.id),
+    supabase
+      .from('transacoes')
+      .select('data, tipo, valor, categoria_id')
+      .eq('user_id', user.id)
+      .eq('eh_transferencia', false)
+      .gte('data', `${anoAtual - 2}-01-01`)
+      .lte('data', `${anoAtual}-12-31`),
   ]);
 
   const saldoPorConta = new Map<string, number>();
@@ -130,7 +145,7 @@ export default async function DashboardPage({
     end: new Date(`${fim}T00:00:00`),
   });
 
-  const fluxo: PontoFluxo[] = diasDoMes.map((dia) => {
+  const fluxo: PontoBalanco[] = diasDoMes.map((dia) => {
     const chave = format(dia, 'yyyy-MM-dd');
     const doDia = periodo.filter((t) => t.data === chave);
     return {
@@ -139,6 +154,18 @@ export default async function DashboardPage({
       despesa: doDia.filter((t) => t.tipo === 'despesa').reduce((a, t) => a + Number(t.valor), 0),
     };
   });
+
+  const porAno: Record<number, PontoBalanco[]> = {};
+  for (let a = anoAtual - 2; a <= anoAtual; a++) {
+    porAno[a] = MESES_ABREV.map((label) => ({ label, receita: 0, despesa: 0 }));
+  }
+  for (const t of transacoesMultiAno ?? []) {
+    const [anoT, mesT] = t.data.split('-').map(Number);
+    if (!porAno[anoT]) continue;
+    const idx = mesT - 1;
+    if (t.tipo === 'receita') porAno[anoT][idx].receita += Number(t.valor);
+    else porAno[anoT][idx].despesa += Number(t.valor);
+  }
 
   const atividades: AtividadeRecente[] = periodo.slice(0, 8).map((t) => {
     const categoria = t.categorias as unknown as { nome: string; cor: string | null } | null;
@@ -252,14 +279,26 @@ export default async function DashboardPage({
         />
 
         <div className="card p-5">
-          <h2 className="mb-4 text-sm font-semibold text-gray-700">Fluxo de caixa do período</h2>
-          <CashFlowChart dados={fluxo} />
+          <BalancoMensalChart diario={fluxo} porAno={porAno} anoInicial={anoAtual} />
         </div>
       </div>
 
       <div className="card p-5">
         <h2 className="mb-4 text-sm font-semibold text-gray-700">Últimas atividades</h2>
         <RecentActivityList atividades={atividades} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <AnaliseCategoriaChart
+          transacoes={transacoesMultiAno ?? []}
+          categorias={categoriasTodas ?? []}
+          anoInicial={anoAtual}
+        />
+        <GastosPorCategoriaChart
+          despesas={despesasPorCategoriaMes ?? []}
+          categorias={categoriasTodas ?? []}
+          orcamentos={orcamentosMes ?? []}
+        />
       </div>
     </div>
   );
