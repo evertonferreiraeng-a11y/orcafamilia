@@ -267,20 +267,18 @@ export default async function DashboardPage({
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <MinhasContasCard
-          contas={(contas ?? []).map((conta) => ({
-            id: conta.id,
-            nome: conta.nome,
-            tipo: conta.tipo,
-            saldo: saldoPorConta.get(conta.id) ?? 0,
-            cor: conta.cor,
-          }))}
-        />
+      <MinhasContasCard
+        contas={(contas ?? []).map((conta) => ({
+          id: conta.id,
+          nome: conta.nome,
+          tipo: conta.tipo,
+          saldo: saldoPorConta.get(conta.id) ?? 0,
+          cor: conta.cor,
+        }))}
+      />
 
-        <div className="card p-5">
-          <BalancoMensalChart diario={fluxo} porAno={porAno} anoInicial={anoAtual} />
-        </div>
+      <div className="card p-5">
+        <BalancoMensalChart diario={fluxo} porAno={porAno} anoInicial={anoAtual} />
       </div>
 
       <div className="card p-5">
