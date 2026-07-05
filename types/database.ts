@@ -112,6 +112,16 @@ export type Divida = {
   criado_em: string;
 };
 
+export type PagamentoDivida = {
+  id: string;
+  divida_id: string;
+  user_id: string;
+  valor: number;
+  data_pagamento: string;
+  observacao: string | null;
+  criado_em: string;
+};
+
 export type Meta = {
   id: string;
   user_id: string;
@@ -274,6 +284,18 @@ export interface Database {
         ]
       >;
       dividas: TableDef<Divida>;
+      pagamentos_dividas: TableDef<
+        PagamentoDivida,
+        [
+          {
+            foreignKeyName: 'pagamentos_dividas_divida_id_fkey';
+            columns: ['divida_id'];
+            isOneToOne: false;
+            referencedRelation: 'dividas';
+            referencedColumns: ['id'];
+          },
+        ]
+      >;
       metas: TableDef<Meta>;
       investimentos: TableDef<Investimento>;
       alertas_config: TableDef<AlertasConfig>;

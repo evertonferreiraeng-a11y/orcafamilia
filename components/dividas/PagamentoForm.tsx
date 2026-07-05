@@ -4,11 +4,11 @@ import { useFormState, useFormStatus } from 'react-dom';
 import type { DividaFormState } from '@/app/(dashboard)/dividas/actions';
 import { formatCurrency } from '@/lib/utils';
 
-function BotaoSalvar() {
+function BotaoRegistrar() {
   const { pending } = useFormStatus();
   return (
     <button type="submit" className="btn-primary" disabled={pending}>
-      {pending ? 'Registrando...' : 'Registrar pagamento'}
+      {pending ? 'Registrando...' : 'Registrar'}
     </button>
   );
 }
@@ -17,10 +17,12 @@ export function PagamentoForm({
   action,
   saldoDevedor,
   onSucesso,
+  onCancelar,
 }: {
   action: (state: DividaFormState, formData: FormData) => Promise<DividaFormState>;
   saldoDevedor: number;
   onSucesso: () => void;
+  onCancelar: () => void;
 }) {
   const [state, formAction] = useFormState(async (state: DividaFormState, formData: FormData) => {
     const resultado = await action(state, formData);
@@ -30,10 +32,8 @@ export function PagamentoForm({
 
   return (
     <form action={formAction} className="space-y-4">
-      <p className="text-sm text-gray-500">Saldo devedor atual: <span className="font-medium text-gray-800">{formatCurrency(saldoDevedor)}</span></p>
-
       <div>
-        <label className="label-field" htmlFor="valor_pagamento">Valor do pagamento</label>
+        <label className="label-field" htmlFor="valor_pagamento">Valor do Pagamento *</label>
         <input
           id="valor_pagamento"
           name="valor_pagamento"
@@ -42,15 +42,43 @@ export function PagamentoForm({
           min="0.01"
           max={saldoDevedor}
           required
+          autoFocus
           className="input-field"
           placeholder="0,00"
+        />
+        <p className="mt-1 text-xs text-gray-400">Máximo: {formatCurrency(saldoDevedor)}</p>
+      </div>
+
+      <div>
+        <label className="label-field" htmlFor="data_pagamento">Data do Pagamento *</label>
+        <input
+          id="data_pagamento"
+          name="data_pagamento"
+          type="date"
+          required
+          defaultValue={new Date().toISOString().slice(0, 10)}
+          className="input-field"
+        />
+      </div>
+
+      <div>
+        <label className="label-field" htmlFor="observacao">Observações</label>
+        <textarea
+          id="observacao"
+          name="observacao"
+          rows={3}
+          className="input-field"
+          placeholder="Observações sobre o pagamento (opcional)"
         />
       </div>
 
       {state.error && <p className="text-sm text-negative">{state.error}</p>}
 
-      <div className="flex justify-end pt-2">
-        <BotaoSalvar />
+      <div className="flex justify-end gap-2 pt-2">
+        <button type="button" onClick={onCancelar} className="btn-secondary">
+          Cancelar
+        </button>
+        <BotaoRegistrar />
       </div>
     </form>
   );

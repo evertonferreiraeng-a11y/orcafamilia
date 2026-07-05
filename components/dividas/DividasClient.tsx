@@ -259,6 +259,7 @@ export function DividasClient({ dividas }: { dividas: Divida[] }) {
             action={registrarPagamentoDivida.bind(null, selecionada.id)}
             saldoDevedor={Number(selecionada.valor_total) - Number(selecionada.valor_pago)}
             onSucesso={() => setModalPagamento(false)}
+            onCancelar={() => setModalPagamento(false)}
           />
         )}
       </Modal>

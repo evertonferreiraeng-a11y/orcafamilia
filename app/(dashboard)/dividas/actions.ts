@@ -72,8 +72,14 @@ export async function registrarPagamentoDivida(
   if (!user) return { error: 'Sessão expirada.' };
 
   const valorPagamento = Number(formData.get('valor_pagamento') || 0);
+  const dataPagamento = String(formData.get('data_pagamento') || '');
+  const observacao = String(formData.get('observacao') || '').trim() || null;
+
   if (!valorPagamento || valorPagamento <= 0) {
     return { error: 'Informe um valor de pagamento válido.' };
+  }
+  if (!dataPagamento) {
+    return { error: 'Informe a data do pagamento.' };
   }
 
   const { data: divida } = await supabase
@@ -84,6 +90,15 @@ export async function registrarPagamentoDivida(
     .single();
 
   if (!divida) return { error: 'Dívida não encontrada.' };
+
+  const { error: erroPagamento } = await supabase.from('pagamentos_dividas').insert({
+    divida_id: id,
+    user_id: user.id,
+    valor: valorPagamento,
+    data_pagamento: dataPagamento,
+    observacao,
+  });
+  if (erroPagamento) return { error: erroPagamento.message };
 
   const { error } = await supabase
     .from('dividas')
