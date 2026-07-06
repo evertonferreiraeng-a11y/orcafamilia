@@ -8,11 +8,12 @@ import {
   addMeses,
   calcularVariacaoPercentual,
   formatPercent,
+  cn,
 } from '@/lib/utils';
 import { SummaryCard } from '@/components/ui/SummaryCard';
 import { ValorMonetario } from '@/components/ui/ValorMonetario';
 import { ProgressBar } from '@/components/ui/ProgressBar';
-import { MinhasContasCard } from '@/components/dashboard/MinhasContasCard';
+import { MinhasContasCarousel } from '@/components/dashboard/MinhasContasCarousel';
 import { BalancoMensalChart, type PontoBalanco } from '@/components/dashboard/BalancoMensalChart';
 import { AnaliseCategoriaChart } from '@/components/dashboard/AnaliseCategoriaChart';
 import { GastosPorCategoriaChart } from '@/components/dashboard/GastosPorCategoriaChart';
@@ -183,109 +184,123 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard
-          titulo="Saldo (Este mês)"
-          valor={saldoMes}
-          tom={saldoMes >= 0 ? 'positivo' : 'negativo'}
-          icon={IconWallet}
-          badge={
-            variacaoSaldo === null
-              ? undefined
-              : { texto: formatPercent(variacaoSaldo), tom: variacaoSaldo >= 0 ? 'positivo' : 'negativo' }
-          }
-          footer={
-            <span className="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-600">
-              Saldo acumulado: <ValorMonetario valor={saldoTotalContas} />
-            </span>
-          }
-        />
-        <SummaryCard
-          titulo="Receitas"
-          valor={receitaMes}
-          tom="positivo"
-          icon={IconTrendUp}
-          badge={
-            variacaoReceita === null
-              ? undefined
-              : { texto: formatPercent(variacaoReceita), tom: variacaoReceita >= 0 ? 'positivo' : 'negativo' }
-          }
-          footer={
-            <span className="inline-flex items-center rounded-full bg-positive/10 px-2.5 py-1 text-xs font-medium text-positive">
-              Pendente: <ValorMonetario valor={pendenteReceita} />
-            </span>
-          }
-        />
-        <SummaryCard
-          titulo="Despesas"
-          valor={despesaMes}
-          tom="negativo"
-          icon={IconTrendDown}
-          badge={
-            variacaoDespesa === null
-              ? undefined
-              : { texto: formatPercent(variacaoDespesa), tom: variacaoDespesa <= 0 ? 'positivo' : 'negativo' }
-          }
-          footer={
-            <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
-              Pendente: <ValorMonetario valor={pendenteDespesa} />
-            </span>
-          }
-        />
-        <SummaryCard
-          titulo="Planejado"
-          valor={planejado}
-          icon={IconMetas}
-          badge={
-            planejado > 0
-              ? { texto: `${percentualOrcamento.toFixed(0)}% usado`, tom: percentualOrcamento > 100 ? 'negativo' : 'positivo' }
-              : undefined
-          }
-          footer={
-            planejado > 0 ? (
-              <div className="space-y-2">
-                <ProgressBar percentual={percentualOrcamento} />
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>
-                    Gasto: <ValorMonetario valor={gastoOrcamento} />
-                  </span>
-                  <span>
-                    Restante: <ValorMonetario valor={restanteOrcamento} />
-                  </span>
-                </div>
-                {categoriasAcima > 0 && (
-                  <p className="text-xs font-medium text-negative">
-                    {categoriasAcima} {categoriasAcima === 1 ? 'categoria acima' : 'categorias acima'} do orçamento
-                  </p>
-                )}
-              </div>
-            ) : (
-              <Link href="/orcamentos" className="text-xs font-medium text-brand-600 hover:underline">
-                Definir orçamento do mês
-              </Link>
-            )
-          }
-        />
-      </div>
-
-      <MinhasContasCard
-        contas={(contas ?? []).map((conta) => ({
-          id: conta.id,
-          nome: conta.nome,
-          tipo: conta.tipo,
-          saldo: saldoPorConta.get(conta.id) ?? 0,
-          cor: conta.cor,
-        }))}
-      />
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
         <div className="card p-5 lg:col-span-2">
           <BalancoMensalChart diario={fluxo} porAno={porAno} anoInicial={anoAtual} />
         </div>
-        <TransacoesRecentesCard transacoes={atividades} />
+
+        <div className="flex flex-col gap-4">
+          <SummaryCard
+            titulo="Saldo (Este mês)"
+            valor={saldoMes}
+            tom={saldoMes >= 0 ? 'positivo' : 'negativo'}
+            icon={IconWallet}
+            badge={
+              variacaoSaldo === null
+                ? undefined
+                : { texto: formatPercent(variacaoSaldo), tom: variacaoSaldo >= 0 ? 'positivo' : 'negativo' }
+            }
+            footer={
+              <span className="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-600">
+                Saldo acumulado: <ValorMonetario valor={saldoTotalContas} />
+              </span>
+            }
+          />
+          <SummaryCard
+            titulo="Receitas"
+            valor={receitaMes}
+            tom="positivo"
+            icon={IconTrendUp}
+            badge={
+              variacaoReceita === null
+                ? undefined
+                : { texto: formatPercent(variacaoReceita), tom: variacaoReceita >= 0 ? 'positivo' : 'negativo' }
+            }
+            footer={
+              <span className="inline-flex items-center rounded-full bg-positive/10 px-2.5 py-1 text-xs font-medium text-positive">
+                Pendente: <ValorMonetario valor={pendenteReceita} />
+              </span>
+            }
+          />
+          <SummaryCard
+            titulo="Despesas"
+            valor={despesaMes}
+            tom="negativo"
+            icon={IconTrendDown}
+            badge={
+              variacaoDespesa === null
+                ? undefined
+                : { texto: formatPercent(variacaoDespesa), tom: variacaoDespesa <= 0 ? 'positivo' : 'negativo' }
+            }
+            footer={
+              <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+                Pendente: <ValorMonetario valor={pendenteDespesa} />
+              </span>
+            }
+          />
+        </div>
+
+        <MinhasContasCarousel
+          contas={(contas ?? []).map((conta) => ({
+            id: conta.id,
+            nome: conta.nome,
+            tipo: conta.tipo,
+            saldo: saldoPorConta.get(conta.id) ?? 0,
+            cor: conta.cor,
+          }))}
+        />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="card p-5">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+              <IconMetas className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-sm font-medium text-gray-500">Planejado</p>
+              <p className="text-xl font-bold text-gray-900">
+                <ValorMonetario valor={planejado} />
+              </p>
+            </div>
+          </div>
+          {planejado > 0 && (
+            <span
+              className={cn(
+                'shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold',
+                percentualOrcamento > 100 ? 'bg-negative/10 text-negative' : 'bg-positive/10 text-positive'
+              )}
+            >
+              {percentualOrcamento.toFixed(0)}% usado
+            </span>
+          )}
+        </div>
+
+        {planejado > 0 ? (
+          <div className="mt-4 space-y-2">
+            <ProgressBar percentual={percentualOrcamento} />
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>
+                Gasto: <ValorMonetario valor={gastoOrcamento} />
+              </span>
+              <span>
+                Restante: <ValorMonetario valor={restanteOrcamento} />
+              </span>
+            </div>
+            {categoriasAcima > 0 && (
+              <p className="text-xs font-medium text-negative">
+                {categoriasAcima} {categoriasAcima === 1 ? 'categoria acima' : 'categorias acima'} do orçamento
+              </p>
+            )}
+          </div>
+        ) : (
+          <Link href="/orcamentos" className="mt-4 inline-block text-xs font-medium text-brand-600 hover:underline">
+            Definir orçamento do mês
+          </Link>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <AnaliseCategoriaChart
           transacoes={transacoesMultiAno ?? []}
           categorias={categoriasTodas ?? []}
@@ -296,6 +311,7 @@ export default async function DashboardPage({
           categorias={categoriasTodas ?? []}
           orcamentos={orcamentosMes ?? []}
         />
+        <TransacoesRecentesCard transacoes={atividades} />
       </div>
     </div>
   );

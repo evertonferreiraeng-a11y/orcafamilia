@@ -11,6 +11,8 @@ import {
   Settings,
   Bell,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Plus,
   Trash2,
   Pencil,
@@ -53,6 +55,8 @@ export const IconCadastro = withDefaultStroke(ClipboardList);
 export const IconAjustes = withDefaultStroke(Settings);
 export const IconBell = withDefaultStroke(Bell);
 export const IconChevronDown = withDefaultStroke(ChevronDown);
+export const IconChevronLeft = withDefaultStroke(ChevronLeft);
+export const IconChevronRight = withDefaultStroke(ChevronRight);
 export const IconPlus = withDefaultStroke(Plus);
 export const IconTrash = withDefaultStroke(Trash2);
 export const IconEdit = withDefaultStroke(Pencil);
