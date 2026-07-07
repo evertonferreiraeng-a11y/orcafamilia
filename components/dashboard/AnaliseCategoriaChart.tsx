@@ -48,20 +48,11 @@ function TooltipCategorias({ active, payload, label }: TooltipProps<number, stri
 export function AnaliseCategoriaChart({
   transacoes,
   categorias,
-  anoInicial,
 }: {
   transacoes: TransacaoResumoAno[];
   categorias: CategoriaMeta[];
-  anoInicial: number;
 }) {
   const [tipo, setTipo] = useState<'despesa' | 'receita'>('despesa');
-  const [ano, setAno] = useState(anoInicial);
-
-  const anosDisponiveis = useMemo(() => {
-    const anos = new Set(transacoes.map((t) => Number(t.data.slice(0, 4))));
-    anos.add(anoInicial);
-    return Array.from(anos).sort((a, b) => b - a);
-  }, [transacoes, anoInicial]);
 
   const categoriasDoTipo = useMemo(() => categorias.filter((c) => c.tipo === tipo), [categorias, tipo]);
 
@@ -71,8 +62,7 @@ export function AnaliseCategoriaChart({
 
     for (const t of transacoes) {
       if (t.tipo !== tipo || !t.categoria_id) continue;
-      const [anoT, mesT] = t.data.split('-').map(Number);
-      if (anoT !== ano) continue;
+      const mesT = Number(t.data.split('-')[1]);
       const categoria = categoriasDoTipo.find((c) => c.id === t.categoria_id);
       if (!categoria) continue;
       const mesIndex = mesT - 1;
@@ -82,7 +72,7 @@ export function AnaliseCategoriaChart({
 
     const linhas = MESES_ABREV.map((label, i) => ({ label, ...porMes[i] }));
     return { dados: linhas, total: soma };
-  }, [transacoes, ano, tipo, categoriasDoTipo]);
+  }, [transacoes, tipo, categoriasDoTipo]);
 
   return (
     <div className="card p-5">
@@ -111,11 +101,6 @@ export function AnaliseCategoriaChart({
             Receitas
           </button>
         </div>
-        <select value={ano} onChange={(e) => setAno(Number(e.target.value))} className="input-field w-auto py-1 text-xs">
-          {anosDisponiveis.map((a) => (
-            <option key={a} value={a}>{a}</option>
-          ))}
-        </select>
       </div>
 
       <div className="mb-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">

@@ -91,7 +91,7 @@ export default async function DashboardPage({
       .select('data, tipo, valor, categoria_id')
       .eq('user_id', user.id)
       .eq('eh_transferencia', false)
-      .gte('data', `${anoAtual - 2}-01-01`)
+      .gte('data', `${anoAtual}-01-01`)
       .lte('data', `${anoAtual}-12-31`),
   ]);
 
@@ -156,16 +156,12 @@ export default async function DashboardPage({
     };
   });
 
-  const porAno: Record<number, PontoBalanco[]> = {};
-  for (let a = anoAtual - 2; a <= anoAtual; a++) {
-    porAno[a] = MESES_ABREV.map((label) => ({ label, receita: 0, despesa: 0 }));
-  }
+  const balancoAnual: PontoBalanco[] = MESES_ABREV.map((label) => ({ label, receita: 0, despesa: 0 }));
   for (const t of transacoesMultiAno ?? []) {
-    const [anoT, mesT] = t.data.split('-').map(Number);
-    if (!porAno[anoT]) continue;
+    const mesT = Number(t.data.split('-')[1]);
     const idx = mesT - 1;
-    if (t.tipo === 'receita') porAno[anoT][idx].receita += Number(t.valor);
-    else porAno[anoT][idx].despesa += Number(t.valor);
+    if (t.tipo === 'receita') balancoAnual[idx].receita += Number(t.valor);
+    else balancoAnual[idx].despesa += Number(t.valor);
   }
 
   const atividades: TransacaoRecente[] = periodo.slice(0, 5).map((t) => {
@@ -186,7 +182,7 @@ export default async function DashboardPage({
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
         <div className="card p-5 lg:col-span-2">
-          <BalancoMensalChart diario={fluxo} porAno={porAno} anoInicial={anoAtual} />
+          <BalancoMensalChart diario={fluxo} mensal={balancoAnual} />
         </div>
 
         <div className="flex flex-col gap-4">
@@ -301,11 +297,7 @@ export default async function DashboardPage({
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <AnaliseCategoriaChart
-          transacoes={transacoesMultiAno ?? []}
-          categorias={categoriasTodas ?? []}
-          anoInicial={anoAtual}
-        />
+        <AnaliseCategoriaChart transacoes={transacoesMultiAno ?? []} categorias={categoriasTodas ?? []} />
         <GastosPorCategoriaChart
           despesas={despesasPorCategoriaMes ?? []}
           categorias={categoriasTodas ?? []}

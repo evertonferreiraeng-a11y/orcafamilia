@@ -44,19 +44,15 @@ function BalancoTooltip({ active, payload, label }: TooltipProps<number, string>
 
 export function BalancoMensalChart({
   diario,
-  porAno,
-  anoInicial,
+  mensal,
 }: {
   diario: PontoBalanco[];
-  porAno: Record<number, PontoBalanco[]>;
-  anoInicial: number;
+  mensal: PontoBalanco[];
 }) {
   const [modo, setModo] = useState<Modo>('ano');
   const [tipoGrafico, setTipoGrafico] = useState<TipoGrafico>('barra');
-  const [ano, setAno] = useState(anoInicial);
 
-  const anos = Object.keys(porAno).map(Number).sort((a, b) => b - a);
-  const dados = modo === 'ano' ? (porAno[ano] ?? []) : diario;
+  const dados = modo === 'ano' ? mensal : diario;
 
   return (
     <div>
@@ -93,13 +89,6 @@ export function BalancoMensalChart({
               </button>
             ))}
           </div>
-          {modo === 'ano' && (
-            <select value={ano} onChange={(e) => setAno(Number(e.target.value))} className="input-field w-auto py-1 text-xs">
-              {anos.map((a) => (
-                <option key={a} value={a}>{a}</option>
-              ))}
-            </select>
-          )}
         </div>
       </div>
 

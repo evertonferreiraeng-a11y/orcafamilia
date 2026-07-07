@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { cn, formatCurrency } from '@/lib/utils';
 
 interface CategoriaMeta {
@@ -52,6 +51,7 @@ export function GastosPorCategoriaChart({
           nome: categoria?.nome ?? 'Sem categoria',
           cor: categoria?.cor ?? '#888888',
           valor,
+          limite,
           percentualTotal: soma > 0 ? (valor / soma) * 100 : 0,
           percentualOrcamento: limite ? (valor / limite) * 100 : null,
         };
@@ -92,49 +92,40 @@ export function GastosPorCategoriaChart({
       {linhas.length === 0 ? (
         <p className="py-10 text-center text-sm text-gray-400">Nenhuma despesa no período.</p>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="flex items-center justify-center">
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie data={linhas} dataKey="valor" nameKey="nome" innerRadius={55} outerRadius={90} paddingAngle={2}>
-                  {linhas.map((l) => (
-                    <Cell key={l.categoriaId} fill={l.cor} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(v: number) => formatCurrency(v)} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="max-h-[220px] space-y-3 overflow-y-auto pr-1">
-            {linhas.map((l) => (
-              <div key={l.categoriaId}>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2 text-gray-700">
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: l.cor }} />
-                    {l.nome}
-                  </span>
-                  <span className="text-right">
-                    <span className="font-semibold text-gray-900">{formatCurrency(l.valor)}</span>{' '}
-                    <span className="text-xs text-gray-400">{l.percentualTotal.toFixed(0)}%</span>
-                  </span>
-                </div>
-                {l.percentualOrcamento !== null ? (
-                  <div className="mt-1">
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-                      <div
-                        className={cn('h-full rounded-full', l.percentualOrcamento > 100 ? 'bg-negative' : 'bg-brand-500')}
-                        style={{ width: `${Math.min(100, l.percentualOrcamento)}%` }}
-                      />
-                    </div>
-                    <p className="mt-0.5 text-xs text-gray-400">{l.percentualOrcamento.toFixed(0)}% do orçamento</p>
+        <div className="max-h-[320px] space-y-4 overflow-y-auto pr-1">
+          {linhas.map((l) => {
+            const percentual = l.percentualOrcamento ?? l.percentualTotal;
+            return (
+              <div key={l.categoriaId} className="flex items-start gap-3">
+                <span
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
+                  style={{ backgroundColor: l.cor }}
+                >
+                  {l.nome.slice(0, 2).toUpperCase()}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2 text-sm">
+                    <span className="truncate font-medium text-gray-700">{l.nome}</span>
+                    <span className="shrink-0 whitespace-nowrap">
+                      <span className="font-semibold text-gray-900">{formatCurrency(l.valor)}</span>
+                      {l.limite !== null && <span className="text-gray-400"> / {formatCurrency(l.limite)}</span>}
+                    </span>
                   </div>
-                ) : (
-                  <p className="mt-0.5 text-xs text-gray-400">Sem orçamento definido</p>
-                )}
+                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                    <div
+                      className={cn('h-full rounded-full', percentual > 100 ? 'bg-negative' : 'bg-brand-500')}
+                      style={{ width: `${Math.min(100, percentual)}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-gray-400">
+                    {l.limite !== null
+                      ? `${l.percentualOrcamento!.toFixed(0)}% do orçamento`
+                      : `${l.percentualTotal.toFixed(0)}% do total gasto`}
+                  </p>
+                </div>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       )}
     </div>
