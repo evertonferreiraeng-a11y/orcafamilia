@@ -70,7 +70,7 @@ export default async function TransacoesPage({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <TransacoesClient
         transacoes={transacoes}
         categorias={(categorias ?? []) as Categoria[]}

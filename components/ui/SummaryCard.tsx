@@ -20,7 +20,7 @@ export function SummaryCard({
   footer?: React.ReactNode;
 }) {
   return (
-    <div className="card p-5">
+    <div className="card p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-3">
           {Icon && (

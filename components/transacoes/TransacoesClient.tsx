@@ -132,7 +132,7 @@ export function TransacoesClient({
   }, [transacoes, busca, filtroStatus, somenteFixas, filtroTipo, filtroCategoria, filtroConta, sortKey, sortDir]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Transações</h1>

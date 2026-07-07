@@ -17,7 +17,7 @@ export function PerfilForm({ perfil, email }: { perfil: Perfil; email: string })
   const [state, formAction] = useFormState<AjustesFormState, FormData>(atualizarPerfil, {});
 
   return (
-    <form action={formAction} className="card space-y-4 p-6">
+    <form action={formAction} className="card space-y-4 p-5">
       <h2 className="text-sm font-semibold text-gray-700">Meu perfil</h2>
 
       <div>

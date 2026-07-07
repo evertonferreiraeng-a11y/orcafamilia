@@ -129,7 +129,7 @@ export function CategoriasSection({
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Lista titulo="Receitas" itens={receitas} />
         <Lista titulo="Despesas" itens={despesas} />
       </div>

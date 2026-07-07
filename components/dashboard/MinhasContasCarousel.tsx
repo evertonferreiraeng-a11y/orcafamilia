@@ -27,7 +27,7 @@ export function MinhasContasCarousel({ contas }: { contas: ContaResumo[] }) {
 
   if (contas.length === 0) {
     return (
-      <div className="card flex h-full flex-col p-5">
+      <div className="card flex h-full flex-col p-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-700">Minhas contas</h2>
           <Link
@@ -58,7 +58,7 @@ export function MinhasContasCarousel({ contas }: { contas: ContaResumo[] }) {
   }
 
   return (
-    <div className="card flex h-full flex-col p-5">
+    <div className="card flex h-full flex-col p-4">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-gray-700">Minhas contas</h2>
         <Link
@@ -82,7 +82,7 @@ export function MinhasContasCarousel({ contas }: { contas: ContaResumo[] }) {
         </button>
 
         <div
-          className="relative flex min-h-[160px] flex-1 flex-col justify-between overflow-hidden rounded-2xl p-5 text-white shadow-elevated"
+          className="relative flex min-h-[160px] flex-1 flex-col justify-between overflow-hidden rounded-md p-4 text-white shadow-elevated"
           style={{ background: `linear-gradient(135deg, ${cor}, ${cor}cc)` }}
         >
           <div

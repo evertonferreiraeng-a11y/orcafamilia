@@ -179,9 +179,9 @@ export default async function DashboardPage({
   });
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-        <div className="card p-5 lg:col-span-2">
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+        <div className="card p-4 lg:col-span-2">
           <BalancoMensalChart diario={fluxo} mensal={balancoAnual} />
         </div>
 
@@ -247,7 +247,7 @@ export default async function DashboardPage({
         />
       </div>
 
-      <div className="card p-5">
+      <div className="card p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
@@ -296,7 +296,7 @@ export default async function DashboardPage({
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <AnaliseCategoriaChart transacoes={transacoesMultiAno ?? []} categorias={categoriasTodas ?? []} />
         <GastosPorCategoriaChart
           despesas={despesasPorCategoriaMes ?? []}

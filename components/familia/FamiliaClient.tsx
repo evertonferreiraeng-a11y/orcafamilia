@@ -57,7 +57,7 @@ export function FamiliaClient({
   const visao = aba === 'consolidado' ? consolidado : aba === 'voce' ? voce : conjuge;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex gap-2">
         <button
           type="button"
@@ -92,7 +92,7 @@ export function FamiliaClient({
         <SummaryCard titulo="Saldo" valor={visao.saldo} tom={visao.saldo >= 0 ? 'positivo' : 'negativo'} />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="space-y-3">
           <h2 className="text-sm font-semibold text-gray-700">Contas</h2>
           {visao.contas.length === 0 ? (
@@ -131,7 +131,7 @@ export function FamiliaClient({
             {visao.metas.map((m) => {
               const percentual = (m.valorAtual / m.valorAlvo) * 100;
               return (
-                <div key={m.id} className="card p-5">
+                <div key={m.id} className="card p-4">
                   <p className="font-medium text-gray-900">{m.nome}</p>
                   <p className="mt-1 text-sm text-gray-500">
                     {formatCurrency(m.valorAtual)} de {formatCurrency(m.valorAlvo)}

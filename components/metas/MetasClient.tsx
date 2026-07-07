@@ -39,7 +39,7 @@ export function MetasClient({ metas }: { metas: Meta[] }) {
   }, [metas, busca, filtroStatus]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Vision Board - Metas</h1>

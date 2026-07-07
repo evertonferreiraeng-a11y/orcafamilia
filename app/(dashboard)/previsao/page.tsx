@@ -50,7 +50,7 @@ export default async function PrevisaoPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <SummaryCard titulo="Saldo atual" valor={saldoAtual} tom={saldoAtual >= 0 ? 'positivo' : 'negativo'} />
         <SummaryCard
@@ -61,7 +61,7 @@ export default async function PrevisaoPage() {
         />
       </div>
 
-      <div className="card p-5">
+      <div className="card p-4">
         <h2 className="mb-4 text-sm font-semibold text-gray-700">Projeção de saldo</h2>
         {recorrentesResumo.length === 0 ? (
           <EmptyState mensagem="Cadastre transações recorrentes para ver a previsão de saldo." />
@@ -70,7 +70,7 @@ export default async function PrevisaoPage() {
         )}
       </div>
 
-      <div className="card overflow-x-auto p-5">
+      <div className="card overflow-x-auto p-4">
         <h2 className="mb-4 text-sm font-semibold text-gray-700">Detalhamento por mês</h2>
         <table className="w-full text-sm">
           <thead>

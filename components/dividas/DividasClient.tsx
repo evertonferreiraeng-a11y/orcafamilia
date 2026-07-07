@@ -104,7 +104,7 @@ export function DividasClient({
   }, [dividas, busca, filtroStatus, hoje]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Controle de Dívidas</h1>
@@ -131,7 +131,7 @@ export function DividasClient({
           subtitulo="Ainda precisa ser pago"
           icon={IconTrendDown}
         />
-        <div className="card p-5">
+        <div className="card p-4">
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
               <IconAlerta className="h-5 w-5" />
@@ -186,7 +186,7 @@ export function DividasClient({
             const status = statusDivida(d, hoje);
 
             return (
-              <div key={d.id} className="card p-5">
+              <div key={d.id} className="card p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="font-semibold text-gray-900">{d.descricao}</p>

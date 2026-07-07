@@ -15,7 +15,7 @@ export interface TransacaoRecente {
 
 export function TransacoesRecentesCard({ transacoes }: { transacoes: TransacaoRecente[] }) {
   return (
-    <div className="card flex flex-col p-5">
+    <div className="card flex flex-col p-4">
       <h2 className="mb-4 text-sm font-semibold text-gray-700">Transações Recentes</h2>
 
       {transacoes.length === 0 ? (

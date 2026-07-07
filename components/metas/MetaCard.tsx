@@ -37,7 +37,7 @@ export function MetaCard({ meta: m, onEditar }: { meta: Meta; onEditar: () => vo
         // eslint-disable-next-line @next/next/no-img-element
         <img src={m.imagem_url} alt={m.nome} className="h-32 w-full object-cover" />
       )}
-      <div className="p-5">
+      <div className="p-4">
         <div className="flex items-start justify-between gap-2">
           <span
             className={cn(

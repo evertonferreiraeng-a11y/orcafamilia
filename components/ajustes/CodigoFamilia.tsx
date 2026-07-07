@@ -12,7 +12,7 @@ export function CodigoFamilia({ codigo }: { codigo: string }) {
   }
 
   return (
-    <div className="card space-y-3 p-6">
+    <div className="card space-y-3 p-5">
       <h2 className="text-sm font-semibold text-gray-700">Convidar cônjuge</h2>
       <p className="text-xs text-gray-400">
         Compartilhe este código com seu cônjuge. No cadastro dele(a), escolha &quot;Entrar em família&quot; e informe este código.

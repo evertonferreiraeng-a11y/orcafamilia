@@ -18,15 +18,15 @@ export default async function AjustesPage() {
 
   if (!perfil) {
     return (
-      <div className="card p-6 text-sm text-gray-500">
+      <div className="card p-5 text-sm text-gray-500">
         Não foi possível carregar seu perfil agora. Tente recarregar a página em alguns instantes.
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      <div className="space-y-6">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="space-y-4">
         <PerfilForm perfil={perfil} email={user.email ?? ''} />
         {perfil.familia_id && <CodigoFamilia codigo={perfil.familia_id} />}
         <TemaSwitcher />

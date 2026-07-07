@@ -62,7 +62,7 @@ export function GastosPorCategoriaChart({
   }, [despesas, categorias, orcamentos, incluirPendentes]);
 
   return (
-    <div className="card p-5">
+    <div className="card p-4">
       <div className="mb-1 flex flex-wrap items-start justify-between gap-3">
         <h2 className="text-sm font-semibold text-gray-700">Gastos por Categoria</h2>
         <div className="text-right">

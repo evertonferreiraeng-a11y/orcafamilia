@@ -66,7 +66,7 @@ export function OrcamentosClient({
             const alerta = percentual >= 80;
 
             return (
-              <div key={o.id} className="card p-5">
+              <div key={o.id} className="card p-4">
                 <div className="mb-3 flex items-start justify-between">
                   <div>
                     <span

@@ -19,7 +19,7 @@ export function TemaSwitcher() {
   }
 
   return (
-    <div className="card space-y-4 p-6">
+    <div className="card space-y-4 p-5">
       <div>
         <h2 className="text-sm font-semibold text-gray-700">Aparência</h2>
         <p className="mt-1 text-xs text-gray-400">Escolha a cor de destaque da barra lateral e dos botões.</p>

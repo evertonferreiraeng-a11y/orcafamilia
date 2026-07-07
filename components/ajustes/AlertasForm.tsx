@@ -22,7 +22,7 @@ export function AlertasForm({ config }: { config: AlertasConfig | null }) {
   const [orcamentoAtivo, setOrcamentoAtivo] = useState(config?.alerta_orcamento_ativo ?? false);
 
   return (
-    <form action={formAction} className="card space-y-6 p-6">
+    <form action={formAction} className="card space-y-4 p-5">
       <div>
         <h2 className="text-sm font-semibold text-gray-700">Alertas via WhatsApp</h2>
         <p className="mt-1 text-xs text-gray-400">
