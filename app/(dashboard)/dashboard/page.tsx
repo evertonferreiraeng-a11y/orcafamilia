@@ -301,7 +301,17 @@ export default async function DashboardPage({
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <AnaliseCategoriaChart transacoes={transacoesMultiAno ?? []} categorias={categoriasTodas ?? []} />
+        <AnaliseCategoriaChart
+          transacoes={periodo.map((t) => {
+            const categoria = t.categorias as unknown as { nome: string; cor: string | null } | null;
+            return {
+              tipo: t.tipo as 'receita' | 'despesa',
+              valor: Number(t.valor),
+              categoria: categoria?.nome ?? null,
+              cor: categoria?.cor ?? null,
+            };
+          })}
+        />
         <GastosPorCategoriaChart
           despesas={despesasPorCategoriaMes ?? []}
           categorias={categoriasTodas ?? []}
