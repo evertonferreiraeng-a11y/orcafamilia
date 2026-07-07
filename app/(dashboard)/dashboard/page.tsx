@@ -70,7 +70,7 @@ export default async function DashboardPage({
       .order('data', { ascending: false }),
     supabase
       .from('transacoes')
-      .select('tipo, valor, pago')
+      .select('tipo, valor')
       .eq('user_id', user.id)
       .eq('eh_transferencia', false)
       .gte('data', inicioAnterior)
@@ -118,7 +118,7 @@ export default async function DashboardPage({
   const pendenteReceita = pendente.filter((t) => t.tipo === 'receita').reduce((a, t) => a + Number(t.valor), 0);
   const pendenteDespesa = pendente.filter((t) => t.tipo === 'despesa').reduce((a, t) => a + Number(t.valor), 0);
 
-  const mesAnteriorTransacoes = (transacoesMesAnterior ?? []).filter((t) => t.pago);
+  const mesAnteriorTransacoes = transacoesMesAnterior ?? [];
   const receitaMesAnterior = mesAnteriorTransacoes.filter((t) => t.tipo === 'receita').reduce((a, t) => a + Number(t.valor), 0);
   const despesaMesAnterior = mesAnteriorTransacoes.filter((t) => t.tipo === 'despesa').reduce((a, t) => a + Number(t.valor), 0);
   const saldoMesAnterior = receitaMesAnterior - despesaMesAnterior;
@@ -214,9 +214,14 @@ export default async function DashboardPage({
                     : { texto: formatPercent(variacaoReceita), tom: variacaoReceita >= 0 ? 'positivo' : 'negativo' }
                 }
                 footer={
-                  <span className="inline-flex items-center rounded-full bg-positive/10 px-2.5 py-1 text-xs font-medium text-positive">
-                    Pendente: <ValorMonetario valor={pendenteReceita} />
-                  </span>
+                  <div className="space-y-1.5">
+                    <span className="inline-flex items-center rounded-full bg-positive/10 px-2.5 py-1 text-xs font-medium text-positive">
+                      Pendente: <ValorMonetario valor={pendenteReceita} />
+                    </span>
+                    <p className="text-xs text-gray-400">
+                      Total lançado: <ValorMonetario valor={receitaMes + pendenteReceita} />
+                    </p>
+                  </div>
                 }
               />
               <StatRow
@@ -230,9 +235,14 @@ export default async function DashboardPage({
                     : { texto: formatPercent(variacaoDespesa), tom: variacaoDespesa <= 0 ? 'positivo' : 'negativo' }
                 }
                 footer={
-                  <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
-                    Pendente: <ValorMonetario valor={pendenteDespesa} />
-                  </span>
+                  <div className="space-y-1.5">
+                    <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+                      Pendente: <ValorMonetario valor={pendenteDespesa} />
+                    </span>
+                    <p className="text-xs text-gray-400">
+                      Total lançado: <ValorMonetario valor={despesaMes + pendenteDespesa} />
+                    </p>
+                  </div>
                 }
               />
             </div>
