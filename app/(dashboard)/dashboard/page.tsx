@@ -10,7 +10,7 @@ import {
   formatPercent,
   cn,
 } from '@/lib/utils';
-import { SummaryCard } from '@/components/ui/SummaryCard';
+import { StatRow } from '@/components/dashboard/StatRow';
 import { ValorMonetario } from '@/components/ui/ValorMonetario';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { MinhasContasCarousel } from '@/components/dashboard/MinhasContasCarousel';
@@ -181,59 +181,63 @@ export default async function DashboardPage({
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
-        <div className="card p-4 lg:col-span-2">
-          <BalancoMensalChart diario={fluxo} mensal={balancoAnual} />
-        </div>
+        <div className="card p-4 lg:col-span-3">
+          <div className="grid grid-cols-1 lg:grid-cols-3 lg:divide-x lg:divide-gray-100">
+            <div className="lg:col-span-2 lg:pr-4">
+              <BalancoMensalChart diario={fluxo} mensal={balancoAnual} />
+            </div>
 
-        <div className="flex flex-col gap-4">
-          <SummaryCard
-            titulo="Saldo (Este mês)"
-            valor={saldoMes}
-            tom={saldoMes >= 0 ? 'positivo' : 'negativo'}
-            icon={IconWallet}
-            badge={
-              variacaoSaldo === null
-                ? undefined
-                : { texto: formatPercent(variacaoSaldo), tom: variacaoSaldo >= 0 ? 'positivo' : 'negativo' }
-            }
-            footer={
-              <span className="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-600">
-                Saldo acumulado: <ValorMonetario valor={saldoTotalContas} />
-              </span>
-            }
-          />
-          <SummaryCard
-            titulo="Receitas"
-            valor={receitaMes}
-            tom="positivo"
-            icon={IconTrendUp}
-            badge={
-              variacaoReceita === null
-                ? undefined
-                : { texto: formatPercent(variacaoReceita), tom: variacaoReceita >= 0 ? 'positivo' : 'negativo' }
-            }
-            footer={
-              <span className="inline-flex items-center rounded-full bg-positive/10 px-2.5 py-1 text-xs font-medium text-positive">
-                Pendente: <ValorMonetario valor={pendenteReceita} />
-              </span>
-            }
-          />
-          <SummaryCard
-            titulo="Despesas"
-            valor={despesaMes}
-            tom="negativo"
-            icon={IconTrendDown}
-            badge={
-              variacaoDespesa === null
-                ? undefined
-                : { texto: formatPercent(variacaoDespesa), tom: variacaoDespesa <= 0 ? 'positivo' : 'negativo' }
-            }
-            footer={
-              <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
-                Pendente: <ValorMonetario valor={pendenteDespesa} />
-              </span>
-            }
-          />
+            <div className="flex flex-col divide-y divide-gray-100">
+              <StatRow
+                titulo="Saldo (Este mês)"
+                valor={saldoMes}
+                tom={saldoMes >= 0 ? 'positivo' : 'negativo'}
+                icon={IconWallet}
+                badge={
+                  variacaoSaldo === null
+                    ? undefined
+                    : { texto: formatPercent(variacaoSaldo), tom: variacaoSaldo >= 0 ? 'positivo' : 'negativo' }
+                }
+                footer={
+                  <span className="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-600">
+                    Saldo acumulado: <ValorMonetario valor={saldoTotalContas} />
+                  </span>
+                }
+              />
+              <StatRow
+                titulo="Receitas"
+                valor={receitaMes}
+                tom="positivo"
+                icon={IconTrendUp}
+                badge={
+                  variacaoReceita === null
+                    ? undefined
+                    : { texto: formatPercent(variacaoReceita), tom: variacaoReceita >= 0 ? 'positivo' : 'negativo' }
+                }
+                footer={
+                  <span className="inline-flex items-center rounded-full bg-positive/10 px-2.5 py-1 text-xs font-medium text-positive">
+                    Pendente: <ValorMonetario valor={pendenteReceita} />
+                  </span>
+                }
+              />
+              <StatRow
+                titulo="Despesas"
+                valor={despesaMes}
+                tom="negativo"
+                icon={IconTrendDown}
+                badge={
+                  variacaoDespesa === null
+                    ? undefined
+                    : { texto: formatPercent(variacaoDespesa), tom: variacaoDespesa <= 0 ? 'positivo' : 'negativo' }
+                }
+                footer={
+                  <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+                    Pendente: <ValorMonetario valor={pendenteDespesa} />
+                  </span>
+                }
+              />
+            </div>
+          </div>
         </div>
 
         <MinhasContasCarousel
