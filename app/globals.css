@@ -159,7 +159,7 @@ body {
 
 @layer components {
   .card {
-    @apply bg-white rounded-2xl border border-gray-100 shadow-card;
+    @apply bg-white rounded-xl border border-gray-100 shadow-card;
   }
 
   .btn-primary {

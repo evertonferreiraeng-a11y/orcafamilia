@@ -208,7 +208,7 @@ export function TransacoesClient({
                 role="switch"
                 aria-checked={!porRegistro}
                 onClick={alternarDataBase}
-                className={cn('relative h-5 w-9 rounded-full transition-colors', !porRegistro ? 'bg-brand-600' : 'bg-gray-200')}
+                className={cn('relative h-5 w-9 shrink-0 rounded-full transition-colors', !porRegistro ? 'bg-brand-600' : 'bg-gray-200')}
               >
                 <span
                   className={cn(
@@ -226,7 +226,7 @@ export function TransacoesClient({
                 role="switch"
                 aria-checked={somenteFixas}
                 onClick={() => setSomenteFixas((v) => !v)}
-                className={cn('relative h-5 w-9 rounded-full transition-colors', somenteFixas ? 'bg-brand-600' : 'bg-gray-200')}
+                className={cn('relative h-5 w-9 shrink-0 rounded-full transition-colors', somenteFixas ? 'bg-brand-600' : 'bg-gray-200')}
               >
                 <span
                   className={cn(

@@ -13,7 +13,7 @@ export function ProgressBar({ percentual, tom }: { percentual: number; tom?: 'au
       : 'bg-positive';
 
   return (
-    <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+    <div className="h-3 w-full overflow-hidden rounded-full bg-gray-100">
       <div className={cn('h-full rounded-full transition-all', cor)} style={{ width: `${p}%` }} />
     </div>
   );

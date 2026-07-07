@@ -77,7 +77,7 @@ export function GastosPorCategoriaChart({
           role="switch"
           aria-checked={incluirPendentes}
           onClick={() => setIncluirPendentes((v) => !v)}
-          className={cn('relative h-5 w-9 rounded-full transition-colors', incluirPendentes ? 'bg-brand-600' : 'bg-gray-200')}
+          className={cn('relative h-5 w-9 shrink-0 rounded-full transition-colors', incluirPendentes ? 'bg-brand-600' : 'bg-gray-200')}
         >
           <span
             className={cn(
@@ -111,7 +111,7 @@ export function GastosPorCategoriaChart({
                       {l.limite !== null && <span className="text-gray-400"> / {formatCurrency(l.limite)}</span>}
                     </span>
                   </div>
-                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                  <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-gray-100">
                     <div
                       className={cn('h-full rounded-full', percentual > 100 ? 'bg-negative' : 'bg-brand-500')}
                       style={{ width: `${Math.min(100, percentual)}%` }}
