@@ -37,7 +37,6 @@ export default async function DashboardPage({
   const mesSelecionado = parseMesParam(searchParams.mes);
   const inicio = primeiroDiaMes(mesSelecionado);
   const fim = ultimoDiaMes(mesSelecionado);
-  const hoje = format(new Date(), 'yyyy-MM-dd');
 
   const mesAnterior = addMeses(mesSelecionado, -1);
   const inicioAnterior = primeiroDiaMes(mesAnterior);
@@ -71,7 +70,7 @@ export default async function DashboardPage({
       .order('data', { ascending: false }),
     supabase
       .from('transacoes')
-      .select('tipo, valor')
+      .select('tipo, valor, pago')
       .eq('user_id', user.id)
       .eq('eh_transferencia', false)
       .gte('data', inicioAnterior)
@@ -109,8 +108,8 @@ export default async function DashboardPage({
   const saldoTotalContas = Array.from(saldoPorConta.values()).reduce((a, b) => a + b, 0);
 
   const periodo = transacoesPeriodo ?? [];
-  const realizado = periodo.filter((t) => t.data <= hoje);
-  const pendente = periodo.filter((t) => t.data > hoje);
+  const realizado = periodo.filter((t) => t.pago);
+  const pendente = periodo.filter((t) => !t.pago);
 
   const receitaMes = realizado.filter((t) => t.tipo === 'receita').reduce((a, t) => a + Number(t.valor), 0);
   const despesaMes = realizado.filter((t) => t.tipo === 'despesa').reduce((a, t) => a + Number(t.valor), 0);
@@ -119,7 +118,7 @@ export default async function DashboardPage({
   const pendenteReceita = pendente.filter((t) => t.tipo === 'receita').reduce((a, t) => a + Number(t.valor), 0);
   const pendenteDespesa = pendente.filter((t) => t.tipo === 'despesa').reduce((a, t) => a + Number(t.valor), 0);
 
-  const mesAnteriorTransacoes = transacoesMesAnterior ?? [];
+  const mesAnteriorTransacoes = (transacoesMesAnterior ?? []).filter((t) => t.pago);
   const receitaMesAnterior = mesAnteriorTransacoes.filter((t) => t.tipo === 'receita').reduce((a, t) => a + Number(t.valor), 0);
   const despesaMesAnterior = mesAnteriorTransacoes.filter((t) => t.tipo === 'despesa').reduce((a, t) => a + Number(t.valor), 0);
   const saldoMesAnterior = receitaMesAnterior - despesaMesAnterior;
