@@ -38,26 +38,28 @@ export function MinhasContasCarousel({ contas }: { contas: ContaResumo[] }) {
           <EmptyState mensagem="Nenhuma conta cadastrada ainda." />
         </div>
       ) : (
-        <div className="mt-4 flex-1 space-y-3 overflow-y-auto pr-1">
+        <div className="mt-4 grid flex-1 grid-cols-2 gap-2 overflow-y-auto pr-1">
           {contas.map((conta) => {
             const Icone = ICONE_POR_TIPO[conta.tipo] ?? IconWallet;
             const cor = conta.cor ?? '#2a78d6';
             return (
               <div
                 key={conta.id}
-                className="relative flex flex-col justify-between overflow-hidden rounded-md p-3 text-white shadow-elevated"
+                className="relative flex flex-col justify-between overflow-hidden rounded-md p-2.5 text-white shadow-elevated"
                 style={{ background: `linear-gradient(135deg, ${cor}, ${cor}cc)` }}
               >
-                <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-white/10" aria-hidden />
-                <div className="flex items-center justify-between">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
-                    <Icone className="h-4 w-4" />
+                <div className="pointer-events-none absolute -right-4 -top-4 h-14 w-14 rounded-full bg-white/10" aria-hidden />
+                <div className="flex items-center justify-between gap-1">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/20">
+                    <Icone className="h-3.5 w-3.5" />
                   </span>
-                  <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-medium capitalize">{conta.tipo}</span>
+                  <span className="truncate rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-medium capitalize">
+                    {conta.tipo}
+                  </span>
                 </div>
-                <div className="relative mt-3">
-                  <p className="text-xs font-medium text-white/80">{conta.nome}</p>
-                  <p className={cn('mt-0.5 text-lg font-bold', conta.saldo < 0 && 'text-red-100')}>
+                <div className="relative mt-2">
+                  <p className="truncate text-[11px] font-medium text-white/80">{conta.nome}</p>
+                  <p className={cn('mt-0.5 truncate text-sm font-bold', conta.saldo < 0 && 'text-red-100')}>
                     <ValorMonetario valor={conta.saldo} />
                   </p>
                 </div>
