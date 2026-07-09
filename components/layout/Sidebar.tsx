@@ -15,6 +15,7 @@ import {
   IconAjustes,
   IconWallet,
   IconClose,
+  IconChart,
 } from '@/components/icons';
 
 const NAV_GROUPS = [
@@ -24,6 +25,7 @@ const NAV_GROUPS = [
       { href: '/dashboard', label: 'Dashboard', icon: IconDashboard },
       { href: '/transacoes', label: 'Transações', icon: IconTransacoes },
       { href: '/orcamentos', label: 'Orçamentos', icon: IconOrcamentos },
+      { href: '/indicadores', label: 'Indicadores', icon: IconChart },
     ],
   },
   {
