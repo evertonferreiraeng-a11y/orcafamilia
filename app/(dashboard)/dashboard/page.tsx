@@ -73,7 +73,12 @@ export default async function DashboardPage({
       .eq('eh_transferencia', false)
       .gte('data', inicioAnterior)
       .lte('data', fimAnterior),
-    supabase.from('orcamentos').select('valor_limite, categoria_id').eq('user_id', user.id).eq('mes_referencia', inicio),
+    supabase
+      .from('orcamentos')
+      .select('valor_limite, categoria_id')
+      .eq('user_id', user.id)
+      .eq('mes_referencia', inicio)
+      .is('subcategoria_id', null),
     supabase
       .from('transacoes')
       .select('categoria_id, valor, pago')

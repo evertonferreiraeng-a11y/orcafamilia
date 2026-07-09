@@ -1,6 +1,9 @@
 import { createServerSupabase } from '@/lib/supabase-server';
-import { parseMesParam, primeiroDiaMes, ultimoDiaMes } from '@/lib/utils';
-import { OrcamentosClient, type OrcamentoComGasto } from '@/components/orcamentos/OrcamentosClient';
+import { parseMesParam, primeiroDiaMes, ultimoDiaMes, addMeses } from '@/lib/utils';
+import { OrcamentosClient, type CategoriaOrcamento } from '@/components/orcamentos/OrcamentosClient';
+import type { PontoTendencia } from '@/components/orcamentos/OrcamentoTendenciaChart';
+
+const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 export default async function OrcamentosPage({
   searchParams,
@@ -18,49 +21,84 @@ export default async function OrcamentosPage({
   const inicio = mesReferencia;
   const fim = ultimoDiaMes(mesSelecionado);
 
-  const [{ data: categoriasDespesa }, { data: orcamentos }, { data: transacoes }] = await Promise.all([
+  const mesAnterior = addMeses(mesSelecionado, -1);
+  const inicioAnterior = primeiroDiaMes(mesAnterior);
+  const fimAnterior = ultimoDiaMes(mesAnterior);
+
+  const mesesTendencia = Array.from({ length: 6 }, (_, i) => addMeses(mesSelecionado, i - 5));
+  const inicioTendencia = primeiroDiaMes(mesesTendencia[0]);
+
+  const [
+    { data: categoriasDespesa },
+    { data: subcategoriasTodas },
+    { data: orcamentosPeriodo },
+    { data: despesasPeriodo },
+  ] = await Promise.all([
     supabase.from('categorias').select('*').eq('user_id', user.id).eq('tipo', 'despesa').order('nome'),
+    supabase.from('subcategorias').select('*').eq('user_id', user.id).order('nome'),
     supabase
       .from('orcamentos')
-      .select('*, categorias(nome, cor)')
+      .select('categoria_id, subcategoria_id, valor_limite, mes_referencia')
       .eq('user_id', user.id)
-      .eq('mes_referencia', mesReferencia),
+      .gte('mes_referencia', inicioTendencia)
+      .lte('mes_referencia', mesReferencia),
     supabase
       .from('transacoes')
-      .select('categoria_id, valor')
+      .select('categoria_id, subcategoria_id, valor, data')
       .eq('user_id', user.id)
       .eq('tipo', 'despesa')
       .eq('eh_transferencia', false)
-      .gte('data', inicio)
+      .gte('data', inicioTendencia)
       .lte('data', fim),
   ]);
 
-  const gastoPorCategoria = new Map<string, number>();
-  for (const t of transacoes ?? []) {
-    if (!t.categoria_id) continue;
-    gastoPorCategoria.set(t.categoria_id, (gastoPorCategoria.get(t.categoria_id) ?? 0) + Number(t.valor));
+  function somarGasto(categoriaId: string, subcategoriaId: string | null, deIni: string, ateFim: string): number {
+    return (despesasPeriodo ?? [])
+      .filter((t) => t.categoria_id === categoriaId && t.data >= deIni && t.data <= ateFim)
+      .filter((t) => (subcategoriaId ? t.subcategoria_id === subcategoriaId : true))
+      .reduce((a, t) => a + Number(t.valor), 0);
   }
 
-  const orcamentosComGasto: OrcamentoComGasto[] = (orcamentos ?? []).map((o) => {
-    const categoria = o.categorias as unknown as { nome: string; cor: string | null } | null;
+  function buscarLimite(categoriaId: string, subcategoriaId: string | null, mesRef: string): number | null {
+    const linha = (orcamentosPeriodo ?? []).find(
+      (o) => o.categoria_id === categoriaId && o.mes_referencia === mesRef && (subcategoriaId ? o.subcategoria_id === subcategoriaId : !o.subcategoria_id)
+    );
+    return linha ? Number(linha.valor_limite) : null;
+  }
+
+  const categorias: CategoriaOrcamento[] = (categoriasDespesa ?? []).map((c) => {
+    const subcategorias = (subcategoriasTodas ?? [])
+      .filter((s) => s.categoria_id === c.id)
+      .map((s) => ({
+        id: s.id,
+        nome: s.nome,
+        valorLimite: buscarLimite(c.id, s.id, mesReferencia),
+        gasto: somarGasto(c.id, s.id, inicio, fim),
+        gastoAnterior: somarGasto(c.id, s.id, inicioAnterior, fimAnterior),
+      }));
+
     return {
-      id: o.id,
-      categoriaId: o.categoria_id,
-      categoriaNome: categoria?.nome ?? 'Sem categoria',
-      categoriaCor: categoria?.cor ?? null,
-      valorLimite: Number(o.valor_limite),
-      gasto: gastoPorCategoria.get(o.categoria_id) ?? 0,
+      id: c.id,
+      nome: c.nome,
+      cor: c.cor,
+      valorLimite: buscarLimite(c.id, null, mesReferencia),
+      gasto: somarGasto(c.id, null, inicio, fim),
+      gastoAnterior: somarGasto(c.id, null, inicioAnterior, fimAnterior),
+      subcategorias,
     };
   });
 
-  const categoriasComOrcamento = new Set((orcamentos ?? []).map((o) => o.categoria_id));
-  const categoriasSemOrcamento = (categoriasDespesa ?? []).filter((c) => !categoriasComOrcamento.has(c.id));
+  const tendencia: PontoTendencia[] = mesesTendencia.map((data) => {
+    const inicioMes = primeiroDiaMes(data);
+    const fimMes = ultimoDiaMes(data);
+    const orcado = (orcamentosPeriodo ?? [])
+      .filter((o) => o.mes_referencia === inicioMes && !o.subcategoria_id)
+      .reduce((a, o) => a + Number(o.valor_limite), 0);
+    const gasto = (despesasPeriodo ?? [])
+      .filter((t) => t.data >= inicioMes && t.data <= fimMes)
+      .reduce((a, t) => a + Number(t.valor), 0);
+    return { label: `${MESES_ABREV[data.getMonth()]}/${String(data.getFullYear()).slice(2)}`, orcado, gasto };
+  });
 
-  return (
-    <OrcamentosClient
-      orcamentos={orcamentosComGasto}
-      categoriasSemOrcamento={categoriasSemOrcamento}
-      mesReferencia={mesReferencia}
-    />
-  );
+  return <OrcamentosClient categorias={categorias} mesReferencia={mesReferencia} tendencia={tendencia} />;
 }

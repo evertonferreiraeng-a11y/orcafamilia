@@ -171,7 +171,8 @@ async function verificarOrcamentosEstourando(
       .from('orcamentos')
       .select('categoria_id, valor_limite, categorias(nome)')
       .eq('user_id', cfg.user_id)
-      .eq('mes_referencia', mesReferencia);
+      .eq('mes_referencia', mesReferencia)
+      .is('subcategoria_id', null);
 
     if (!orcamentos || orcamentos.length === 0) continue;
 

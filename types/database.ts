@@ -96,6 +96,7 @@ export type Orcamento = {
   id: string;
   user_id: string;
   categoria_id: string;
+  subcategoria_id: string | null;
   valor_limite: number;
   mes_referencia: string;
   criado_em: string;
@@ -291,6 +292,13 @@ export interface Database {
             columns: ['categoria_id'];
             isOneToOne: false;
             referencedRelation: 'categorias';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'orcamentos_subcategoria_id_fkey';
+            columns: ['subcategoria_id'];
+            isOneToOne: false;
+            referencedRelation: 'subcategorias';
             referencedColumns: ['id'];
           },
         ]
