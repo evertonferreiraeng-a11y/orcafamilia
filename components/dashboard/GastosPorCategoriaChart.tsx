@@ -74,9 +74,20 @@ export function GastosPorCategoriaChart({
       </div>
 
       {linhas.length > 0 && (
-        <div className="mb-4 mt-3 flex h-3 w-full overflow-hidden rounded-full bg-gray-100">
+        <div className="mb-4 mt-3 flex h-6 w-full overflow-hidden rounded-full bg-gray-100">
           {linhas.map((l) => (
-            <div key={l.categoriaId} style={{ width: `${l.percentualTotal}%`, backgroundColor: l.cor }} />
+            <div
+              key={l.categoriaId}
+              title={`${l.nome}: ${l.percentualTotal.toFixed(0)}%`}
+              className="flex items-center justify-center overflow-hidden"
+              style={{ width: `${l.percentualTotal}%`, backgroundColor: l.cor }}
+            >
+              {l.percentualTotal >= 8 && (
+                <span className="whitespace-nowrap text-[10px] font-semibold text-white">
+                  {l.percentualTotal.toFixed(0)}%
+                </span>
+              )}
+            </div>
           ))}
         </div>
       )}
