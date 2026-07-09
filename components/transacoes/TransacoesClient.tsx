@@ -42,7 +42,7 @@ interface Resumo {
 }
 
 type StatusFiltro = 'todas' | 'pago' | 'pendente';
-type SortKey = 'registro' | 'pagamento' | 'valor';
+type SortKey = 'registro' | 'vencimento' | 'pagamento' | 'valor';
 type SortDir = 'asc' | 'desc';
 
 const OPCOES_PERIODO = [
@@ -206,9 +206,15 @@ export function TransacoesClient({
 
     lista = [...lista].sort((a, b) => {
       let comparacao = 0;
-      if (sortKey === 'registro') comparacao = a.criado_em.localeCompare(b.criado_em);
-      else if (sortKey === 'pagamento') comparacao = a.data.localeCompare(b.data);
-      else comparacao = a.valor - b.valor;
+      if (sortKey === 'registro') {
+        comparacao = (a.data_registro ?? a.criado_em).localeCompare(b.data_registro ?? b.criado_em);
+      } else if (sortKey === 'vencimento') {
+        comparacao = (a.data_vencimento ?? a.data).localeCompare(b.data_vencimento ?? b.data);
+      } else if (sortKey === 'pagamento') {
+        comparacao = a.data.localeCompare(b.data);
+      } else {
+        comparacao = a.valor - b.valor;
+      }
       return sortDir === 'asc' ? comparacao : -comparacao;
     });
 
@@ -362,6 +368,11 @@ export function TransacoesClient({
                 </th>
                 <th className="px-3 py-3 font-medium">Status</th>
                 <th className="px-3 py-3 font-medium">
+                  <button type="button" onClick={() => ordenarPor('vencimento')} className="flex items-center gap-1 hover:text-gray-600">
+                    Vencimento <IconOrdenar className="h-3 w-3" />
+                  </button>
+                </th>
+                <th className="px-3 py-3 font-medium">
                   <button type="button" onClick={() => ordenarPor('pagamento')} className="flex items-center gap-1 hover:text-gray-600">
                     Pagamento <IconOrdenar className="h-3 w-3" />
                   </button>
@@ -372,7 +383,7 @@ export function TransacoesClient({
             <tbody>
               {transacoesFiltradas.map((t) => (
                 <tr key={t.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                  <td className="px-3 py-3 text-gray-500">{formatDate(t.criado_em)}</td>
+                  <td className="px-3 py-3 text-gray-500">{formatDate(t.data_registro ?? t.criado_em)}</td>
                   <td className="px-3 py-3 text-gray-800">
                     <p>{t.descricao}</p>
                     {t.parcela_total ? (
@@ -408,6 +419,7 @@ export function TransacoesClient({
                       {t.pago ? 'Pago' : 'Pendente'}
                     </button>
                   </td>
+                  <td className="px-3 py-3 text-gray-500">{formatDate(t.data_vencimento ?? t.data)}</td>
                   <td className="px-3 py-3 text-gray-500">{formatDate(t.data)}</td>
                   <td className="px-3 py-3">
                     <div className="flex justify-end gap-1">

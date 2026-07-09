@@ -78,6 +78,8 @@ export type Transacao = {
   descricao: string;
   valor: number;
   data: string;
+  data_registro: string | null;
+  data_vencimento: string | null;
   pago: boolean;
   eh_transferencia: boolean;
   grupo_transferencia: string | null;

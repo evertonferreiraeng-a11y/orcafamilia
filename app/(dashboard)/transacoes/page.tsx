@@ -19,7 +19,7 @@ export default async function TransacoesPage({
   const mesSelecionado = parseMesParam(searchParams.mes);
   const inicio = primeiroDiaMes(mesSelecionado);
   const fim = ultimoDiaMes(mesSelecionado);
-  const colunaData = searchParams.porRegistro === '1' ? 'criado_em' : 'data';
+  const colunaData = searchParams.porRegistro === '1' ? 'data_registro' : 'data';
 
   const [{ data: categorias }, { data: subcategorias }, { data: contas }, { data: cartoes }] = await Promise.all([
     supabase.from('categorias').select('*').eq('user_id', user.id).order('nome'),
@@ -32,8 +32,8 @@ export default async function TransacoesPage({
     .from('transacoes')
     .select('*, categorias(nome, cor), subcategorias(nome), contas(nome), cartoes(nome)')
     .eq('user_id', user.id)
-    .gte(colunaData, colunaData === 'data' ? inicio : `${inicio}T00:00:00`)
-    .lte(colunaData, colunaData === 'data' ? fim : `${fim}T23:59:59`)
+    .gte(colunaData, inicio)
+    .lte(colunaData, fim)
     .order('data', { ascending: false });
 
   const transacoes: TransacaoComRelacoes[] = (transacoesBrutas ?? []).map((t) => {

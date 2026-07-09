@@ -89,9 +89,11 @@ export async function criarTransacao(_prevState: TransacaoFormState, formData: F
   const cartaoId = String(formData.get('cartao_id') || '') || null;
   const recorrente = formData.get('recorrente') === 'on';
   const mesesRecorrencia = recorrente ? Math.max(2, Math.min(60, Number(formData.get('meses_recorrencia') || 2))) : 1;
+  const dataRegistro = String(formData.get('data_registro') || '');
+  const dataVencimento = String(formData.get('data_vencimento') || '');
 
-  if (!descricao || !valor || !data || !categoriaId) {
-    return { error: 'Preencha descrição, valor, data e categoria.' };
+  if (!descricao || !valor || !data || !categoriaId || !dataRegistro || !dataVencimento) {
+    return { error: 'Preencha descrição, valor, categoria e as datas de registro, vencimento e pagamento.' };
   }
   if (!contaId && !cartaoId) {
     return { error: 'Selecione uma conta ou cartão.' };
@@ -105,6 +107,8 @@ export async function criarTransacao(_prevState: TransacaoFormState, formData: F
     descricao,
     valor,
     data: adicionarMeses(data, i),
+    data_registro: dataRegistro,
+    data_vencimento: adicionarMeses(dataVencimento, i),
     categoria_id: categoriaId,
     subcategoria_id: subcategoriaId,
     conta_id: contaId,
@@ -180,9 +184,11 @@ export async function atualizarTransacao(
   const pago = formData.get('pago') === 'on';
   const contaId = String(formData.get('conta_id') || '') || null;
   const cartaoId = String(formData.get('cartao_id') || '') || null;
+  const dataRegistro = String(formData.get('data_registro') || '');
+  const dataVencimento = String(formData.get('data_vencimento') || '');
 
-  if (!descricao || !valor || !data || !categoriaId) {
-    return { error: 'Preencha descrição, valor, data e categoria.' };
+  if (!descricao || !valor || !data || !categoriaId || !dataRegistro || !dataVencimento) {
+    return { error: 'Preencha descrição, valor, categoria e as datas de registro, vencimento e pagamento.' };
   }
   if (!contaId && !cartaoId) {
     return { error: 'Selecione uma conta ou cartão.' };
@@ -195,6 +201,8 @@ export async function atualizarTransacao(
       descricao,
       valor,
       data,
+      data_registro: dataRegistro,
+      data_vencimento: dataVencimento,
       categoria_id: categoriaId,
       subcategoria_id: subcategoriaId,
       conta_id: contaId,

@@ -106,23 +106,24 @@ export function TransacaoForm({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div>
+        <label className="label-field" htmlFor="valor">Valor</label>
+        <input
+          id="valor"
+          name="valor"
+          type="number"
+          step="0.01"
+          min="0.01"
+          required
+          defaultValue={transacao?.valor}
+          className="input-field"
+          placeholder="0,00"
+        />
+      </div>
+
+      {aba === 'transferencia' ? (
         <div>
-          <label className="label-field" htmlFor="valor">Valor</label>
-          <input
-            id="valor"
-            name="valor"
-            type="number"
-            step="0.01"
-            min="0.01"
-            required
-            defaultValue={transacao?.valor}
-            className="input-field"
-            placeholder="0,00"
-          />
-        </div>
-        <div>
-          <label className="label-field" htmlFor="data">Data de Pagamento</label>
+          <label className="label-field" htmlFor="data">Data</label>
           <input
             id="data"
             name="data"
@@ -132,7 +133,43 @@ export function TransacaoForm({
             className="input-field"
           />
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label className="label-field" htmlFor="data_registro">Data de Registro</label>
+            <input
+              id="data_registro"
+              name="data_registro"
+              type="date"
+              required
+              defaultValue={transacao?.data_registro ?? new Date().toISOString().slice(0, 10)}
+              className="input-field"
+            />
+          </div>
+          <div>
+            <label className="label-field" htmlFor="data_vencimento">Data de Vencimento</label>
+            <input
+              id="data_vencimento"
+              name="data_vencimento"
+              type="date"
+              required
+              defaultValue={transacao?.data_vencimento ?? transacao?.data ?? new Date().toISOString().slice(0, 10)}
+              className="input-field"
+            />
+          </div>
+          <div>
+            <label className="label-field" htmlFor="data">Data de Pagamento</label>
+            <input
+              id="data"
+              name="data"
+              type="date"
+              required
+              defaultValue={transacao?.data ?? new Date().toISOString().slice(0, 10)}
+              className="input-field"
+            />
+          </div>
+        </div>
+      )}
 
       {aba !== 'transferencia' && (
         <div className="flex items-center gap-2">
