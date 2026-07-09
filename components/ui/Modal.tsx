@@ -2,17 +2,20 @@
 
 import { useEffect } from 'react';
 import { IconClose } from '@/components/icons';
+import { cn } from '@/lib/utils';
 
 export function Modal({
   open,
   onClose,
   title,
   children,
+  wide,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  wide?: boolean;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -28,7 +31,12 @@ export function Modal({
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
       <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-elevated">
+      <div
+        className={cn(
+          'relative z-10 max-h-[90vh] w-full overflow-y-auto rounded-2xl bg-white p-6 shadow-elevated',
+          wide ? 'max-w-4xl' : 'max-w-lg'
+        )}
+      >
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-semibold text-gray-900">{title}</h3>
           <button

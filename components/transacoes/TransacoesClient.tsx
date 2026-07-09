@@ -8,6 +8,7 @@ import { SummaryCard } from '@/components/ui/SummaryCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { TransacaoForm } from '@/components/transacoes/TransacaoForm';
 import { FaturasView } from '@/components/transacoes/FaturasView';
+import { MultiSelectFiltro } from '@/components/transacoes/MultiSelectFiltro';
 import {
   IconPlus,
   IconEdit,
@@ -44,6 +45,54 @@ type StatusFiltro = 'todas' | 'pago' | 'pendente';
 type SortKey = 'registro' | 'pagamento' | 'valor';
 type SortDir = 'asc' | 'desc';
 
+const OPCOES_PERIODO = [
+  { value: '', label: 'Todo o período' },
+  { value: 'mes-atual', label: 'Este mês' },
+  { value: 'mes-anterior', label: 'Mês passado' },
+  { value: 'ultimos-30', label: 'Últimos 30 dias' },
+  { value: 'ultimos-90', label: 'Últimos 90 dias' },
+  { value: 'este-ano', label: 'Este ano' },
+];
+
+function paraISO(data: Date): string {
+  return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
+}
+
+function calcularIntervaloPeriodo(preset: string): { inicio: string; fim: string } | null {
+  if (!preset) return null;
+  const hoje = new Date();
+
+  switch (preset) {
+    case 'mes-atual':
+      return {
+        inicio: paraISO(new Date(hoje.getFullYear(), hoje.getMonth(), 1)),
+        fim: paraISO(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0)),
+      };
+    case 'mes-anterior':
+      return {
+        inicio: paraISO(new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1)),
+        fim: paraISO(new Date(hoje.getFullYear(), hoje.getMonth(), 0)),
+      };
+    case 'ultimos-30': {
+      const inicio = new Date(hoje);
+      inicio.setDate(inicio.getDate() - 30);
+      return { inicio: paraISO(inicio), fim: paraISO(hoje) };
+    }
+    case 'ultimos-90': {
+      const inicio = new Date(hoje);
+      inicio.setDate(inicio.getDate() - 90);
+      return { inicio: paraISO(inicio), fim: paraISO(hoje) };
+    }
+    case 'este-ano':
+      return {
+        inicio: paraISO(new Date(hoje.getFullYear(), 0, 1)),
+        fim: paraISO(new Date(hoje.getFullYear(), 11, 31)),
+      };
+    default:
+      return null;
+  }
+}
+
 export function TransacoesClient({
   transacoes,
   categorias,
@@ -73,13 +122,33 @@ export function TransacoesClient({
 
   const [busca, setBusca] = useState('');
   const [filtroStatus, setFiltroStatus] = useState<StatusFiltro>('todas');
-  const [somenteFixas, setSomenteFixas] = useState(false);
-  const [filtroTipo, setFiltroTipo] = useState<'todos' | 'receita' | 'despesa'>('todos');
-  const [filtroCategoria, setFiltroCategoria] = useState('');
-  const [filtroConta, setFiltroConta] = useState('');
+
+  const [filtroPeriodo, setFiltroPeriodo] = useState('');
+  const [filtroCategorias, setFiltroCategorias] = useState<string[]>([]);
+  const [filtroSubcategorias, setFiltroSubcategorias] = useState<string[]>([]);
+  const [filtroContas, setFiltroContas] = useState<string[]>([]);
+  const [filtroCartoes, setFiltroCartoes] = useState<string[]>([]);
+  const [filtroStatusAvancado, setFiltroStatusAvancado] = useState<string[]>([]);
+  const [filtroValorMin, setFiltroValorMin] = useState('');
+  const [filtroValorMax, setFiltroValorMax] = useState('');
+  const [somenteRecorrentes, setSomenteRecorrentes] = useState(false);
+  const [somenteParceladas, setSomenteParceladas] = useState(false);
 
   const [sortKey, setSortKey] = useState<SortKey>('pagamento');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+
+  function limparFiltrosAvancados() {
+    setFiltroPeriodo('');
+    setFiltroCategorias([]);
+    setFiltroSubcategorias([]);
+    setFiltroContas([]);
+    setFiltroCartoes([]);
+    setFiltroStatusAvancado([]);
+    setFiltroValorMin('');
+    setFiltroValorMax('');
+    setSomenteRecorrentes(false);
+    setSomenteParceladas(false);
+  }
 
   function abrirNova() {
     setEditando(undefined);
@@ -107,15 +176,30 @@ export function TransacoesClient({
     }
   }
 
+  const periodoIntervalo = useMemo(() => calcularIntervaloPeriodo(filtroPeriodo), [filtroPeriodo]);
+
   const transacoesFiltradas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
+    const min = filtroValorMin ? Number(filtroValorMin) : null;
+    const max = filtroValorMax ? Number(filtroValorMax) : null;
+
     let lista = transacoes.filter((t) => {
       if (filtroStatus === 'pago' && !t.pago) return false;
       if (filtroStatus === 'pendente' && t.pago) return false;
-      if (somenteFixas && !t.recorrente) return false;
-      if (filtroTipo !== 'todos' && t.tipo !== filtroTipo) return false;
-      if (filtroCategoria && t.categoria_id !== filtroCategoria) return false;
-      if (filtroConta && t.conta_id !== filtroConta) return false;
+      if (somenteRecorrentes && !t.recorrente) return false;
+      if (somenteParceladas && !t.parcela_total) return false;
+      if (periodoIntervalo && (t.data < periodoIntervalo.inicio || t.data > periodoIntervalo.fim)) return false;
+      if (filtroCategorias.length > 0 && (!t.categoria_id || !filtroCategorias.includes(t.categoria_id))) return false;
+      if (filtroSubcategorias.length > 0 && (!t.subcategoria_id || !filtroSubcategorias.includes(t.subcategoria_id)))
+        return false;
+      if (filtroContas.length > 0 && (!t.conta_id || !filtroContas.includes(t.conta_id))) return false;
+      if (filtroCartoes.length > 0 && (!t.cartao_id || !filtroCartoes.includes(t.cartao_id))) return false;
+      if (filtroStatusAvancado.length > 0) {
+        const statusAtual = t.pago ? 'pago' : 'pendente';
+        if (!filtroStatusAvancado.includes(statusAtual)) return false;
+      }
+      if (min !== null && t.valor < min) return false;
+      if (max !== null && t.valor > max) return false;
       if (!termo) return true;
       return t.descricao.toLowerCase().includes(termo) || (t.categoriaNome ?? '').toLowerCase().includes(termo);
     });
@@ -129,7 +213,23 @@ export function TransacoesClient({
     });
 
     return lista;
-  }, [transacoes, busca, filtroStatus, somenteFixas, filtroTipo, filtroCategoria, filtroConta, sortKey, sortDir]);
+  }, [
+    transacoes,
+    busca,
+    filtroStatus,
+    somenteRecorrentes,
+    somenteParceladas,
+    periodoIntervalo,
+    filtroCategorias,
+    filtroSubcategorias,
+    filtroContas,
+    filtroCartoes,
+    filtroStatusAvancado,
+    filtroValorMin,
+    filtroValorMax,
+    sortKey,
+    sortDir,
+  ]);
 
   return (
     <div className="space-y-4">
@@ -221,27 +321,6 @@ export function TransacoesClient({
                 />
               </button>
               Data Pagamento
-            </label>
-
-            <label className="flex items-center gap-2 text-sm text-gray-600">
-              <button
-                type="button"
-                role="switch"
-                aria-checked={somenteFixas}
-                onClick={() => setSomenteFixas((v) => !v)}
-                className={cn(
-                  'relative h-5 w-9 shrink-0 overflow-hidden rounded-full transition-colors',
-                  somenteFixas ? 'bg-brand-600' : 'bg-gray-200'
-                )}
-              >
-                <span
-                  className={cn(
-                    'absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform',
-                    somenteFixas && 'translate-x-4'
-                  )}
-                />
-              </button>
-              Contas Fixas
             </label>
 
             <div className="relative min-w-[200px] flex-1">
@@ -362,41 +441,109 @@ export function TransacoesClient({
         />
       </Modal>
 
-      <Modal open={modalFiltros} onClose={() => setModalFiltros(false)} title="Filtros Avançados">
-        <div className="space-y-4">
-          <div>
-            <label className="label-field">Tipo</label>
-            <select
-              value={filtroTipo}
-              onChange={(e) => setFiltroTipo(e.target.value as 'todos' | 'receita' | 'despesa')}
-              className="input-field"
-            >
-              <option value="todos">Todos os tipos</option>
-              <option value="receita">Receita</option>
-              <option value="despesa">Despesa</option>
-            </select>
+      <Modal open={modalFiltros} onClose={() => setModalFiltros(false)} title="Filtros Avançados" wide>
+        <div className="space-y-5">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div>
+              <label className="label-field">Período</label>
+              <select value={filtroPeriodo} onChange={(e) => setFiltroPeriodo(e.target.value)} className="input-field">
+                {OPCOES_PERIODO.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <MultiSelectFiltro
+              label="Categoria"
+              placeholder="Selecionar categorias"
+              options={categorias.map((c) => ({ value: c.id, label: c.nome, cor: c.cor, icone: c.icone }))}
+              selected={filtroCategorias}
+              onChange={setFiltroCategorias}
+            />
+
+            <MultiSelectFiltro
+              label="Subcategoria"
+              placeholder="Selecionar subcategorias"
+              options={subcategorias.map((s) => ({ value: s.id, label: s.nome }))}
+              selected={filtroSubcategorias}
+              onChange={setFiltroSubcategorias}
+            />
+
+            <MultiSelectFiltro
+              label="Conta"
+              placeholder="Selecionar contas"
+              options={contas.map((c) => ({ value: c.id, label: c.nome, cor: c.cor }))}
+              selected={filtroContas}
+              onChange={setFiltroContas}
+            />
+
+            <MultiSelectFiltro
+              label="Cartão de Crédito"
+              placeholder="Selecionar cartões"
+              options={cartoes.map((c) => ({ value: c.id, label: c.nome }))}
+              selected={filtroCartoes}
+              onChange={setFiltroCartoes}
+            />
+
+            <MultiSelectFiltro
+              label="Status"
+              placeholder="Selecionar status"
+              options={[
+                { value: 'pago', label: 'Pago' },
+                { value: 'pendente', label: 'Pendente' },
+              ]}
+              selected={filtroStatusAvancado}
+              onChange={setFiltroStatusAvancado}
+            />
+
+            <div>
+              <label className="label-field">Faixa de Valor</label>
+              <div className="space-y-2">
+                <input
+                  type="number"
+                  value={filtroValorMin}
+                  onChange={(e) => setFiltroValorMin(e.target.value)}
+                  placeholder="Valor mínimo"
+                  className="input-field"
+                />
+                <input
+                  type="number"
+                  value={filtroValorMax}
+                  onChange={(e) => setFiltroValorMax(e.target.value)}
+                  placeholder="Valor máximo"
+                  className="input-field"
+                />
+              </div>
+            </div>
           </div>
-          <div>
-            <label className="label-field">Categoria</label>
-            <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)} className="input-field">
-              <option value="">Todas as categorias</option>
-              {categorias.map((c) => (
-                <option key={c.id} value={c.id}>{c.nome}</option>
-              ))}
-            </select>
+
+          <div className="space-y-2 border-t border-gray-100 pt-4">
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={somenteRecorrentes}
+                onChange={(e) => setSomenteRecorrentes(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+              />
+              Apenas transações recorrentes
+            </label>
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={somenteParceladas}
+                onChange={(e) => setSomenteParceladas(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+              />
+              Apenas compras parceladas
+            </label>
           </div>
-          <div>
-            <label className="label-field">Conta</label>
-            <select value={filtroConta} onChange={(e) => setFiltroConta(e.target.value)} className="input-field">
-              <option value="">Todas as contas</option>
-              {contas.map((c) => (
-                <option key={c.id} value={c.id}>{c.nome}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex justify-end pt-2">
+
+          <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
+            <button type="button" onClick={limparFiltrosAvancados} className="btn-secondary">
+              Limpar Filtros
+            </button>
             <button type="button" onClick={() => setModalFiltros(false)} className="btn-primary">
-              Aplicar
+              Aplicar Filtros
             </button>
           </div>
         </div>
