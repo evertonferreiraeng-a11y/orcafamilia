@@ -21,7 +21,7 @@ export interface ContaResumo {
 
 export function MinhasContasCarousel({ contas }: { contas: ContaResumo[] }) {
   return (
-    <div className="card flex h-full flex-col p-4">
+    <div className="card p-4">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-gray-700">Minhas contas</h2>
         <Link
@@ -34,18 +34,18 @@ export function MinhasContasCarousel({ contas }: { contas: ContaResumo[] }) {
       </div>
 
       {contas.length === 0 ? (
-        <div className="mt-4 flex-1">
+        <div className="mt-4">
           <EmptyState mensagem="Nenhuma conta cadastrada ainda." />
         </div>
       ) : (
-        <div className="mt-4 grid flex-1 grid-cols-2 gap-2 overflow-y-auto pr-1">
+        <div className="mt-4 grid grid-cols-2 items-start gap-2">
           {contas.map((conta) => {
             const Icone = ICONE_POR_TIPO[conta.tipo] ?? IconWallet;
             const cor = conta.cor ?? '#2a78d6';
             return (
               <div
                 key={conta.id}
-                className="relative flex flex-col justify-between overflow-hidden rounded-md p-2.5 text-white shadow-elevated"
+                className="relative overflow-hidden rounded-md p-2.5 text-white shadow-elevated"
                 style={{ background: `linear-gradient(135deg, ${cor}, ${cor}cc)` }}
               >
                 <div className="pointer-events-none absolute -right-4 -top-4 h-14 w-14 rounded-full bg-white/10" aria-hidden />

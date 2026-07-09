@@ -179,7 +179,7 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-4">
         <div className="card p-4 lg:col-span-3">
           <div className="grid grid-cols-1 lg:grid-cols-3 lg:divide-x lg:divide-gray-100">
             <div className="lg:col-span-2 lg:pr-4">
