@@ -5,6 +5,7 @@ import type { SVGProps } from 'react';
 export function StatRow({
   titulo,
   valor,
+  valorLabel,
   tom = 'neutro',
   icon: Icon,
   badge,
@@ -12,6 +13,7 @@ export function StatRow({
 }: {
   titulo: string;
   valor: number;
+  valorLabel?: string;
   tom?: 'positivo' | 'negativo' | 'neutro';
   icon?: (props: SVGProps<SVGSVGElement>) => React.ReactElement;
   badge?: { texto: string; tom: 'positivo' | 'negativo' };
@@ -48,6 +50,7 @@ export function StatRow({
       >
         <ValorMonetario valor={valor} />
       </p>
+      {valorLabel && <p className="text-xs text-gray-400">{valorLabel}</p>}
 
       {footer && <div className="mt-3">{footer}</div>}
     </div>

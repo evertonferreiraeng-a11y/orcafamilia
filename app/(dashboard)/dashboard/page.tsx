@@ -190,6 +190,7 @@ export default async function DashboardPage({
               <StatRow
                 titulo="Saldo (Este mês)"
                 valor={saldoMes}
+                valorLabel="Pago"
                 tom={saldoMes >= 0 ? 'positivo' : 'negativo'}
                 icon={IconWallet}
                 badge={
@@ -206,6 +207,7 @@ export default async function DashboardPage({
               <StatRow
                 titulo="Receitas"
                 valor={receitaMes}
+                valorLabel="Pago"
                 tom="positivo"
                 icon={IconTrendUp}
                 badge={
@@ -227,6 +229,7 @@ export default async function DashboardPage({
               <StatRow
                 titulo="Despesas"
                 valor={despesaMes}
+                valorLabel="Pago"
                 tom="negativo"
                 icon={IconTrendDown}
                 badge={
