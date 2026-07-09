@@ -21,7 +21,13 @@ import {
   IconFiltro,
   IconCartao,
 } from '@/components/icons';
-import { criarTransacao, atualizarTransacao, excluirTransacao, alternarPagoTransacao } from '@/app/(dashboard)/transacoes/actions';
+import {
+  criarTransacao,
+  atualizarTransacao,
+  excluirTransacao,
+  alternarPagoTransacao,
+  definirDataPagamento,
+} from '@/app/(dashboard)/transacoes/actions';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
 import type { Categoria, Subcategoria, Conta, Cartao, Transacao } from '@/types/database';
 
@@ -91,6 +97,42 @@ function calcularIntervaloPeriodo(preset: string): { inicio: string; fim: string
     default:
       return null;
   }
+}
+
+function CelulaPagamento({ transacao }: { transacao: TransacaoComRelacoes }) {
+  const [editando, setEditando] = useState(false);
+
+  if (transacao.pago || transacao.eh_transferencia) {
+    return <span>{formatDate(transacao.data)}</span>;
+  }
+
+  if (editando) {
+    return (
+      <input
+        type="date"
+        autoFocus
+        defaultValue={transacao.data ?? ''}
+        onChange={(e) => {
+          const novaData = e.target.value;
+          setEditando(false);
+          if (novaData) definirDataPagamento(transacao.id, novaData);
+        }}
+        onBlur={() => setEditando(false)}
+        className="rounded-lg border border-gray-200 px-2 py-1 text-xs focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+      />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setEditando(true)}
+      className="text-gray-400 hover:text-brand-600 hover:underline"
+      aria-label="Definir data de pagamento"
+    >
+      —
+    </button>
+  );
 }
 
 export function TransacoesClient({
@@ -420,7 +462,9 @@ export function TransacoesClient({
                     </button>
                   </td>
                   <td className="px-3 py-3 text-gray-500">{formatDate(t.data_vencimento ?? t.data)}</td>
-                  <td className="px-3 py-3 text-gray-500">{t.pago || t.eh_transferencia ? formatDate(t.data) : '—'}</td>
+                  <td className="px-3 py-3 text-gray-500">
+                    <CelulaPagamento transacao={t} />
+                  </td>
                   <td className="px-3 py-3">
                     <div className="flex justify-end gap-1">
                       <button

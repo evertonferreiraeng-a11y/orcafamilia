@@ -230,6 +230,14 @@ export async function alternarPagoTransacao(id: string, pago: boolean): Promise<
   revalidatePath('/dashboard');
 }
 
+export async function definirDataPagamento(id: string, data: string): Promise<void> {
+  const { supabase, user } = await getUser();
+  if (!user) return;
+  await supabase.from('transacoes').update({ data, pago: true }).eq('id', id).eq('user_id', user.id);
+  revalidatePath('/transacoes');
+  revalidatePath('/dashboard');
+}
+
 async function reverterPagamentoDivida(supabase: SupabaseClient, userId: string, pagamentoId: string): Promise<void> {
   const { data: pagamento } = await supabase
     .from('pagamentos_dividas')
