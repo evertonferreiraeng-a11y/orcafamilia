@@ -177,7 +177,7 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
         <div className="card p-4 lg:col-span-3">
           <div className="grid grid-cols-1 divide-y divide-gray-100 border-b border-gray-100 pb-4 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
             <StatRow
