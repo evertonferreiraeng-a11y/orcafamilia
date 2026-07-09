@@ -17,15 +17,16 @@ export default async function IndicadoresPage({
   const anoAtual = new Date().getFullYear();
   const ano = searchParams.ano ? Number(searchParams.ano) : anoAtual;
 
-  const [{ data: transacoesAno }, { data: categoriasTodas }, { data: orcamentosAno }] = await Promise.all([
+  const [{ data: transacoesAno }, { data: categoriasTodas }, { data: subcategoriasTodas }, { data: orcamentosAno }] = await Promise.all([
     supabase
       .from('transacoes')
-      .select('data, tipo, valor, pago, categoria_id')
+      .select('data, tipo, valor, pago, categoria_id, subcategoria_id')
       .eq('user_id', user.id)
       .eq('eh_transferencia', false)
       .gte('data', `${ano}-01-01`)
       .lte('data', `${ano}-12-31`),
     supabase.from('categorias').select('id, nome, tipo, cor').eq('user_id', user.id).order('nome'),
+    supabase.from('subcategorias').select('id, nome, categoria_id').eq('user_id', user.id).order('nome'),
     supabase
       .from('orcamentos')
       .select('categoria_id, valor_limite, mes_referencia')
@@ -63,7 +64,18 @@ export default async function IndicadoresPage({
       const linha = (orcamentosAno ?? []).find((o) => o.categoria_id === categoria.id && o.mes_referencia === mesRef);
       return linha ? Number(linha.valor_limite) : 0;
     });
-    return { id: categoria.id, nome: categoria.nome, realizadoPorMes, orcadoPorMes };
+    const subcategorias = (subcategoriasTodas ?? [])
+      .filter((s) => s.categoria_id === categoria.id)
+      .map((s) => {
+        const subRealizadoPorMes = MESES_ABREV.map((_, i) => {
+          const mesNum = i + 1;
+          return (transacoesAno ?? [])
+            .filter((t) => t.pago && t.subcategoria_id === s.id && Number(t.data.split('-')[1]) === mesNum)
+            .reduce((a, t) => a + Number(t.valor), 0);
+        });
+        return { id: s.id, nome: s.nome, realizadoPorMes: subRealizadoPorMes };
+      });
+    return { id: categoria.id, nome: categoria.nome, realizadoPorMes, orcadoPorMes, subcategorias };
   }
 
   const categoriasReceitaEvolucao = (categoriasTodas ?? []).filter((c) => c.tipo === 'receita').map(construirEvolucao);

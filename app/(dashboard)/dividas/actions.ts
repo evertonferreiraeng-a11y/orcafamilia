@@ -37,8 +37,47 @@ export async function criarDivida(_prevState: DividaFormState, formData: FormDat
     return { error: 'Preencha descrição, valor total e vencimento.' };
   }
 
+  const gerarParcelas = formData.get('gerar_parcelas') === 'on';
+  const contaParcelasId = String(formData.get('conta_parcelas_id') || '') || null;
+  if (gerarParcelas && !contaParcelasId) {
+    return { error: 'Selecione a conta para gerar as parcelas em Transações.' };
+  }
+
   const { error } = await supabase.from('dividas').insert({ user_id: user.id, ...dados });
   if (error) return { error: error.message };
+
+  if (gerarParcelas) {
+    const parcelasTotal = dados.parcelas_total ?? 1;
+    const valorParcela = dados.valor_total / parcelasTotal;
+    const grupoParcelamento = parcelasTotal > 1 ? crypto.randomUUID() : null;
+    const hoje = new Date().toISOString().slice(0, 10);
+
+    const linhas = Array.from({ length: parcelasTotal }, (_, i) => {
+      const vencimento = adicionarMeses(dados.data_vencimento, i);
+      return {
+        user_id: user.id,
+        tipo: 'despesa' as const,
+        descricao: parcelasTotal > 1 ? `${dados.descricao} (${i + 1}/${parcelasTotal})` : dados.descricao,
+        valor: valorParcela,
+        data: vencimento,
+        data_registro: hoje,
+        data_vencimento: vencimento,
+        categoria_id: dados.categoria_id,
+        subcategoria_id: dados.subcategoria_id,
+        conta_id: contaParcelasId,
+        pago: false,
+        recorrente: parcelasTotal > 1,
+        frequencia: parcelasTotal > 1 ? ('mensal' as const) : null,
+        grupo_parcelamento: grupoParcelamento,
+        parcela_atual: parcelasTotal > 1 ? i + 1 : null,
+        parcela_total: parcelasTotal > 1 ? parcelasTotal : null,
+      };
+    });
+
+    const { error: erroTransacoes } = await supabase.from('transacoes').insert(linhas);
+    if (erroTransacoes) return { error: erroTransacoes.message };
+    revalidatePath('/transacoes');
+  }
 
   revalidatePath('/dividas');
   revalidatePath('/dashboard');

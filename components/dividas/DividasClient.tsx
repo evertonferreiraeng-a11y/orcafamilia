@@ -261,6 +261,7 @@ export function DividasClient({
           divida={selecionada}
           categorias={categorias}
           subcategorias={subcategorias}
+          contas={contas}
           onSucesso={() => setModalForm(false)}
         />
       </Modal>

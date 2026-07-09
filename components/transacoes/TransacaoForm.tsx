@@ -48,7 +48,7 @@ export function TransacaoForm({
   const [aba, setAba] = useState<Aba>(transacao?.eh_transferencia ? 'transferencia' : (transacao?.tipo ?? 'despesa'));
   const [formaPagamento, setFormaPagamento] = useState<'debito' | 'credito'>(transacao?.cartao_id ? 'credito' : 'debito');
   const [categoriaId, setCategoriaId] = useState(transacao?.categoria_id ?? '');
-  const [pago, setPago] = useState(transacao?.pago ?? true);
+  const [pago, setPago] = useState(transacao?.pago ?? false);
   const [recorrente, setRecorrente] = useState(transacao?.recorrente ?? false);
 
   const tipoLancamento: 'despesa' | 'receita' = aba === 'transferencia' ? 'despesa' : aba;
@@ -164,6 +164,7 @@ export function TransacaoForm({
               name="data"
               type="date"
               defaultValue={transacao?.data ?? ''}
+              onChange={(e) => setPago(e.target.value !== '')}
               className="input-field"
               placeholder="Preencher ao pagar"
             />

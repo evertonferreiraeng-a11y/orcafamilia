@@ -3,8 +3,6 @@
 import { useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ResultadoFinanceiroReport } from '@/components/indicadores/ResultadoFinanceiroReport';
-import { LucroLiquidoReport } from '@/components/indicadores/LucroLiquidoReport';
-import { GastosReport } from '@/components/indicadores/GastosReport';
 import { EvolucaoContasReport } from '@/components/indicadores/EvolucaoContasReport';
 import { cn } from '@/lib/utils';
 
@@ -17,19 +15,24 @@ export interface PontoMes {
   percentualGasto: number;
 }
 
+export interface SubcategoriaEvolucao {
+  id: string;
+  nome: string;
+  realizadoPorMes: number[];
+}
+
 export interface CategoriaEvolucao {
   id: string;
   nome: string;
   realizadoPorMes: number[];
   orcadoPorMes: number[];
+  subcategorias: SubcategoriaEvolucao[];
 }
 
-type Aba = 'resultado' | 'lucro' | 'gastos' | 'evolucao';
+type Aba = 'resultado' | 'evolucao';
 
 const ABAS: { id: Aba; label: string }[] = [
   { id: 'resultado', label: 'Resultado Financeiro' },
-  { id: 'lucro', label: 'Lucro Líquido Mensal' },
-  { id: 'gastos', label: 'Gastos' },
   { id: 'evolucao', label: 'Evolução das Contas' },
 ];
 
@@ -94,8 +97,6 @@ export function IndicadoresClient({
       </div>
 
       {aba === 'resultado' && <ResultadoFinanceiroReport pontosAno={pontosAno} />}
-      {aba === 'lucro' && <LucroLiquidoReport pontosAno={pontosAno} />}
-      {aba === 'gastos' && <GastosReport pontosAno={pontosAno} />}
       {aba === 'evolucao' && (
         <EvolucaoContasReport
           categoriasReceita={categoriasReceitaEvolucao}

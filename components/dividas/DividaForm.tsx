@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
-import type { Divida, Categoria, Subcategoria } from '@/types/database';
+import type { Divida, Categoria, Subcategoria, Conta } from '@/types/database';
 import type { DividaFormState } from '@/app/(dashboard)/dividas/actions';
 
 function BotaoSalvar({ label }: { label: string }) {
@@ -19,12 +19,14 @@ export function DividaForm({
   divida,
   categorias,
   subcategorias,
+  contas,
   onSucesso,
 }: {
   action: (state: DividaFormState, formData: FormData) => Promise<DividaFormState>;
   divida?: Divida;
   categorias: Categoria[];
   subcategorias: Subcategoria[];
+  contas: Conta[];
   onSucesso: () => void;
 }) {
   const [state, formAction] = useFormState(async (state: DividaFormState, formData: FormData) => {
@@ -34,6 +36,7 @@ export function DividaForm({
   }, {});
 
   const [categoriaId, setCategoriaId] = useState(divida?.categoria_id ?? '');
+  const [gerarParcelas, setGerarParcelas] = useState(false);
   const subcategoriasFiltradas = subcategorias.filter((s) => s.categoria_id === categoriaId);
 
   return (
@@ -145,6 +148,37 @@ export function DividaForm({
           className="input-field"
         />
       </div>
+
+      {!divida && (
+        <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+          <div className="flex items-center gap-2">
+            <input
+              id="gerar_parcelas"
+              name="gerar_parcelas"
+              type="checkbox"
+              checked={gerarParcelas}
+              onChange={(e) => setGerarParcelas(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+            />
+            <label htmlFor="gerar_parcelas" className="text-sm text-gray-700">
+              Gerar as parcelas em Transações
+            </label>
+          </div>
+          <p className="mt-1 text-xs text-gray-400">Cria automaticamente uma transação para cada parcela desta dívida.</p>
+
+          {gerarParcelas && (
+            <div className="mt-3">
+              <label className="label-field" htmlFor="conta_parcelas_id">Conta das parcelas</label>
+              <select id="conta_parcelas_id" name="conta_parcelas_id" required defaultValue="" className="input-field">
+                <option value="">Selecione a conta</option>
+                {contas.map((c) => (
+                  <option key={c.id} value={c.id}>{c.nome}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      )}
 
       {state.error && <p className="text-sm text-negative">{state.error}</p>}
 
