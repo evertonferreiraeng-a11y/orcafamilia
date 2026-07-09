@@ -179,9 +179,7 @@ export default async function DashboardPage({
     <div className="space-y-4">
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-4">
         <div className="card p-4 lg:col-span-3">
-          <BalancoMensalChart diario={fluxo} mensal={balancoAnual} />
-
-          <div className="mt-4 grid grid-cols-1 divide-y divide-gray-100 border-t border-gray-100 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          <div className="grid grid-cols-1 divide-y divide-gray-100 border-b border-gray-100 pb-4 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
             <StatRow
               className="py-4 sm:py-0 sm:pr-4"
               titulo="Saldo (Este mês)"
@@ -246,6 +244,10 @@ export default async function DashboardPage({
                 </div>
               }
             />
+          </div>
+
+          <div className="mt-4">
+            <BalancoMensalChart diario={fluxo} mensal={balancoAnual} />
           </div>
         </div>
 
