@@ -141,6 +141,7 @@ export function OrcamentosClient({
                     subcategoriaId={null}
                     mesReferencia={mesReferencia}
                     valorInicial={c.valorLimite}
+                    label={c.nome}
                   />
                 </div>
                 <div className="flex-1">
@@ -162,6 +163,7 @@ export function OrcamentosClient({
                             subcategoriaId={s.id}
                             mesReferencia={mesReferencia}
                             valorInicial={s.valorLimite}
+                            label={`${c.nome} · ${s.nome}`}
                           />
                         </div>
                         <div className="flex-1">
