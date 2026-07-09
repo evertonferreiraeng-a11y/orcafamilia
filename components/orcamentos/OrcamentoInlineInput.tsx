@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { salvarOrcamento } from '@/app/(dashboard)/orcamentos/actions';
 import { Modal } from '@/components/ui/Modal';
+import { IconCheck } from '@/components/icons';
 import { cn, formatCurrency } from '@/lib/utils';
 
 export function OrcamentoInlineInput({
@@ -29,8 +30,10 @@ export function OrcamentoInlineInput({
   const [escopo, setEscopo] = useState<'mes' | 'futuro'>('mes');
   const [quantidadeMeses, setQuantidadeMeses] = useState(12);
 
-  function onBlur() {
-    if (valor === salvo) return;
+  const alterado = valor !== salvo;
+
+  function abrirConfirmacao() {
+    if (!alterado) return;
     setModalAberto(true);
   }
 
@@ -66,14 +69,32 @@ export function OrcamentoInlineInput({
         min="0"
         value={valor}
         onChange={(e) => setValor(e.target.value)}
-        onBlur={onBlur}
+        onBlur={abrirConfirmacao}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            abrirConfirmacao();
+          }
+        }}
         placeholder="0,00"
         className={cn(
-          'w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-gray-900 placeholder:text-gray-400 transition-opacity focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500',
+          'w-full rounded-lg border border-gray-200 py-1.5 pl-2.5 text-sm text-gray-900 placeholder:text-gray-400 transition-opacity focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500',
+          alterado ? 'pr-9' : 'pr-2.5',
           salvando && 'opacity-60',
           className
         )}
       />
+      {alterado && !salvando && (
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={abrirConfirmacao}
+          aria-label="Salvar orçamento"
+          className="absolute right-1 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md bg-brand-500 text-white hover:bg-brand-600"
+        >
+          <IconCheck className="h-3.5 w-3.5" />
+        </button>
+      )}
       {erro && <p className="absolute left-0 top-full z-10 mt-0.5 whitespace-nowrap text-xs text-negative">{erro}</p>}
 
       <Modal open={modalAberto} onClose={cancelar} title="Aplicar orçamento">
