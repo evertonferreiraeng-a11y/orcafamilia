@@ -6,12 +6,16 @@ export function MesValorCard({
   percentualLabel,
   percentual,
   tom,
+  comparacaoLabel,
+  comparacaoValor,
 }: {
   mes: string;
   valor: number;
   percentualLabel: string;
   percentual: number;
   tom: 'positivo' | 'negativo' | 'neutro';
+  comparacaoLabel?: string;
+  comparacaoValor?: number;
 }) {
   return (
     <div className="card p-4 text-center">
@@ -27,6 +31,11 @@ export function MesValorCard({
       <p className="mt-1.5 text-xs text-gray-400">
         {percentualLabel} <span className="font-medium text-gray-600">{percentual.toFixed(0)}%</span>
       </p>
+      {comparacaoLabel && comparacaoValor !== undefined && (
+        <p className="mt-1 text-xs text-gray-400">
+          {comparacaoLabel} <span className="font-medium text-gray-600">{formatCurrency(comparacaoValor)}</span>
+        </p>
+      )}
     </div>
   );
 }
