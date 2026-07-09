@@ -32,9 +32,10 @@ export async function criarTransacao(_prevState: TransacaoFormState, formData: F
   const valor = Number(formData.get('valor') || 0);
   const data = String(formData.get('data') || '');
 
-  if (!valor || !data) return { error: 'Preencha valor e data.' };
+  if (!valor) return { error: 'Preencha o valor.' };
 
   if (aba === 'transferencia') {
+    if (!data) return { error: 'Preencha a data.' };
     const contaOrigemId = String(formData.get('conta_origem_id') || '');
     const contaDestinoId = String(formData.get('conta_destino_id') || '');
 
@@ -91,9 +92,10 @@ export async function criarTransacao(_prevState: TransacaoFormState, formData: F
   const mesesRecorrencia = recorrente ? Math.max(2, Math.min(60, Number(formData.get('meses_recorrencia') || 2))) : 1;
   const dataRegistro = String(formData.get('data_registro') || '');
   const dataVencimento = String(formData.get('data_vencimento') || '');
+  const dataBase = data || dataVencimento || dataRegistro;
 
-  if (!descricao || !valor || !data || !categoriaId || !dataRegistro || !dataVencimento) {
-    return { error: 'Preencha descrição, valor, categoria e as datas de registro, vencimento e pagamento.' };
+  if (!descricao || !valor || !categoriaId || !dataRegistro || !dataVencimento) {
+    return { error: 'Preencha descrição, valor, categoria, data de registro e data de vencimento.' };
   }
   if (!contaId && !cartaoId) {
     return { error: 'Selecione uma conta ou cartão.' };
@@ -106,7 +108,7 @@ export async function criarTransacao(_prevState: TransacaoFormState, formData: F
     tipo: aba,
     descricao,
     valor,
-    data: adicionarMeses(data, i),
+    data: adicionarMeses(dataBase, i),
     data_registro: dataRegistro,
     data_vencimento: adicionarMeses(dataVencimento, i),
     categoria_id: categoriaId,
@@ -141,9 +143,10 @@ export async function atualizarTransacao(
   const valor = Number(formData.get('valor') || 0);
   const data = String(formData.get('data') || '');
 
-  if (!valor || !data) return { error: 'Preencha valor e data.' };
+  if (!valor) return { error: 'Preencha o valor.' };
 
   if (aba === 'transferencia') {
+    if (!data) return { error: 'Preencha a data.' };
     const { data: linhaAtual } = await supabase
       .from('transacoes')
       .select('grupo_transferencia')
@@ -186,9 +189,10 @@ export async function atualizarTransacao(
   const cartaoId = String(formData.get('cartao_id') || '') || null;
   const dataRegistro = String(formData.get('data_registro') || '');
   const dataVencimento = String(formData.get('data_vencimento') || '');
+  const dataBase = data || dataVencimento || dataRegistro;
 
-  if (!descricao || !valor || !data || !categoriaId || !dataRegistro || !dataVencimento) {
-    return { error: 'Preencha descrição, valor, categoria e as datas de registro, vencimento e pagamento.' };
+  if (!descricao || !valor || !categoriaId || !dataRegistro || !dataVencimento) {
+    return { error: 'Preencha descrição, valor, categoria, data de registro e data de vencimento.' };
   }
   if (!contaId && !cartaoId) {
     return { error: 'Selecione uma conta ou cartão.' };
@@ -200,7 +204,7 @@ export async function atualizarTransacao(
       tipo: aba,
       descricao,
       valor,
-      data,
+      data: dataBase,
       data_registro: dataRegistro,
       data_vencimento: dataVencimento,
       categoria_id: categoriaId,

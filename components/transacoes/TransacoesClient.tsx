@@ -420,7 +420,7 @@ export function TransacoesClient({
                     </button>
                   </td>
                   <td className="px-3 py-3 text-gray-500">{formatDate(t.data_vencimento ?? t.data)}</td>
-                  <td className="px-3 py-3 text-gray-500">{formatDate(t.data)}</td>
+                  <td className="px-3 py-3 text-gray-500">{t.pago || t.eh_transferencia ? formatDate(t.data) : '—'}</td>
                   <td className="px-3 py-3">
                     <div className="flex justify-end gap-1">
                       <button

@@ -163,10 +163,11 @@ export function TransacaoForm({
               id="data"
               name="data"
               type="date"
-              required
-              defaultValue={transacao?.data ?? new Date().toISOString().slice(0, 10)}
+              defaultValue={transacao?.data ?? ''}
               className="input-field"
+              placeholder="Preencher ao pagar"
             />
+            <p className="mt-1 text-xs text-gray-400">Deixe em branco até efetuar o pagamento.</p>
           </div>
         </div>
       )}
