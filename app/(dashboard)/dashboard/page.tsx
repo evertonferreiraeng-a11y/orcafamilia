@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { eachDayOfInterval, format } from 'date-fns';
 import { createServerSupabase } from '@/lib/supabase-server';
 import {
@@ -8,17 +7,16 @@ import {
   addMeses,
   calcularVariacaoPercentual,
   formatPercent,
-  cn,
 } from '@/lib/utils';
 import { StatRow } from '@/components/dashboard/StatRow';
 import { ValorMonetario } from '@/components/ui/ValorMonetario';
-import { ProgressBar } from '@/components/ui/ProgressBar';
 import { MinhasContasCarousel } from '@/components/dashboard/MinhasContasCarousel';
+import { PlanejadoGaugeCard } from '@/components/dashboard/PlanejadoGaugeCard';
 import { BalancoMensalChart, type PontoBalanco } from '@/components/dashboard/BalancoMensalChart';
 import { AnaliseCategoriaChart } from '@/components/dashboard/AnaliseCategoriaChart';
 import { GastosPorCategoriaChart } from '@/components/dashboard/GastosPorCategoriaChart';
 import { TransacoesRecentesCard, type TransacaoRecente } from '@/components/dashboard/TransacoesRecentesCard';
-import { IconTrendUp, IconTrendDown, IconWallet, IconMetas } from '@/components/icons';
+import { IconTrendUp, IconTrendDown, IconWallet } from '@/components/icons';
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -252,64 +250,24 @@ export default async function DashboardPage({
           </div>
         </div>
 
-        <MinhasContasCarousel
-          contas={(contas ?? []).map((conta) => ({
-            id: conta.id,
-            nome: conta.nome,
-            tipo: conta.tipo,
-            saldo: saldoPorConta.get(conta.id) ?? 0,
-            cor: conta.cor,
-          }))}
-        />
-      </div>
-
-      <div className="card p-4">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-              <IconMetas className="h-5 w-5" />
-            </span>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Planejado</p>
-              <p className="text-xl font-bold text-gray-900">
-                <ValorMonetario valor={planejado} />
-              </p>
-            </div>
-          </div>
-          {planejado > 0 && (
-            <span
-              className={cn(
-                'shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold',
-                percentualOrcamento > 100 ? 'bg-negative/10 text-negative' : 'bg-positive/10 text-positive'
-              )}
-            >
-              {percentualOrcamento.toFixed(0)}% usado
-            </span>
-          )}
+        <div className="flex flex-col gap-4">
+          <MinhasContasCarousel
+            contas={(contas ?? []).map((conta) => ({
+              id: conta.id,
+              nome: conta.nome,
+              tipo: conta.tipo,
+              saldo: saldoPorConta.get(conta.id) ?? 0,
+              cor: conta.cor,
+            }))}
+          />
+          <PlanejadoGaugeCard
+            planejado={planejado}
+            gastoOrcamento={gastoOrcamento}
+            restanteOrcamento={restanteOrcamento}
+            percentualOrcamento={percentualOrcamento}
+            categoriasAcima={categoriasAcima}
+          />
         </div>
-
-        {planejado > 0 ? (
-          <div className="mt-4 space-y-2">
-            <ProgressBar percentual={percentualOrcamento} />
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>
-                Gasto: <ValorMonetario valor={gastoOrcamento} />
-              </span>
-              <span>
-                Restante: <ValorMonetario valor={restanteOrcamento} />
-              </span>
-            </div>
-            {categoriasAcima > 0 && (
-              <p className="text-xs font-medium text-negative">
-                {categoriasAcima} {categoriasAcima === 1 ? 'categoria acima' : 'categorias acima'} do orçamento
-              </p>
-            )}
-          </div>
-        ) : (
-          <Link href="/orcamentos" className="mt-4 inline-block text-xs font-medium text-brand-600 hover:underline">
-            Definir orçamento do mês
-          </Link>
-        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
