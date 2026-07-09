@@ -97,7 +97,8 @@ export function GastosPorCategoriaChart({
       ) : (
         <div className="max-h-[320px] space-y-4 overflow-y-auto pr-1">
           {linhas.map((l) => {
-            const percentual = l.percentualOrcamento ?? l.percentualTotal;
+            const temOrcamento = l.limite !== null;
+            const percentual = l.percentualOrcamento ?? 0;
             return (
               <div key={l.categoriaId} className="flex items-start gap-3">
                 <span
@@ -111,19 +112,20 @@ export function GastosPorCategoriaChart({
                     <span className="truncate font-medium text-gray-700">{l.nome}</span>
                     <span className="shrink-0 whitespace-nowrap">
                       <span className="font-semibold text-gray-900">{formatCurrency(l.valor)}</span>
-                      {l.limite !== null && <span className="text-gray-400"> / {formatCurrency(l.limite)}</span>}
+                      <span className="text-gray-400"> de {temOrcamento ? formatCurrency(l.limite!) : formatCurrency(0)}</span>
                     </span>
                   </div>
                   <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-gray-100">
                     <div
-                      className={cn('h-full rounded-full', percentual > 100 ? 'bg-negative' : 'bg-brand-500')}
-                      style={{ width: `${Math.min(100, percentual)}%` }}
+                      className={cn(
+                        'h-full rounded-full',
+                        !temOrcamento ? 'bg-gray-300' : percentual > 100 ? 'bg-negative' : 'bg-brand-500'
+                      )}
+                      style={{ width: `${temOrcamento ? Math.min(100, percentual) : 100}%` }}
                     />
                   </div>
-                  <p className="mt-1 text-xs text-gray-400">
-                    {l.limite !== null
-                      ? `${l.percentualOrcamento!.toFixed(0)}% do orçamento`
-                      : `${l.percentualTotal.toFixed(0)}% do total gasto`}
+                  <p className={cn('mt-1 text-xs', temOrcamento ? 'text-gray-400' : 'text-amber-600')}>
+                    {temOrcamento ? `${percentual.toFixed(0)}% do orçamento atingido` : 'Sem orçamento definido para esta categoria'}
                   </p>
                 </div>
               </div>
