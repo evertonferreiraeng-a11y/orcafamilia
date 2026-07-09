@@ -179,74 +179,73 @@ export default async function DashboardPage({
     <div className="space-y-4">
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-4">
         <div className="card p-4 lg:col-span-3">
-          <div className="grid grid-cols-1 lg:grid-cols-3 lg:divide-x lg:divide-gray-100">
-            <div className="lg:col-span-2 lg:pr-4">
-              <BalancoMensalChart diario={fluxo} mensal={balancoAnual} />
-            </div>
+          <BalancoMensalChart diario={fluxo} mensal={balancoAnual} />
 
-            <div className="flex flex-col divide-y divide-gray-100">
-              <StatRow
-                titulo="Saldo (Este mês)"
-                valor={saldoMes}
-                valorLabel="Pago"
-                tom={saldoMes >= 0 ? 'positivo' : 'negativo'}
-                icon={IconWallet}
-                badge={
-                  variacaoSaldo === null
-                    ? undefined
-                    : { texto: formatPercent(variacaoSaldo), tom: variacaoSaldo >= 0 ? 'positivo' : 'negativo' }
-                }
-                footer={
-                  <span className="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-600">
-                    Saldo acumulado: <ValorMonetario valor={saldoTotalContas} />
+          <div className="mt-4 grid grid-cols-1 divide-y divide-gray-100 border-t border-gray-100 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            <StatRow
+              className="py-4 sm:py-0 sm:pr-4"
+              titulo="Saldo (Este mês)"
+              valor={saldoMes}
+              valorLabel="Pago"
+              tom={saldoMes >= 0 ? 'positivo' : 'negativo'}
+              icon={IconWallet}
+              badge={
+                variacaoSaldo === null
+                  ? undefined
+                  : { texto: formatPercent(variacaoSaldo), tom: variacaoSaldo >= 0 ? 'positivo' : 'negativo' }
+              }
+              footer={
+                <span className="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-600">
+                  Saldo acumulado: <ValorMonetario valor={saldoTotalContas} />
+                </span>
+              }
+            />
+            <StatRow
+              className="py-4 sm:py-0 sm:px-4"
+              titulo="Receitas"
+              valor={receitaMes}
+              valorLabel="Pago"
+              tom="positivo"
+              icon={IconTrendUp}
+              badge={
+                variacaoReceita === null
+                  ? undefined
+                  : { texto: formatPercent(variacaoReceita), tom: variacaoReceita >= 0 ? 'positivo' : 'negativo' }
+              }
+              footer={
+                <div className="space-y-1.5">
+                  <span className="inline-flex items-center rounded-full bg-positive/10 px-2.5 py-1 text-xs font-medium text-positive">
+                    Pendente: <ValorMonetario valor={pendenteReceita} />
                   </span>
-                }
-              />
-              <StatRow
-                titulo="Receitas"
-                valor={receitaMes}
-                valorLabel="Pago"
-                tom="positivo"
-                icon={IconTrendUp}
-                badge={
-                  variacaoReceita === null
-                    ? undefined
-                    : { texto: formatPercent(variacaoReceita), tom: variacaoReceita >= 0 ? 'positivo' : 'negativo' }
-                }
-                footer={
-                  <div className="space-y-1.5">
-                    <span className="inline-flex items-center rounded-full bg-positive/10 px-2.5 py-1 text-xs font-medium text-positive">
-                      Pendente: <ValorMonetario valor={pendenteReceita} />
-                    </span>
-                    <p className="text-xs text-gray-400">
-                      Total lançado: <ValorMonetario valor={receitaMes + pendenteReceita} />
-                    </p>
-                  </div>
-                }
-              />
-              <StatRow
-                titulo="Despesas"
-                valor={despesaMes}
-                valorLabel="Pago"
-                tom="negativo"
-                icon={IconTrendDown}
-                badge={
-                  variacaoDespesa === null
-                    ? undefined
-                    : { texto: formatPercent(variacaoDespesa), tom: variacaoDespesa <= 0 ? 'positivo' : 'negativo' }
-                }
-                footer={
-                  <div className="space-y-1.5">
-                    <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
-                      Pendente: <ValorMonetario valor={pendenteDespesa} />
-                    </span>
-                    <p className="text-xs text-gray-400">
-                      Total lançado: <ValorMonetario valor={despesaMes + pendenteDespesa} />
-                    </p>
-                  </div>
-                }
-              />
-            </div>
+                  <p className="text-xs text-gray-400">
+                    Total lançado: <ValorMonetario valor={receitaMes + pendenteReceita} />
+                  </p>
+                </div>
+              }
+            />
+            <StatRow
+              className="py-4 sm:py-0 sm:pl-4"
+              titulo="Despesas"
+              valor={despesaMes}
+              valorLabel="Pago"
+              tom="negativo"
+              icon={IconTrendDown}
+              badge={
+                variacaoDespesa === null
+                  ? undefined
+                  : { texto: formatPercent(variacaoDespesa), tom: variacaoDespesa <= 0 ? 'positivo' : 'negativo' }
+              }
+              footer={
+                <div className="space-y-1.5">
+                  <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+                    Pendente: <ValorMonetario valor={pendenteDespesa} />
+                  </span>
+                  <p className="text-xs text-gray-400">
+                    Total lançado: <ValorMonetario valor={despesaMes + pendenteDespesa} />
+                  </p>
+                </div>
+              }
+            />
           </div>
         </div>
 

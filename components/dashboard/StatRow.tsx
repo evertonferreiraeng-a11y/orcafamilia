@@ -10,6 +10,7 @@ export function StatRow({
   icon: Icon,
   badge,
   footer,
+  className,
 }: {
   titulo: string;
   valor: number;
@@ -18,9 +19,10 @@ export function StatRow({
   icon?: (props: SVGProps<SVGSVGElement>) => React.ReactElement;
   badge?: { texto: string; tom: 'positivo' | 'negativo' };
   footer?: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="py-4 first:pt-0 last:pb-0 lg:px-4">
+    <div className={className}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-3">
           {Icon && (
