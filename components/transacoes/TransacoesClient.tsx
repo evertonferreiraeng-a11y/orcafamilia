@@ -208,12 +208,15 @@ export function TransacoesClient({
                 role="switch"
                 aria-checked={!porRegistro}
                 onClick={alternarDataBase}
-                className={cn('relative h-5 w-9 shrink-0 rounded-full transition-colors', !porRegistro ? 'bg-brand-600' : 'bg-gray-200')}
+                className={cn(
+                  'relative h-5 w-9 shrink-0 overflow-hidden rounded-full transition-colors',
+                  !porRegistro ? 'bg-brand-600' : 'bg-gray-200'
+                )}
               >
                 <span
                   className={cn(
-                    'absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform',
-                    !porRegistro ? 'translate-x-4' : 'translate-x-0.5'
+                    'absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform',
+                    !porRegistro && 'translate-x-4'
                   )}
                 />
               </button>
@@ -226,12 +229,15 @@ export function TransacoesClient({
                 role="switch"
                 aria-checked={somenteFixas}
                 onClick={() => setSomenteFixas((v) => !v)}
-                className={cn('relative h-5 w-9 shrink-0 rounded-full transition-colors', somenteFixas ? 'bg-brand-600' : 'bg-gray-200')}
+                className={cn(
+                  'relative h-5 w-9 shrink-0 overflow-hidden rounded-full transition-colors',
+                  somenteFixas ? 'bg-brand-600' : 'bg-gray-200'
+                )}
               >
                 <span
                   className={cn(
-                    'absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform',
-                    somenteFixas ? 'translate-x-4' : 'translate-x-0.5'
+                    'absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform',
+                    somenteFixas && 'translate-x-4'
                   )}
                 />
               </button>
