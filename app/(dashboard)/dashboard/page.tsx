@@ -262,6 +262,7 @@ export default async function DashboardPage({
             }))}
           />
           <PlanejadoGaugeCard
+            className="flex-1"
             planejado={planejado}
             gastoOrcamento={gastoOrcamento}
             restanteOrcamento={restanteOrcamento}

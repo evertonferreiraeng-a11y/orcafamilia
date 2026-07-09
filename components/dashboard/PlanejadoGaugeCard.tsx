@@ -12,12 +12,14 @@ export function PlanejadoGaugeCard({
   restanteOrcamento,
   percentualOrcamento,
   categoriasAcima,
+  className,
 }: {
   planejado: number;
   gastoOrcamento: number;
   restanteOrcamento: number;
   percentualOrcamento: number;
   categoriasAcima: number;
+  className?: string;
 }) {
   const percentualPreenchido = Math.min(100, Math.max(0, percentualOrcamento));
   const corPonteiro = percentualOrcamento > 100 ? '#dc2626' : percentualOrcamento >= 80 ? '#f59e0b' : '#16a34a';
@@ -27,7 +29,7 @@ export function PlanejadoGaugeCard({
   ];
 
   return (
-    <div className="card p-4">
+    <div className={cn('card flex flex-col p-4', className)}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
@@ -43,7 +45,7 @@ export function PlanejadoGaugeCard({
       </div>
 
       {planejado > 0 ? (
-        <>
+        <div className="flex flex-1 flex-col justify-center">
           <div className="relative mt-1">
             <ResponsiveContainer width="100%" height={120}>
               <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
@@ -83,7 +85,7 @@ export function PlanejadoGaugeCard({
               {categoriasAcima} {categoriasAcima === 1 ? 'categoria acima' : 'categorias acima'} do orçamento
             </p>
           )}
-        </>
+        </div>
       ) : (
         <Link href="/orcamentos" className="mt-4 inline-block text-xs font-medium text-brand-600 hover:underline">
           Definir orçamento do mês
