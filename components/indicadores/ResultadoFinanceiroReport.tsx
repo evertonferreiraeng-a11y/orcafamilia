@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -35,8 +36,16 @@ function ResultadoTooltip({ active, payload, label }: TooltipProps<number, strin
   );
 }
 
-export function ResultadoFinanceiroReport({ pontosAno }: { pontosAno: PontoMes[] }) {
-  const resultadoAnual = pontosAno.reduce((a, p) => a + p.resultado, 0);
+export function ResultadoFinanceiroReport({
+  pontosAno,
+  pontosOrcadoAno,
+}: {
+  pontosAno: PontoMes[];
+  pontosOrcadoAno: PontoMes[];
+}) {
+  const [modo, setModo] = useState<'realizado' | 'orcado'>('realizado');
+  const pontos = modo === 'realizado' ? pontosAno : pontosOrcadoAno;
+  const resultadoAnual = pontos.reduce((a, p) => a + p.resultado, 0);
   const positivo = resultadoAnual >= 0;
 
   return (
@@ -46,16 +55,36 @@ export function ResultadoFinanceiroReport({ pontosAno }: { pontosAno: PontoMes[]
           <h2 className="text-base font-semibold text-gray-900">Resultado Financeiro</h2>
           <p className="text-sm text-gray-500">Acompanhe a evolução dos seus Ganhos e Prejuízos a cada mês</p>
         </div>
-        <div className={cn('rounded-xl px-4 py-2.5 text-right', positivo ? 'bg-positive/10' : 'bg-negative/10')}>
-          <p className={cn('text-xs font-medium', positivo ? 'text-positive' : 'text-negative')}>Resultado Anual</p>
-          <p className={cn('text-lg font-bold', positivo ? 'text-positive' : 'text-negative')}>
-            {formatCurrency(resultadoAnual)}
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="flex rounded-lg border border-gray-200 p-0.5 text-xs">
+            <button
+              type="button"
+              onClick={() => setModo('realizado')}
+              className={cn('rounded-md px-3 py-1 font-medium', modo === 'realizado' ? 'bg-gray-900 text-white' : 'text-gray-500')}
+            >
+              Realizado
+            </button>
+            <button
+              type="button"
+              onClick={() => setModo('orcado')}
+              className={cn('rounded-md px-3 py-1 font-medium', modo === 'orcado' ? 'bg-gray-900 text-white' : 'text-gray-500')}
+            >
+              Orçado
+            </button>
+          </div>
+          <div className={cn('rounded-xl px-4 py-2.5 text-right', positivo ? 'bg-positive/10' : 'bg-negative/10')}>
+            <p className={cn('text-xs font-medium', positivo ? 'text-positive' : 'text-negative')}>
+              {modo === 'realizado' ? 'Resultado Anual' : 'Resultado Anual Orçado'}
+            </p>
+            <p className={cn('text-lg font-bold', positivo ? 'text-positive' : 'text-negative')}>
+              {formatCurrency(resultadoAnual)}
+            </p>
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        {pontosAno.map((p) => (
+        {pontos.map((p) => (
           <MesValorCard
             key={p.label}
             mes={p.label}
@@ -71,7 +100,7 @@ export function ResultadoFinanceiroReport({ pontosAno }: { pontosAno: PontoMes[]
         <div className="card p-4">
           <h3 className="mb-3 text-sm font-semibold text-gray-700">Resultado por mês</h3>
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={pontosAno} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            <BarChart data={pontos} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eef0f3" />
               <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
               <YAxis
@@ -83,7 +112,7 @@ export function ResultadoFinanceiroReport({ pontosAno }: { pontosAno: PontoMes[]
               />
               <Tooltip formatter={(v: number) => formatCurrency(v)} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
               <Bar dataKey="resultado" name="Resultado" radius={[4, 4, 0, 0]}>
-                {pontosAno.map((p, i) => (
+                {pontos.map((p, i) => (
                   <Cell key={i} fill={p.resultado >= 0 ? '#16a34a' : '#dc2626'} />
                 ))}
               </Bar>
@@ -107,7 +136,7 @@ export function ResultadoFinanceiroReport({ pontosAno }: { pontosAno: PontoMes[]
             </div>
           </div>
           <ResponsiveContainer width="100%" height={220}>
-            <ComposedChart data={pontosAno} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            <ComposedChart data={pontos} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eef0f3" />
               <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
               <YAxis

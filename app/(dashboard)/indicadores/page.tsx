@@ -52,6 +52,28 @@ export default async function IndicadoresPage({
     };
   });
 
+  const categoriaTipoPorId = new Map((categoriasTodas ?? []).map((c) => [c.id, c.tipo]));
+
+  const pontosOrcadoAno: PontoMes[] = MESES_ABREV.map((label, i) => {
+    const mesRef = `${ano}-${String(i + 1).padStart(2, '0')}-01`;
+    const doMes = (orcamentosAno ?? []).filter((o) => o.mes_referencia === mesRef);
+    const receita = doMes
+      .filter((o) => categoriaTipoPorId.get(o.categoria_id) === 'receita')
+      .reduce((a, o) => a + Number(o.valor_limite), 0);
+    const despesa = doMes
+      .filter((o) => categoriaTipoPorId.get(o.categoria_id) === 'despesa')
+      .reduce((a, o) => a + Number(o.valor_limite), 0);
+    const resultado = receita - despesa;
+    return {
+      label,
+      receita,
+      despesa,
+      resultado,
+      percentualLucro: receita > 0 ? (resultado / receita) * 100 : 0,
+      percentualGasto: receita > 0 ? (despesa / receita) * 100 : 0,
+    };
+  });
+
   function construirEvolucao(categoria: { id: string; nome: string }): CategoriaEvolucao {
     const realizadoPorMes = MESES_ABREV.map((_, i) => {
       const mesNum = i + 1;
@@ -85,6 +107,7 @@ export default async function IndicadoresPage({
     <IndicadoresClient
       ano={ano}
       pontosAno={pontosAno}
+      pontosOrcadoAno={pontosOrcadoAno}
       categoriasReceitaEvolucao={categoriasReceitaEvolucao}
       categoriasDespesaEvolucao={categoriasDespesaEvolucao}
     />

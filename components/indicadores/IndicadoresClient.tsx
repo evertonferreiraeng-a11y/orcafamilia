@@ -39,11 +39,13 @@ const ABAS: { id: Aba; label: string }[] = [
 export function IndicadoresClient({
   ano,
   pontosAno,
+  pontosOrcadoAno,
   categoriasReceitaEvolucao,
   categoriasDespesaEvolucao,
 }: {
   ano: number;
   pontosAno: PontoMes[];
+  pontosOrcadoAno: PontoMes[];
   categoriasReceitaEvolucao: CategoriaEvolucao[];
   categoriasDespesaEvolucao: CategoriaEvolucao[];
 }) {
@@ -59,7 +61,7 @@ export function IndicadoresClient({
   }
 
   const anoAtual = new Date().getFullYear();
-  const anosDisponiveis = Array.from({ length: 6 }, (_, i) => anoAtual - i);
+  const anosDisponiveis = Array.from({ length: 9 }, (_, i) => anoAtual - 5 + i);
   if (!anosDisponiveis.includes(ano)) anosDisponiveis.unshift(ano);
 
   return (
@@ -96,7 +98,7 @@ export function IndicadoresClient({
         ))}
       </div>
 
-      {aba === 'resultado' && <ResultadoFinanceiroReport pontosAno={pontosAno} />}
+      {aba === 'resultado' && <ResultadoFinanceiroReport pontosAno={pontosAno} pontosOrcadoAno={pontosOrcadoAno} />}
       {aba === 'evolucao' && (
         <EvolucaoContasReport
           categoriasReceita={categoriasReceitaEvolucao}
