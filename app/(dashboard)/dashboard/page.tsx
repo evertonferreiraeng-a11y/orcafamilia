@@ -13,7 +13,6 @@ import { ValorMonetario } from '@/components/ui/ValorMonetario';
 import { MinhasContasCarousel } from '@/components/dashboard/MinhasContasCarousel';
 import { PlanejadoGaugeCard } from '@/components/dashboard/PlanejadoGaugeCard';
 import { BalancoMensalChart, type PontoBalanco } from '@/components/dashboard/BalancoMensalChart';
-import { AnaliseCategoriaChart } from '@/components/dashboard/AnaliseCategoriaChart';
 import { GastosPorCategoriaChart } from '@/components/dashboard/GastosPorCategoriaChart';
 import { TransacoesRecentesCard, type TransacaoRecente } from '@/components/dashboard/TransacoesRecentesCard';
 import { IconTrendUp, IconTrendDown, IconWallet } from '@/components/icons';
@@ -278,18 +277,8 @@ export default async function DashboardPage({
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <AnaliseCategoriaChart
-          transacoes={periodo.map((t) => {
-            const categoria = t.categorias as unknown as { nome: string; cor: string | null } | null;
-            return {
-              tipo: t.tipo as 'receita' | 'despesa',
-              valor: Number(t.valor),
-              categoria: categoria?.nome ?? null,
-              cor: categoria?.cor ?? null,
-            };
-          })}
-        />
         <GastosPorCategoriaChart
+          className="lg:col-span-2"
           despesas={despesasPorCategoriaMes ?? []}
           categorias={categoriasTodas ?? []}
           orcamentos={orcamentosMes ?? []}

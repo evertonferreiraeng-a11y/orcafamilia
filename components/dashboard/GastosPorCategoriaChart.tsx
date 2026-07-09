@@ -24,10 +24,12 @@ export function GastosPorCategoriaChart({
   despesas,
   categorias,
   orcamentos,
+  className,
 }: {
   despesas: DespesaResumoMes[];
   categorias: CategoriaMeta[];
   orcamentos: OrcamentoResumoMes[];
+  className?: string;
 }) {
   const [incluirPendentes, setIncluirPendentes] = useState(true);
 
@@ -62,7 +64,7 @@ export function GastosPorCategoriaChart({
   }, [despesas, categorias, orcamentos, incluirPendentes]);
 
   return (
-    <div className="card p-4">
+    <div className={cn('card p-4', className)}>
       <div className="mb-1 flex flex-wrap items-start justify-between gap-3">
         <h2 className="text-sm font-semibold text-gray-700">Gastos por Categoria</h2>
         <div className="text-right">
@@ -70,6 +72,14 @@ export function GastosPorCategoriaChart({
           <p className="text-lg font-bold text-brand-600">{formatCurrency(total)}</p>
         </div>
       </div>
+
+      {linhas.length > 0 && (
+        <div className="mb-4 mt-3 flex h-3 w-full overflow-hidden rounded-full bg-gray-100">
+          {linhas.map((l) => (
+            <div key={l.categoriaId} style={{ width: `${l.percentualTotal}%`, backgroundColor: l.cor }} />
+          ))}
+        </div>
+      )}
 
       <label className="mb-4 flex items-center gap-2 text-sm text-gray-600">
         <button
