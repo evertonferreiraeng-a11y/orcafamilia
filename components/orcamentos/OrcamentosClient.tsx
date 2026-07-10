@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { salvarOrcamento } from '@/app/(dashboard)/orcamentos/actions';
-import { IconChevronDown, IconChevronRight } from '@/components/icons';
+import { Modal } from '@/components/ui/Modal';
+import { IconChevronDown, IconChevronRight, IconCheck } from '@/components/icons';
 import { cn, formatCurrency } from '@/lib/utils';
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -24,26 +25,44 @@ export interface CategoriaAnual {
 
 function CelulaOrcamento({
   valor,
+  label,
   onSalvar,
 }: {
   valor: number | null;
-  onSalvar: (novoValor: number | null) => Promise<string | undefined>;
+  label: string;
+  onSalvar: (novoValor: number | null, mesesAFrente: number) => Promise<string | undefined>;
 }) {
   const valorTexto = valor != null ? String(valor) : '';
   const [texto, setTexto] = useState(valorTexto);
   const [salvo, setSalvo] = useState(valorTexto);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [modalAberto, setModalAberto] = useState(false);
+  const [escopo, setEscopo] = useState<'mes' | 'futuro'>('mes');
+  const [quantidadeMeses, setQuantidadeMeses] = useState(12);
 
   const alterado = texto !== salvo;
 
-  async function confirmar() {
+  function abrirConfirmacao() {
     if (!alterado) return;
+    setModalAberto(true);
+  }
+
+  function cancelar() {
+    setTexto(salvo);
+    setModalAberto(false);
+    setEscopo('mes');
+  }
+
+  async function confirmar() {
+    setModalAberto(false);
     setSalvando(true);
     setErro(null);
     const numero = texto.trim() === '' ? null : Number(texto);
-    const erroMsg = await onSalvar(numero);
+    const meses = escopo === 'futuro' ? Math.max(2, Math.min(36, quantidadeMeses)) : 1;
+    const erroMsg = await onSalvar(numero, meses);
     setSalvando(false);
+    setEscopo('mes');
     if (erroMsg) {
       setErro(erroMsg);
       return;
@@ -51,28 +70,102 @@ function CelulaOrcamento({
     setSalvo(texto);
   }
 
+  const numeroAtual = texto.trim() === '' ? 0 : Number(texto);
+
   return (
-    <input
-      type="number"
-      step="0.01"
-      min="0"
-      value={texto}
-      onChange={(e) => setTexto(e.target.value)}
-      onBlur={confirmar}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          (e.target as HTMLInputElement).blur();
-        }
-      }}
-      placeholder="—"
-      title={erro ?? undefined}
-      className={cn(
-        'w-full min-w-[86px] rounded-md border bg-transparent px-1.5 py-1 text-right text-xs tabular-nums text-gray-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500',
-        erro ? 'border-negative' : 'border-transparent hover:border-gray-200',
-        salvando && 'opacity-50'
+    <div className="relative">
+      <input
+        type="number"
+        step="0.01"
+        min="0"
+        value={texto}
+        onChange={(e) => setTexto(e.target.value)}
+        onBlur={abrirConfirmacao}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            abrirConfirmacao();
+          }
+        }}
+        placeholder="—"
+        title={erro ?? undefined}
+        className={cn(
+          'w-full min-w-[86px] rounded-md border bg-transparent px-1.5 py-1 text-right text-xs tabular-nums text-gray-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500',
+          alterado ? 'pr-6' : '',
+          erro ? 'border-negative' : 'border-transparent hover:border-gray-200',
+          salvando && 'opacity-50'
+        )}
+      />
+      {alterado && !salvando && (
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={abrirConfirmacao}
+          aria-label="Salvar orçamento"
+          className="absolute right-1 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded bg-brand-500 text-white hover:bg-brand-600"
+        >
+          <IconCheck className="h-3 w-3" />
+        </button>
       )}
-    />
+
+      <Modal open={modalAberto} onClose={cancelar} title="Aplicar orçamento">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Definir <span className="font-semibold text-gray-900">{label}</span> como{' '}
+            <span className="font-semibold text-gray-900">{formatCurrency(numeroAtual)}</span>. Aplicar esse valor para:
+          </p>
+
+          <div className="space-y-2">
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 p-3 text-sm has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+              <input
+                type="radio"
+                name="escopo"
+                checked={escopo === 'mes'}
+                onChange={() => setEscopo('mes')}
+                className="h-4 w-4 text-brand-600 focus:ring-brand-500"
+              />
+              Somente este mês
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 p-3 text-sm has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+              <input
+                type="radio"
+                name="escopo"
+                checked={escopo === 'futuro'}
+                onChange={() => setEscopo('futuro')}
+                className="h-4 w-4 text-brand-600 focus:ring-brand-500"
+              />
+              Este mês e os próximos
+            </label>
+          </div>
+
+          {escopo === 'futuro' && (
+            <div>
+              <label className="label-field" htmlFor="quantidade_meses">
+                Por quantos meses (incluindo este)?
+              </label>
+              <input
+                id="quantidade_meses"
+                type="number"
+                min={2}
+                max={36}
+                value={quantidadeMeses}
+                onChange={(e) => setQuantidadeMeses(Number(e.target.value))}
+                className="input-field"
+              />
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={cancelar} className="btn-secondary">
+              Cancelar
+            </button>
+            <button type="button" onClick={confirmar} className="btn-primary">
+              Salvar
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </div>
   );
 }
 
@@ -85,7 +178,13 @@ function TabelaSecao({
 }: {
   titulo: string;
   categorias: CategoriaAnual[];
-  onEditar: (categoriaId: string, subcategoriaId: string | null, mesIndex: number, novoValor: number | null) => Promise<string | undefined>;
+  onEditar: (
+    categoriaId: string,
+    subcategoriaId: string | null,
+    mesIndex: number,
+    novoValor: number | null,
+    mesesAFrente: number
+  ) => Promise<string | undefined>;
   totaisPorMes: number[];
   corTotal: string;
 }) {
@@ -141,9 +240,13 @@ function TabelaSecao({
                   <span className="text-sm font-medium text-gray-800">{c.nome}</span>
                 </button>
               </td>
-              {MESES_ABREV.map((_, i) => (
+              {MESES_ABREV.map((mes, i) => (
                 <td key={i} className="px-1 py-1">
-                  <CelulaOrcamento valor={c.valoresPorMes[i]} onSalvar={(v) => onEditar(c.id, null, i, v)} />
+                  <CelulaOrcamento
+                    valor={c.valoresPorMes[i]}
+                    label={`${c.nome} · ${mes}`}
+                    onSalvar={(v, meses) => onEditar(c.id, null, i, v, meses)}
+                  />
                 </td>
               ))}
               <td className="px-2 py-1.5 text-right text-xs font-semibold text-gray-900">{formatCurrency(totalCategoria)}</td>
@@ -157,9 +260,13 @@ function TabelaSecao({
                     <td className="sticky left-0 z-10 bg-gray-50/40 py-1 pl-9 pr-3">
                       <span className="text-xs text-gray-500">{s.nome}</span>
                     </td>
-                    {MESES_ABREV.map((_, i) => (
+                    {MESES_ABREV.map((mes, i) => (
                       <td key={i} className="px-1 py-1">
-                        <CelulaOrcamento valor={s.valoresPorMes[i]} onSalvar={(v) => onEditar(c.id, s.id, i, v)} />
+                        <CelulaOrcamento
+                          valor={s.valoresPorMes[i]}
+                          label={`${c.nome} · ${s.nome} · ${mes}`}
+                          onSalvar={(v, meses) => onEditar(c.id, s.id, i, v, meses)}
+                        />
                       </td>
                     ))}
                     <td className="px-2 py-1 text-right text-xs font-medium text-gray-500">{formatCurrency(totalSub)}</td>
@@ -211,8 +318,10 @@ export function OrcamentosClient({
     categoriaId: string,
     subcategoriaId: string | null,
     mesIndex: number,
-    novoValor: number | null
+    novoValor: number | null,
+    mesesAFrente: number
   ) {
+    const mesFinal = Math.min(11, mesIndex + mesesAFrente - 1);
     setter((prev) =>
       prev.map((c) => {
         if (c.id !== categoriaId) return c;
@@ -221,28 +330,40 @@ export function OrcamentosClient({
             ...c,
             subcategorias: c.subcategorias.map((s) =>
               s.id === subcategoriaId
-                ? { ...s, valoresPorMes: s.valoresPorMes.map((v, i) => (i === mesIndex ? novoValor : v)) }
+                ? { ...s, valoresPorMes: s.valoresPorMes.map((v, i) => (i >= mesIndex && i <= mesFinal ? novoValor : v)) }
                 : s
             ),
           };
         }
-        return { ...c, valoresPorMes: c.valoresPorMes.map((v, i) => (i === mesIndex ? novoValor : v)) };
+        return { ...c, valoresPorMes: c.valoresPorMes.map((v, i) => (i >= mesIndex && i <= mesFinal ? novoValor : v)) };
       })
     );
   }
 
-  async function editarReceita(categoriaId: string, subcategoriaId: string | null, mesIndex: number, novoValor: number | null) {
+  async function editarReceita(
+    categoriaId: string,
+    subcategoriaId: string | null,
+    mesIndex: number,
+    novoValor: number | null,
+    mesesAFrente: number
+  ) {
     const mesRef = `${ano}-${String(mesIndex + 1).padStart(2, '0')}-01`;
-    const resultado = await salvarOrcamento(categoriaId, subcategoriaId, mesRef, novoValor, 1);
+    const resultado = await salvarOrcamento(categoriaId, subcategoriaId, mesRef, novoValor, mesesAFrente);
     if (resultado.error) return resultado.error;
-    atualizarLocal(setDadosReceita, categoriaId, subcategoriaId, mesIndex, novoValor);
+    atualizarLocal(setDadosReceita, categoriaId, subcategoriaId, mesIndex, novoValor, mesesAFrente);
   }
 
-  async function editarDespesa(categoriaId: string, subcategoriaId: string | null, mesIndex: number, novoValor: number | null) {
+  async function editarDespesa(
+    categoriaId: string,
+    subcategoriaId: string | null,
+    mesIndex: number,
+    novoValor: number | null,
+    mesesAFrente: number
+  ) {
     const mesRef = `${ano}-${String(mesIndex + 1).padStart(2, '0')}-01`;
-    const resultado = await salvarOrcamento(categoriaId, subcategoriaId, mesRef, novoValor, 1);
+    const resultado = await salvarOrcamento(categoriaId, subcategoriaId, mesRef, novoValor, mesesAFrente);
     if (resultado.error) return resultado.error;
-    atualizarLocal(setDadosDespesa, categoriaId, subcategoriaId, mesIndex, novoValor);
+    atualizarLocal(setDadosDespesa, categoriaId, subcategoriaId, mesIndex, novoValor, mesesAFrente);
   }
 
   const totalReceitasPorMes = useMemo(
