@@ -14,6 +14,7 @@ import {
   type TooltipProps,
 } from 'recharts';
 import { cn, formatCurrency } from '@/lib/utils';
+import { ValorMonetario } from '@/components/ui/ValorMonetario';
 
 export interface PontoBalanco {
   label: string;
@@ -53,6 +54,10 @@ export function BalancoMensalChart({
   const [tipoGrafico, setTipoGrafico] = useState<TipoGrafico>('barra');
 
   const dados = modo === 'ano' ? mensal : diario;
+
+  const totalReceitas = dados.reduce((acc, d) => acc + d.receita, 0);
+  const totalDespesas = dados.reduce((acc, d) => acc + d.despesa, 0);
+  const totalLiquido = totalReceitas - totalDespesas;
 
   return (
     <div>
@@ -99,6 +104,27 @@ export function BalancoMensalChart({
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-negative" /> Despesas
         </span>
+      </div>
+
+      <div className="mb-4 grid grid-cols-3 gap-2 rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+        <div>
+          <p className="text-xs font-medium text-gray-400">Receitas</p>
+          <p className="mt-0.5 text-sm font-bold text-positive">
+            <ValorMonetario valor={totalReceitas} />
+          </p>
+        </div>
+        <div>
+          <p className="text-xs font-medium text-gray-400">Despesas</p>
+          <p className="mt-0.5 text-sm font-bold text-negative">
+            <ValorMonetario valor={totalDespesas} />
+          </p>
+        </div>
+        <div>
+          <p className="text-xs font-medium text-gray-400">Líquido</p>
+          <p className={cn('mt-0.5 text-sm font-bold', totalLiquido >= 0 ? 'text-positive' : 'text-negative')}>
+            <ValorMonetario valor={totalLiquido} />
+          </p>
+        </div>
       </div>
 
       <ResponsiveContainer width="100%" height={280}>
