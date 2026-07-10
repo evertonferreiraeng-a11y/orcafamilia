@@ -9,7 +9,6 @@ import {
   IconOrcamentos,
   IconDividas,
   IconMetas,
-  IconPrevisao,
   IconFamilia,
   IconCadastro,
   IconAjustes,
@@ -33,7 +32,6 @@ const NAV_GROUPS = [
     items: [
       { href: '/dividas', label: 'Dívidas', icon: IconDividas },
       { href: '/metas', label: 'Metas', icon: IconMetas },
-      { href: '/previsao', label: 'Previsão de saldo', icon: IconPrevisao },
     ],
   },
   {

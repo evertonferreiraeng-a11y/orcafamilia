@@ -49,7 +49,6 @@ export const IconTransacoes = withDefaultStroke(ArrowLeftRight);
 export const IconOrcamentos = withDefaultStroke(PiggyBank);
 export const IconDividas = withDefaultStroke(Landmark);
 export const IconMetas = withDefaultStroke(Target);
-export const IconPrevisao = withDefaultStroke(TrendingUp);
 export const IconFamilia = withDefaultStroke(Users);
 export const IconCadastro = withDefaultStroke(ClipboardList);
 export const IconAjustes = withDefaultStroke(Settings);
