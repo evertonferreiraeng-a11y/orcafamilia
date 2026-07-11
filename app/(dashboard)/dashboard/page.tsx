@@ -177,8 +177,8 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
-        <div className="card p-4 lg:col-span-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4 lg:min-h-[calc(100vh-190px)]">
+        <div className="card flex flex-col p-4 lg:col-span-3">
           <div className="grid grid-cols-1 divide-y divide-gray-100 border-b border-gray-100 pb-4 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
             <StatRow
               className="py-4 sm:py-0 sm:pr-4"
@@ -246,7 +246,7 @@ export default async function DashboardPage({
             />
           </div>
 
-          <div className="mt-4">
+          <div className="mt-4 min-h-0 flex-1">
             <BalancoMensalChart diario={fluxo} mensal={balancoAnual} />
           </div>
         </div>

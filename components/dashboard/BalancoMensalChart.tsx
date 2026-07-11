@@ -63,7 +63,7 @@ export function BalancoMensalChart({
   }, [dados]);
 
   return (
-    <div>
+    <div className="flex h-full flex-col">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-sm font-semibold text-gray-700">Balanço Mensal</h2>
         <div className="flex flex-wrap items-center gap-2">
@@ -125,76 +125,78 @@ export function BalancoMensalChart({
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={340}>
-        <ComposedChart data={dados} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-          <defs>
-            <linearGradient id="corReceitaBalanco" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#16a34a" stopOpacity={0.35} />
-              <stop offset="95%" stopColor="#16a34a" stopOpacity={0} />
-            </linearGradient>
-            <linearGradient id="corDespesaBalanco" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#dc2626" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#dc2626" stopOpacity={0} />
-            </linearGradient>
-            <linearGradient id="corSaldoBalanco" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="rgb(var(--brand-500))" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="rgb(var(--brand-500))" stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eef0f3" />
-          <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-          <YAxis
-            tick={{ fontSize: 12, fill: '#9ca3af' }}
-            axisLine={false}
-            tickLine={false}
-            tickFormatter={(v) => `${(v / 1000).toFixed(1)}k`}
-            width={40}
-          />
-          <Tooltip content={<BalancoTooltip />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
-          {tipoGrafico === 'barra' && (
-            <>
-              <Bar dataKey="receita" name="Receita" fill="#16a34a" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="despesa" name="Despesa" fill="#dc2626" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="saldo" name="Saldo" fill="rgb(var(--brand-500))" radius={[4, 4, 0, 0]} />
-            </>
-          )}
-          {tipoGrafico === 'linha' && (
-            <>
-              <Line type="monotone" dataKey="receita" name="Receita" stroke="#16a34a" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="despesa" name="Despesa" stroke="#dc2626" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="saldo" name="Saldo" stroke="rgb(var(--brand-500))" strokeWidth={2} dot={false} />
-            </>
-          )}
-          {tipoGrafico === 'area' && (
-            <>
-              <Area
-                type="monotone"
-                dataKey="receita"
-                name="Receita"
-                stroke="#16a34a"
-                fill="url(#corReceitaBalanco)"
-                strokeWidth={2}
-              />
-              <Area
-                type="monotone"
-                dataKey="despesa"
-                name="Despesa"
-                stroke="#dc2626"
-                fill="url(#corDespesaBalanco)"
-                strokeWidth={2}
-              />
-              <Area
-                type="monotone"
-                dataKey="saldo"
-                name="Saldo"
-                stroke="rgb(var(--brand-500))"
-                fill="url(#corSaldoBalanco)"
-                strokeWidth={2}
-              />
-            </>
-          )}
-        </ComposedChart>
-      </ResponsiveContainer>
+      <div className="min-h-[280px] flex-1">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={dados} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="corReceitaBalanco" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#16a34a" stopOpacity={0.35} />
+                <stop offset="95%" stopColor="#16a34a" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="corDespesaBalanco" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#dc2626" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#dc2626" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="corSaldoBalanco" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="rgb(var(--brand-500))" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="rgb(var(--brand-500))" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eef0f3" />
+            <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+            <YAxis
+              tick={{ fontSize: 12, fill: '#9ca3af' }}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={(v) => `${(v / 1000).toFixed(1)}k`}
+              width={40}
+            />
+            <Tooltip content={<BalancoTooltip />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
+            {tipoGrafico === 'barra' && (
+              <>
+                <Bar dataKey="receita" name="Receita" fill="#16a34a" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="despesa" name="Despesa" fill="#dc2626" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="saldo" name="Saldo" fill="rgb(var(--brand-500))" radius={[4, 4, 0, 0]} />
+              </>
+            )}
+            {tipoGrafico === 'linha' && (
+              <>
+                <Line type="monotone" dataKey="receita" name="Receita" stroke="#16a34a" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="despesa" name="Despesa" stroke="#dc2626" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="saldo" name="Saldo" stroke="rgb(var(--brand-500))" strokeWidth={2} dot={false} />
+              </>
+            )}
+            {tipoGrafico === 'area' && (
+              <>
+                <Area
+                  type="monotone"
+                  dataKey="receita"
+                  name="Receita"
+                  stroke="#16a34a"
+                  fill="url(#corReceitaBalanco)"
+                  strokeWidth={2}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="despesa"
+                  name="Despesa"
+                  stroke="#dc2626"
+                  fill="url(#corDespesaBalanco)"
+                  strokeWidth={2}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="saldo"
+                  name="Saldo"
+                  stroke="rgb(var(--brand-500))"
+                  fill="url(#corSaldoBalanco)"
+                  strokeWidth={2}
+                />
+              </>
+            )}
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }
