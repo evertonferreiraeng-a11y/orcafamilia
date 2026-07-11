@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -52,7 +52,14 @@ export function BalancoMensalChart({
   const [modo, setModo] = useState<Modo>('ano');
   const [tipoGrafico, setTipoGrafico] = useState<TipoGrafico>('barra');
 
-  const dados = modo === 'ano' ? mensal : diario;
+  const dadosBase = modo === 'ano' ? mensal : diario;
+
+  const dados = useMemo(() => {
+    const comSaldo = dadosBase.map((d) => ({ ...d, saldo: d.receita - d.despesa }));
+    const totalReceita = comSaldo.reduce((a, d) => a + d.receita, 0);
+    const totalDespesa = comSaldo.reduce((a, d) => a + d.despesa, 0);
+    return [...comSaldo, { label: 'Total', receita: totalReceita, despesa: totalDespesa, saldo: totalReceita - totalDespesa }];
+  }, [dadosBase]);
 
   return (
     <div>
@@ -99,6 +106,9 @@ export function BalancoMensalChart({
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-negative" /> Despesas
         </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-brand-500" /> Saldo
+        </span>
       </div>
 
       <ResponsiveContainer width="100%" height={280}>
@@ -111,6 +121,10 @@ export function BalancoMensalChart({
             <linearGradient id="corDespesaBalanco" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#dc2626" stopOpacity={0.3} />
               <stop offset="95%" stopColor="#dc2626" stopOpacity={0} />
+            </linearGradient>
+            <linearGradient id="corSaldoBalanco" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="rgb(var(--brand-500))" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="rgb(var(--brand-500))" stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eef0f3" />
@@ -127,12 +141,14 @@ export function BalancoMensalChart({
             <>
               <Bar dataKey="receita" name="Receita" fill="#16a34a" radius={[4, 4, 0, 0]} />
               <Bar dataKey="despesa" name="Despesa" fill="#dc2626" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="saldo" name="Saldo" fill="rgb(var(--brand-500))" radius={[4, 4, 0, 0]} />
             </>
           )}
           {tipoGrafico === 'linha' && (
             <>
               <Line type="monotone" dataKey="receita" name="Receita" stroke="#16a34a" strokeWidth={2} dot={false} />
               <Line type="monotone" dataKey="despesa" name="Despesa" stroke="#dc2626" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="saldo" name="Saldo" stroke="rgb(var(--brand-500))" strokeWidth={2} dot={false} />
             </>
           )}
           {tipoGrafico === 'area' && (
@@ -151,6 +167,14 @@ export function BalancoMensalChart({
                 name="Despesa"
                 stroke="#dc2626"
                 fill="url(#corDespesaBalanco)"
+                strokeWidth={2}
+              />
+              <Area
+                type="monotone"
+                dataKey="saldo"
+                name="Saldo"
+                stroke="rgb(var(--brand-500))"
+                fill="url(#corSaldoBalanco)"
                 strokeWidth={2}
               />
             </>
