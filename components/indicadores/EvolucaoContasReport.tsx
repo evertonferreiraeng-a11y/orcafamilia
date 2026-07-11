@@ -20,6 +20,7 @@ import {
 } from 'recharts';
 import { cn, formatCurrency } from '@/lib/utils';
 import type { CategoriaEvolucao } from '@/components/indicadores/IndicadoresClient';
+import { GastosPorCategoriaAnualCard } from '@/components/indicadores/GastosPorCategoriaAnualCard';
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -455,6 +456,8 @@ export function EvolucaoContasReport({
         <h2 className="text-base font-semibold text-gray-900">Evolução das Contas</h2>
         <p className="text-sm text-gray-500">Acompanhe a evolução comparando o Orçamento vs. Realizado</p>
       </div>
+
+      <GastosPorCategoriaAnualCard categorias={categoriasDespesa} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <PainelCategoria titulo="Receitas" categorias={categoriasReceita} corRealizado="#16a34a" />

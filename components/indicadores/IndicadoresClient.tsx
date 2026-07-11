@@ -24,6 +24,7 @@ export interface SubcategoriaEvolucao {
 export interface CategoriaEvolucao {
   id: string;
   nome: string;
+  cor: string | null;
   realizadoPorMes: number[];
   orcadoPorMes: number[];
   subcategorias: SubcategoriaEvolucao[];

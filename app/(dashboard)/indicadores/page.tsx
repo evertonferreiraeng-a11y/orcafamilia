@@ -77,7 +77,7 @@ export default async function IndicadoresPage({
     };
   });
 
-  function construirEvolucao(categoria: { id: string; nome: string }): CategoriaEvolucao {
+  function construirEvolucao(categoria: { id: string; nome: string; cor: string | null }): CategoriaEvolucao {
     const realizadoPorMes = MESES_ABREV.map((_, i) => {
       const mesNum = i + 1;
       return (transacoesAno ?? [])
@@ -99,7 +99,7 @@ export default async function IndicadoresPage({
         });
         return { id: s.id, nome: s.nome, realizadoPorMes: subRealizadoPorMes };
       });
-    return { id: categoria.id, nome: categoria.nome, realizadoPorMes, orcadoPorMes, subcategorias };
+    return { id: categoria.id, nome: categoria.nome, cor: categoria.cor, realizadoPorMes, orcadoPorMes, subcategorias };
   }
 
   const categoriasReceitaEvolucao = (categoriasTodas ?? []).filter((c) => c.tipo === 'receita').map(construirEvolucao);

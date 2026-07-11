@@ -14,7 +14,6 @@ import { ValorMonetario } from '@/components/ui/ValorMonetario';
 import { MinhasContasCarousel } from '@/components/dashboard/MinhasContasCarousel';
 import { PlanejadoGaugeCard } from '@/components/dashboard/PlanejadoGaugeCard';
 import { BalancoMensalChart, type PontoBalanco } from '@/components/dashboard/BalancoMensalChart';
-import { GastosPorCategoriaChart } from '@/components/dashboard/GastosPorCategoriaChart';
 import { TransacoesRecentesCard, type TransacaoRecente } from '@/components/dashboard/TransacoesRecentesCard';
 import { IconTrendUp, IconTrendDown, IconWallet } from '@/components/icons';
 
@@ -288,15 +287,7 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <GastosPorCategoriaChart
-          className="lg:col-span-2"
-          despesas={despesasPorCategoriaMes ?? []}
-          categorias={categoriasTodas ?? []}
-          orcamentos={orcamentosEfetivosMes}
-        />
-        <TransacoesRecentesCard transacoes={atividades} />
-      </div>
+      <TransacoesRecentesCard transacoes={atividades} />
     </div>
   );
 }
