@@ -116,6 +116,7 @@ export default async function DashboardPage({
   }
 
   const orcamentosEfetivosMes = (categoriasTodas ?? [])
+    .filter((c) => c.tipo === 'despesa')
     .map((c) => ({ categoria_id: c.id, valor_limite: orcadoCategoriaMes(c.id) }))
     .filter((o) => o.valor_limite > 0);
 
