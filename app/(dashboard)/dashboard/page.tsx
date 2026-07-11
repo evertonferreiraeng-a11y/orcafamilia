@@ -48,6 +48,7 @@ export default async function DashboardPage({
     { data: orcamentosMes },
     { data: despesasPorCategoriaMes },
     { data: categoriasTodas },
+    { data: subcategoriasTodas },
     { data: transacoesMultiAno },
   ] = await Promise.all([
     supabase.from('contas').select('*').eq('user_id', user.id).eq('ativa', true).order('nome'),
@@ -74,10 +75,9 @@ export default async function DashboardPage({
       .lte('data', fimAnterior),
     supabase
       .from('orcamentos')
-      .select('valor_limite, categoria_id')
+      .select('valor_limite, categoria_id, subcategoria_id')
       .eq('user_id', user.id)
-      .eq('mes_referencia', inicio)
-      .is('subcategoria_id', null),
+      .eq('mes_referencia', inicio),
     supabase
       .from('transacoes')
       .select('categoria_id, valor, pago')
@@ -87,6 +87,7 @@ export default async function DashboardPage({
       .gte('data', inicio)
       .lte('data', fim),
     supabase.from('categorias').select('id, nome, cor, tipo').eq('user_id', user.id),
+    supabase.from('subcategorias').select('id, categoria_id').eq('user_id', user.id),
     supabase
       .from('transacoes')
       .select('data, tipo, valor, categoria_id')
@@ -95,6 +96,28 @@ export default async function DashboardPage({
       .gte('data', `${anoAtual}-01-01`)
       .lte('data', `${anoAtual}-12-31`),
   ]);
+
+  const subcategoriaIdsPorCategoria = new Map<string, string[]>();
+  for (const s of subcategoriasTodas ?? []) {
+    const lista = subcategoriaIdsPorCategoria.get(s.categoria_id) ?? [];
+    lista.push(s.id);
+    subcategoriaIdsPorCategoria.set(s.categoria_id, lista);
+  }
+
+  function orcadoCategoriaMes(categoriaId: string): number {
+    const temSub = (subcategoriaIdsPorCategoria.get(categoriaId)?.length ?? 0) > 0;
+    if (temSub) {
+      return (orcamentosMes ?? [])
+        .filter((o) => o.subcategoria_id && o.categoria_id === categoriaId)
+        .reduce((a, o) => a + Number(o.valor_limite), 0);
+    }
+    const linha = (orcamentosMes ?? []).find((o) => !o.subcategoria_id && o.categoria_id === categoriaId);
+    return linha ? Number(linha.valor_limite) : 0;
+  }
+
+  const orcamentosEfetivosMes = (categoriasTodas ?? [])
+    .map((c) => ({ categoria_id: c.id, valor_limite: orcadoCategoriaMes(c.id) }))
+    .filter((o) => o.valor_limite > 0);
 
   const saldoPorConta = new Map<string, number>();
   for (const conta of contas ?? []) {
@@ -134,12 +157,12 @@ export default async function DashboardPage({
     if (!t.categoria_id) continue;
     gastoPorCategoria.set(t.categoria_id, (gastoPorCategoria.get(t.categoria_id) ?? 0) + Number(t.valor));
   }
-  const planejado = (orcamentosMes ?? []).reduce((a, o) => a + Number(o.valor_limite), 0);
+  const planejado = orcamentosEfetivosMes.reduce((a, o) => a + o.valor_limite, 0);
   const gastoOrcamento = despesaMes;
   const restanteOrcamento = planejado - gastoOrcamento;
   const percentualOrcamento = planejado > 0 ? (gastoOrcamento / planejado) * 100 : 0;
-  const categoriasAcima = (orcamentosMes ?? []).filter(
-    (o) => (gastoPorCategoria.get(o.categoria_id) ?? 0) > Number(o.valor_limite)
+  const categoriasAcima = orcamentosEfetivosMes.filter(
+    (o) => (gastoPorCategoria.get(o.categoria_id) ?? 0) > o.valor_limite
   ).length;
 
   const diasDoMes = eachDayOfInterval({
@@ -281,7 +304,7 @@ export default async function DashboardPage({
           className="lg:col-span-2"
           despesas={despesasPorCategoriaMes ?? []}
           categorias={categoriasTodas ?? []}
-          orcamentos={orcamentosMes ?? []}
+          orcamentos={orcamentosEfetivosMes}
         />
         <TransacoesRecentesCard transacoes={atividades} />
       </div>

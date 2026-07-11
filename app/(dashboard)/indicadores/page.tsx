@@ -29,12 +29,31 @@ export default async function IndicadoresPage({
     supabase.from('subcategorias').select('id, nome, categoria_id').eq('user_id', user.id).order('nome'),
     supabase
       .from('orcamentos')
-      .select('categoria_id, valor_limite, mes_referencia')
+      .select('categoria_id, subcategoria_id, valor_limite, mes_referencia')
       .eq('user_id', user.id)
-      .is('subcategoria_id', null)
       .gte('mes_referencia', `${ano}-01-01`)
       .lte('mes_referencia', `${ano}-12-01`),
   ]);
+
+  const subcategoriaIdsPorCategoria = new Map<string, string[]>();
+  for (const s of subcategoriasTodas ?? []) {
+    const lista = subcategoriaIdsPorCategoria.get(s.categoria_id) ?? [];
+    lista.push(s.id);
+    subcategoriaIdsPorCategoria.set(s.categoria_id, lista);
+  }
+
+  function orcadoCategoriaMes(categoriaId: string, mesRef: string): number {
+    const temSub = (subcategoriaIdsPorCategoria.get(categoriaId)?.length ?? 0) > 0;
+    if (temSub) {
+      return (orcamentosAno ?? [])
+        .filter((o) => o.subcategoria_id && o.categoria_id === categoriaId && o.mes_referencia === mesRef)
+        .reduce((a, o) => a + Number(o.valor_limite), 0);
+    }
+    const linha = (orcamentosAno ?? []).find(
+      (o) => !o.subcategoria_id && o.categoria_id === categoriaId && o.mes_referencia === mesRef
+    );
+    return linha ? Number(linha.valor_limite) : 0;
+  }
 
   const pontosAno: PontoMes[] = MESES_ABREV.map((label, i) => {
     const mesNum = i + 1;
@@ -52,17 +71,14 @@ export default async function IndicadoresPage({
     };
   });
 
-  const categoriaTipoPorId = new Map((categoriasTodas ?? []).map((c) => [c.id, c.tipo]));
-
   const pontosOrcadoAno: PontoMes[] = MESES_ABREV.map((label, i) => {
     const mesRef = `${ano}-${String(i + 1).padStart(2, '0')}-01`;
-    const doMes = (orcamentosAno ?? []).filter((o) => o.mes_referencia === mesRef);
-    const receita = doMes
-      .filter((o) => categoriaTipoPorId.get(o.categoria_id) === 'receita')
-      .reduce((a, o) => a + Number(o.valor_limite), 0);
-    const despesa = doMes
-      .filter((o) => categoriaTipoPorId.get(o.categoria_id) === 'despesa')
-      .reduce((a, o) => a + Number(o.valor_limite), 0);
+    const receita = (categoriasTodas ?? [])
+      .filter((c) => c.tipo === 'receita')
+      .reduce((a, c) => a + orcadoCategoriaMes(c.id, mesRef), 0);
+    const despesa = (categoriasTodas ?? [])
+      .filter((c) => c.tipo === 'despesa')
+      .reduce((a, c) => a + orcadoCategoriaMes(c.id, mesRef), 0);
     const resultado = receita - despesa;
     return {
       label,
@@ -83,8 +99,7 @@ export default async function IndicadoresPage({
     });
     const orcadoPorMes = MESES_ABREV.map((_, i) => {
       const mesRef = `${ano}-${String(i + 1).padStart(2, '0')}-01`;
-      const linha = (orcamentosAno ?? []).find((o) => o.categoria_id === categoria.id && o.mes_referencia === mesRef);
-      return linha ? Number(linha.valor_limite) : 0;
+      return orcadoCategoriaMes(categoria.id, mesRef);
     });
     const subcategorias = (subcategoriasTodas ?? [])
       .filter((s) => s.categoria_id === categoria.id)
