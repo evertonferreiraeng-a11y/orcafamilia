@@ -14,7 +14,6 @@ import { ValorMonetario } from '@/components/ui/ValorMonetario';
 import { MinhasContasCarousel } from '@/components/dashboard/MinhasContasCarousel';
 import { PlanejadoGaugeCard } from '@/components/dashboard/PlanejadoGaugeCard';
 import { BalancoMensalChart, type PontoBalanco } from '@/components/dashboard/BalancoMensalChart';
-import { TransacoesRecentesCard, type TransacaoRecente } from '@/components/dashboard/TransacoesRecentesCard';
 import { IconTrendUp, IconTrendDown, IconWallet } from '@/components/icons';
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -60,7 +59,7 @@ export default async function DashboardPage({
       .not('conta_id', 'is', null),
     supabase
       .from('transacoes')
-      .select('id, descricao, valor, data, tipo, conta_id, pago, categorias(nome, cor)')
+      .select('valor, data, tipo, pago')
       .eq('user_id', user.id)
       .eq('eh_transferencia', false)
       .gte('data', inicio)
@@ -176,20 +175,6 @@ export default async function DashboardPage({
     else balancoAnual[idx].despesa += Number(t.valor);
   }
 
-  const atividades: TransacaoRecente[] = periodo.slice(0, 5).map((t) => {
-    const categoria = t.categorias as unknown as { nome: string; cor: string | null } | null;
-    return {
-      id: t.id,
-      descricao: t.descricao,
-      categoria: categoria?.nome ?? 'Sem categoria',
-      cor: categoria?.cor ?? null,
-      tipo: t.tipo as 'receita' | 'despesa',
-      valor: Number(t.valor),
-      data: t.data,
-      pago: t.pago,
-    };
-  });
-
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
@@ -286,8 +271,6 @@ export default async function DashboardPage({
           />
         </div>
       </div>
-
-      <TransacoesRecentesCard transacoes={atividades} />
     </div>
   );
 }
