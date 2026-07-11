@@ -62,7 +62,7 @@ export default async function TransacoesPage({
   const despesasPendentes = despesas.filter((t) => !t.pago).reduce((a, t) => a + t.valor, 0);
 
   const resumo = {
-    saldo: receitasPagas - despesasPagas,
+    saldoProjetado: receitasPagas + receitasPendentes - (despesasPagas + despesasPendentes),
     receitas: receitasPagas,
     receitasPendentes,
     despesas: despesasPagas,

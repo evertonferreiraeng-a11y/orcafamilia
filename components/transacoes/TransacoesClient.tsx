@@ -16,7 +16,6 @@ import {
   IconWallet,
   IconTrendUp,
   IconTrendDown,
-  IconRelogio,
   IconOrdenar,
   IconFiltro,
   IconCartao,
@@ -40,7 +39,7 @@ export interface TransacaoComRelacoes extends Transacao {
 }
 
 interface Resumo {
-  saldo: number;
+  saldoProjetado: number;
   receitas: number;
   receitasPendentes: number;
   despesas: number;
@@ -298,8 +297,13 @@ export function TransacoesClient({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard titulo="Saldo" valor={resumo.saldo} tom={resumo.saldo >= 0 ? 'positivo' : 'negativo'} icon={IconWallet} />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <SummaryCard
+          titulo="Saldo Projetado"
+          valor={resumo.saldoProjetado}
+          tom={resumo.saldoProjetado >= 0 ? 'positivo' : 'negativo'}
+          icon={IconWallet}
+        />
         <SummaryCard
           titulo="Receitas"
           valor={resumo.receitas}
@@ -326,7 +330,6 @@ export function TransacoesClient({
             ) : undefined
           }
         />
-        <SummaryCard titulo="Despesas Pendentes" valor={resumo.despesasPendentes} icon={IconRelogio} />
       </div>
 
       <div className="card space-y-3 p-4">
