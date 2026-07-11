@@ -19,6 +19,8 @@ export interface PontoBalanco {
   label: string;
   receita: number;
   despesa: number;
+  receitaPago: number;
+  despesaPago: number;
 }
 
 type TipoGrafico = 'area' | 'linha' | 'barra';
@@ -51,10 +53,19 @@ export function BalancoMensalChart({
 }) {
   const [modo, setModo] = useState<Modo>('ano');
   const [tipoGrafico, setTipoGrafico] = useState<TipoGrafico>('barra');
+  const [incluirPendentes, setIncluirPendentes] = useState(false);
 
   const dadosBase = modo === 'ano' ? mensal : diario;
 
-  const dados = useMemo(() => dadosBase.map((d) => ({ ...d, saldo: d.receita - d.despesa })), [dadosBase]);
+  const dados = useMemo(
+    () =>
+      dadosBase.map((d) => {
+        const receita = incluirPendentes ? d.receita : d.receitaPago;
+        const despesa = incluirPendentes ? d.despesa : d.despesaPago;
+        return { label: d.label, receita, despesa, saldo: receita - despesa };
+      }),
+    [dadosBase, incluirPendentes]
+  );
 
   const totais = useMemo(() => {
     const totalReceita = dados.reduce((a, d) => a + d.receita, 0);
@@ -101,7 +112,7 @@ export function BalancoMensalChart({
       </div>
 
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-4 text-xs text-gray-500">
+        <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-positive" /> Receitas
           </span>
@@ -111,6 +122,26 @@ export function BalancoMensalChart({
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-brand-500" /> Saldo
           </span>
+          <label className="flex items-center gap-2">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={incluirPendentes}
+              onClick={() => setIncluirPendentes((v) => !v)}
+              className={cn(
+                'relative h-5 w-9 shrink-0 overflow-hidden rounded-full transition-colors',
+                incluirPendentes ? 'bg-brand-600' : 'bg-gray-200'
+              )}
+            >
+              <span
+                className={cn(
+                  'absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform',
+                  incluirPendentes && 'translate-x-4'
+                )}
+              />
+            </button>
+            Incluir pendentes
+          </label>
         </div>
         <div className="flex items-center gap-3 rounded-lg bg-gray-50 px-3 py-1.5 text-xs text-gray-500">
           <span>

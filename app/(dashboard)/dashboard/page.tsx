@@ -89,7 +89,7 @@ export default async function DashboardPage({
     supabase.from('subcategorias').select('id, categoria_id').eq('user_id', user.id),
     supabase
       .from('transacoes')
-      .select('data, tipo, valor, categoria_id')
+      .select('data, tipo, valor, pago, categoria_id')
       .eq('user_id', user.id)
       .eq('eh_transferencia', false)
       .gte('data', `${anoAtual}-01-01`)
@@ -164,15 +164,28 @@ export default async function DashboardPage({
       label: format(dia, 'dd'),
       receita: doDia.filter((t) => t.tipo === 'receita').reduce((a, t) => a + Number(t.valor), 0),
       despesa: doDia.filter((t) => t.tipo === 'despesa').reduce((a, t) => a + Number(t.valor), 0),
+      receitaPago: doDia.filter((t) => t.tipo === 'receita' && t.pago).reduce((a, t) => a + Number(t.valor), 0),
+      despesaPago: doDia.filter((t) => t.tipo === 'despesa' && t.pago).reduce((a, t) => a + Number(t.valor), 0),
     };
   });
 
-  const balancoAnual: PontoBalanco[] = MESES_ABREV.map((label) => ({ label, receita: 0, despesa: 0 }));
+  const balancoAnual: PontoBalanco[] = MESES_ABREV.map((label) => ({
+    label,
+    receita: 0,
+    despesa: 0,
+    receitaPago: 0,
+    despesaPago: 0,
+  }));
   for (const t of transacoesMultiAno ?? []) {
     const mesT = Number(t.data.split('-')[1]);
     const idx = mesT - 1;
-    if (t.tipo === 'receita') balancoAnual[idx].receita += Number(t.valor);
-    else balancoAnual[idx].despesa += Number(t.valor);
+    if (t.tipo === 'receita') {
+      balancoAnual[idx].receita += Number(t.valor);
+      if (t.pago) balancoAnual[idx].receitaPago += Number(t.valor);
+    } else {
+      balancoAnual[idx].despesa += Number(t.valor);
+      if (t.pago) balancoAnual[idx].despesaPago += Number(t.valor);
+    }
   }
 
   return (
