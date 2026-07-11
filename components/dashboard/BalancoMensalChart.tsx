@@ -54,12 +54,13 @@ export function BalancoMensalChart({
 
   const dadosBase = modo === 'ano' ? mensal : diario;
 
-  const dados = useMemo(() => {
-    const comSaldo = dadosBase.map((d) => ({ ...d, saldo: d.receita - d.despesa }));
-    const totalReceita = comSaldo.reduce((a, d) => a + d.receita, 0);
-    const totalDespesa = comSaldo.reduce((a, d) => a + d.despesa, 0);
-    return [...comSaldo, { label: 'Total', receita: totalReceita, despesa: totalDespesa, saldo: totalReceita - totalDespesa }];
-  }, [dadosBase]);
+  const dados = useMemo(() => dadosBase.map((d) => ({ ...d, saldo: d.receita - d.despesa })), [dadosBase]);
+
+  const totais = useMemo(() => {
+    const totalReceita = dados.reduce((a, d) => a + d.receita, 0);
+    const totalDespesa = dados.reduce((a, d) => a + d.despesa, 0);
+    return { receita: totalReceita, despesa: totalDespesa, saldo: totalReceita - totalDespesa };
+  }, [dados]);
 
   return (
     <div>
@@ -99,19 +100,32 @@ export function BalancoMensalChart({
         </div>
       </div>
 
-      <div className="mb-3 flex items-center gap-4 text-xs text-gray-500">
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-positive" /> Receitas
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-negative" /> Despesas
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-brand-500" /> Saldo
-        </span>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-4 text-xs text-gray-500">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-positive" /> Receitas
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-negative" /> Despesas
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-brand-500" /> Saldo
+          </span>
+        </div>
+        <div className="flex items-center gap-3 rounded-lg bg-gray-50 px-3 py-1.5 text-xs text-gray-500">
+          <span>
+            Total Receitas: <span className="font-semibold text-positive">{formatCurrency(totais.receita)}</span>
+          </span>
+          <span>
+            Total Despesas: <span className="font-semibold text-negative">{formatCurrency(totais.despesa)}</span>
+          </span>
+          <span>
+            Saldo: <span className={cn('font-semibold', totais.saldo >= 0 ? 'text-positive' : 'text-negative')}>{formatCurrency(totais.saldo)}</span>
+          </span>
+        </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={280}>
+      <ResponsiveContainer width="100%" height={340}>
         <ComposedChart data={dados} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="corReceitaBalanco" x1="0" y1="0" x2="0" y2="1">
