@@ -51,6 +51,24 @@ async function salvarOrcamentoMes(
   return {};
 }
 
+async function sincronizarTotalCategoria(
+  supabase: SupabaseClient,
+  userId: string,
+  categoriaId: string,
+  mesReferencia: string
+): Promise<{ error?: string }> {
+  const { data: subLinhas } = await supabase
+    .from('orcamentos')
+    .select('valor_limite')
+    .eq('user_id', userId)
+    .eq('categoria_id', categoriaId)
+    .eq('mes_referencia', mesReferencia)
+    .not('subcategoria_id', 'is', null);
+
+  const soma = (subLinhas ?? []).reduce((a, o) => a + Number(o.valor_limite), 0);
+  return salvarOrcamentoMes(supabase, userId, categoriaId, null, mesReferencia, soma > 0 ? soma : null);
+}
+
 export async function salvarOrcamento(
   categoriaId: string,
   subcategoriaId: string | null,
@@ -71,9 +89,14 @@ export async function salvarOrcamento(
     const mesAlvo = primeiroDiaMes(addMeses(mesBase, i));
     const resultado = await salvarOrcamentoMes(supabase, user.id, categoriaId, subcategoriaId, mesAlvo, valorLimite);
     if (resultado.error) return resultado;
+    if (subcategoriaId) {
+      const sincronizacao = await sincronizarTotalCategoria(supabase, user.id, categoriaId, mesAlvo);
+      if (sincronizacao.error) return sincronizacao;
+    }
   }
 
   revalidatePath('/orcamentos');
   revalidatePath('/dashboard');
+  revalidatePath('/indicadores');
   return {};
 }

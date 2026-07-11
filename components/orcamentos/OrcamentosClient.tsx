@@ -23,6 +23,11 @@ export interface CategoriaAnual {
   subcategorias: SubcategoriaAnual[];
 }
 
+function valorEfetivoCategoria(c: CategoriaAnual, mesIndex: number): number {
+  if (c.subcategorias.length === 0) return c.valoresPorMes[mesIndex] ?? 0;
+  return c.subcategorias.reduce<number>((a, s) => a + (s.valoresPorMes[mesIndex] ?? 0), 0);
+}
+
 function CelulaOrcamento({
   valor,
   label,
@@ -216,7 +221,8 @@ function TabelaSecao({
       {categorias.map((c) => {
         const temSub = c.subcategorias.length > 0;
         const expandida = expandidas.has(c.id);
-        const totalCategoria = c.valoresPorMes.reduce<number>((a, v) => a + (v ?? 0), 0);
+        const valoresEfetivos = Array.from({ length: 12 }, (_, i) => valorEfetivoCategoria(c, i));
+        const totalCategoria = valoresEfetivos.reduce<number>((a, v) => a + v, 0);
         return (
           <>
             <tr key={c.id} className="border-b border-gray-50">
@@ -240,15 +246,21 @@ function TabelaSecao({
                   <span className="text-sm font-medium text-gray-800">{c.nome}</span>
                 </button>
               </td>
-              {MESES_ABREV.map((mes, i) => (
-                <td key={i} className="px-1 py-1">
-                  <CelulaOrcamento
-                    valor={c.valoresPorMes[i]}
-                    label={`${c.nome} · ${mes}`}
-                    onSalvar={(v, meses) => onEditar(c.id, null, i, v, meses)}
-                  />
-                </td>
-              ))}
+              {MESES_ABREV.map((mes, i) =>
+                temSub ? (
+                  <td key={i} className="px-2.5 py-1 text-right text-xs tabular-nums text-gray-600">
+                    {valoresEfetivos[i] > 0 ? formatCurrency(valoresEfetivos[i]) : '—'}
+                  </td>
+                ) : (
+                  <td key={i} className="px-1 py-1">
+                    <CelulaOrcamento
+                      valor={c.valoresPorMes[i]}
+                      label={`${c.nome} · ${mes}`}
+                      onSalvar={(v, meses) => onEditar(c.id, null, i, v, meses)}
+                    />
+                  </td>
+                )
+              )}
               <td className="px-2 py-1.5 text-right text-xs font-semibold text-gray-900">{formatCurrency(totalCategoria)}</td>
             </tr>
             {temSub &&
@@ -367,11 +379,11 @@ export function OrcamentosClient({
   }
 
   const totalReceitasPorMes = useMemo(
-    () => Array.from({ length: 12 }, (_, i) => dadosReceita.reduce((a, c) => a + (c.valoresPorMes[i] ?? 0), 0)),
+    () => Array.from({ length: 12 }, (_, i) => dadosReceita.reduce((a, c) => a + valorEfetivoCategoria(c, i), 0)),
     [dadosReceita]
   );
   const totalGastosPorMes = useMemo(
-    () => Array.from({ length: 12 }, (_, i) => dadosDespesa.reduce((a, c) => a + (c.valoresPorMes[i] ?? 0), 0)),
+    () => Array.from({ length: 12 }, (_, i) => dadosDespesa.reduce((a, c) => a + valorEfetivoCategoria(c, i), 0)),
     [dadosDespesa]
   );
   const resultadoPorMes = useMemo(
