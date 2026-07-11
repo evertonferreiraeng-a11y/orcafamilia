@@ -135,7 +135,7 @@ export default async function DashboardPage({
     gastoPorCategoria.set(t.categoria_id, (gastoPorCategoria.get(t.categoria_id) ?? 0) + Number(t.valor));
   }
   const planejado = (orcamentosMes ?? []).reduce((a, o) => a + Number(o.valor_limite), 0);
-  const gastoOrcamento = (orcamentosMes ?? []).reduce((a, o) => a + (gastoPorCategoria.get(o.categoria_id) ?? 0), 0);
+  const gastoOrcamento = despesaMes;
   const restanteOrcamento = planejado - gastoOrcamento;
   const percentualOrcamento = planejado > 0 ? (gastoOrcamento / planejado) * 100 : 0;
   const categoriasAcima = (orcamentosMes ?? []).filter(
