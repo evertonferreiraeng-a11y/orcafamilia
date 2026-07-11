@@ -1,4 +1,5 @@
 import { createServerSupabase } from '@/lib/supabase-server';
+import { indexarSubcategoriasPorCategoria, orcadoEfetivoCategoria } from '@/lib/orcamentos';
 import { IndicadoresClient, type PontoMes, type CategoriaEvolucao } from '@/components/indicadores/IndicadoresClient';
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -35,24 +36,10 @@ export default async function IndicadoresPage({
       .lte('mes_referencia', `${ano}-12-01`),
   ]);
 
-  const subcategoriaIdsPorCategoria = new Map<string, string[]>();
-  for (const s of subcategoriasTodas ?? []) {
-    const lista = subcategoriaIdsPorCategoria.get(s.categoria_id) ?? [];
-    lista.push(s.id);
-    subcategoriaIdsPorCategoria.set(s.categoria_id, lista);
-  }
+  const subcategoriaIdsPorCategoria = indexarSubcategoriasPorCategoria(subcategoriasTodas ?? []);
 
   function orcadoCategoriaMes(categoriaId: string, mesRef: string): number {
-    const temSub = (subcategoriaIdsPorCategoria.get(categoriaId)?.length ?? 0) > 0;
-    if (temSub) {
-      return (orcamentosAno ?? [])
-        .filter((o) => o.subcategoria_id && o.categoria_id === categoriaId && o.mes_referencia === mesRef)
-        .reduce((a, o) => a + Number(o.valor_limite), 0);
-    }
-    const linha = (orcamentosAno ?? []).find(
-      (o) => !o.subcategoria_id && o.categoria_id === categoriaId && o.mes_referencia === mesRef
-    );
-    return linha ? Number(linha.valor_limite) : 0;
+    return orcadoEfetivoCategoria(orcamentosAno ?? [], subcategoriaIdsPorCategoria, categoriaId, mesRef);
   }
 
   const pontosAno: PontoMes[] = MESES_ABREV.map((label, i) => {

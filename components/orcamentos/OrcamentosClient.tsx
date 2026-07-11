@@ -6,6 +6,7 @@ import { salvarOrcamento } from '@/app/(dashboard)/orcamentos/actions';
 import { Modal } from '@/components/ui/Modal';
 import { IconChevronDown, IconChevronRight, IconCheck } from '@/components/icons';
 import { cn, formatCurrency } from '@/lib/utils';
+import { resolverValorEfetivo } from '@/lib/orcamentos';
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -24,8 +25,9 @@ export interface CategoriaAnual {
 }
 
 function valorEfetivoCategoria(c: CategoriaAnual, mesIndex: number): number {
-  if (c.subcategorias.length === 0) return c.valoresPorMes[mesIndex] ?? 0;
-  return c.subcategorias.reduce<number>((a, s) => a + (s.valoresPorMes[mesIndex] ?? 0), 0);
+  const temSub = c.subcategorias.length > 0;
+  const somaSubcategorias = c.subcategorias.reduce<number>((a, s) => a + (s.valoresPorMes[mesIndex] ?? 0), 0);
+  return resolverValorEfetivo(temSub, c.valoresPorMes[mesIndex], somaSubcategorias);
 }
 
 function CelulaOrcamento({

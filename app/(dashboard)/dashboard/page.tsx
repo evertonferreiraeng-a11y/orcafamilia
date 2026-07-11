@@ -8,6 +8,7 @@ import {
   calcularVariacaoPercentual,
   formatPercent,
 } from '@/lib/utils';
+import { indexarSubcategoriasPorCategoria, orcadoEfetivoCategoria } from '@/lib/orcamentos';
 import { StatRow } from '@/components/dashboard/StatRow';
 import { ValorMonetario } from '@/components/ui/ValorMonetario';
 import { MinhasContasCarousel } from '@/components/dashboard/MinhasContasCarousel';
@@ -75,7 +76,7 @@ export default async function DashboardPage({
       .lte('data', fimAnterior),
     supabase
       .from('orcamentos')
-      .select('valor_limite, categoria_id, subcategoria_id')
+      .select('valor_limite, categoria_id, subcategoria_id, mes_referencia')
       .eq('user_id', user.id)
       .eq('mes_referencia', inicio),
     supabase
@@ -97,27 +98,14 @@ export default async function DashboardPage({
       .lte('data', `${anoAtual}-12-31`),
   ]);
 
-  const subcategoriaIdsPorCategoria = new Map<string, string[]>();
-  for (const s of subcategoriasTodas ?? []) {
-    const lista = subcategoriaIdsPorCategoria.get(s.categoria_id) ?? [];
-    lista.push(s.id);
-    subcategoriaIdsPorCategoria.set(s.categoria_id, lista);
-  }
-
-  function orcadoCategoriaMes(categoriaId: string): number {
-    const temSub = (subcategoriaIdsPorCategoria.get(categoriaId)?.length ?? 0) > 0;
-    if (temSub) {
-      return (orcamentosMes ?? [])
-        .filter((o) => o.subcategoria_id && o.categoria_id === categoriaId)
-        .reduce((a, o) => a + Number(o.valor_limite), 0);
-    }
-    const linha = (orcamentosMes ?? []).find((o) => !o.subcategoria_id && o.categoria_id === categoriaId);
-    return linha ? Number(linha.valor_limite) : 0;
-  }
+  const subcategoriaIdsPorCategoria = indexarSubcategoriasPorCategoria(subcategoriasTodas ?? []);
 
   const orcamentosEfetivosMes = (categoriasTodas ?? [])
     .filter((c) => c.tipo === 'despesa')
-    .map((c) => ({ categoria_id: c.id, valor_limite: orcadoCategoriaMes(c.id) }))
+    .map((c) => ({
+      categoria_id: c.id,
+      valor_limite: orcadoEfetivoCategoria(orcamentosMes ?? [], subcategoriaIdsPorCategoria, c.id, inicio),
+    }))
     .filter((o) => o.valor_limite > 0);
 
   const saldoPorConta = new Map<string, number>();
