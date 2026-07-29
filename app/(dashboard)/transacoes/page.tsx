@@ -31,9 +31,10 @@ export default async function TransacoesPage({
     .from('transacoes')
     .select('*, categorias(nome, cor), subcategorias(nome), contas(nome), cartoes(nome)')
     .eq('user_id', user.id)
-    .gte('data', inicio)
-    .lte('data', fim)
-    .order('data', { ascending: false });
+    .or(
+      `and(eh_transferencia.eq.false,data_vencimento.gte.${inicio},data_vencimento.lte.${fim}),and(eh_transferencia.eq.true,data.gte.${inicio},data.lte.${fim})`
+    )
+    .order('data_vencimento', { ascending: false });
 
   const transacoes: TransacaoComRelacoes[] = (transacoesBrutas ?? []).map((t) => {
     const categoria = t.categorias as unknown as { nome: string; cor: string | null } | null;
