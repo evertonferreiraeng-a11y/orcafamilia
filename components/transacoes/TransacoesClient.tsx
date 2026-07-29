@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Modal } from '@/components/ui/Modal';
 import { DeleteButton } from '@/components/ui/DeleteButton';
 import { SummaryCard } from '@/components/ui/SummaryCard';
@@ -36,14 +35,6 @@ export interface TransacaoComRelacoes extends Transacao {
   subcategoriaNome: string | null;
   contaNome: string | null;
   cartaoNome: string | null;
-}
-
-interface Resumo {
-  saldoProjetado: number;
-  receitas: number;
-  receitasPendentes: number;
-  despesas: number;
-  despesasPendentes: number;
 }
 
 type StatusFiltro = 'todas' | 'pago' | 'pendente';
@@ -140,7 +131,6 @@ export function TransacoesClient({
   subcategorias,
   contas,
   cartoes,
-  resumo,
   seletorMes,
 }: {
   transacoes: TransacaoComRelacoes[];
@@ -148,14 +138,8 @@ export function TransacoesClient({
   subcategorias: Subcategoria[];
   contas: Conta[];
   cartoes: Cartao[];
-  resumo: Resumo;
   seletorMes: React.ReactNode;
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const porRegistro = searchParams.get('porRegistro') === '1';
-
   const [visao, setVisao] = useState<'lista' | 'faturas'>('lista');
   const [modalForm, setModalForm] = useState(false);
   const [modalFiltros, setModalFiltros] = useState(false);
@@ -201,13 +185,6 @@ export function TransacoesClient({
     setModalForm(true);
   }
 
-  function alternarDataBase() {
-    const params = new URLSearchParams(searchParams.toString());
-    if (porRegistro) params.delete('porRegistro');
-    else params.set('porRegistro', '1');
-    router.push(`${pathname}?${params.toString()}`);
-  }
-
   function ordenarPor(chave: SortKey) {
     if (sortKey === chave) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -218,6 +195,30 @@ export function TransacoesClient({
   }
 
   const periodoIntervalo = useMemo(() => calcularIntervaloPeriodo(filtroPeriodo), [filtroPeriodo]);
+
+  const resumo = useMemo(() => {
+    const relevantes = transacoes.filter((t) => {
+      if (t.eh_transferencia) return false;
+      if (filtroStatus === 'pago') return t.pago;
+      if (filtroStatus === 'pendente') return !t.pago;
+      return true;
+    });
+    const receitas = relevantes.filter((t) => t.tipo === 'receita');
+    const despesas = relevantes.filter((t) => t.tipo === 'despesa');
+    const receitasPagas = receitas.filter((t) => t.pago).reduce((a, t) => a + t.valor, 0);
+    const receitasPendentes = receitas.filter((t) => !t.pago).reduce((a, t) => a + t.valor, 0);
+    const despesasPagas = despesas.filter((t) => t.pago).reduce((a, t) => a + t.valor, 0);
+    const despesasPendentes = despesas.filter((t) => !t.pago).reduce((a, t) => a + t.valor, 0);
+
+    return {
+      saldoExecutado: receitasPagas - despesasPagas,
+      saldoProjetado: receitasPagas + receitasPendentes - (despesasPagas + despesasPendentes),
+      receitas: receitasPagas,
+      receitasPendentes,
+      despesas: despesasPagas,
+      despesasPendentes,
+    };
+  }, [transacoes, filtroStatus]);
 
   const transacoesFiltradas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -299,10 +300,15 @@ export function TransacoesClient({
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <SummaryCard
-          titulo="Saldo Projetado"
-          valor={resumo.saldoProjetado}
-          tom={resumo.saldoProjetado >= 0 ? 'positivo' : 'negativo'}
+          titulo="Saldo Executado"
+          valor={resumo.saldoExecutado}
+          tom={resumo.saldoExecutado >= 0 ? 'positivo' : 'negativo'}
           icon={IconWallet}
+          footer={
+            <span className="text-xs text-gray-400">
+              Projetado: {formatCurrency(resumo.saldoProjetado)}
+            </span>
+          }
         />
         <SummaryCard
           titulo="Receitas"
@@ -352,27 +358,6 @@ export function TransacoesClient({
               <option value="pago">Pago</option>
               <option value="pendente">Pendente</option>
             </select>
-
-            <label className="flex items-center gap-2 text-sm text-gray-600">
-              <button
-                type="button"
-                role="switch"
-                aria-checked={!porRegistro}
-                onClick={alternarDataBase}
-                className={cn(
-                  'relative h-5 w-9 shrink-0 overflow-hidden rounded-full transition-colors',
-                  !porRegistro ? 'bg-brand-600' : 'bg-gray-200'
-                )}
-              >
-                <span
-                  className={cn(
-                    'absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform',
-                    !porRegistro && 'translate-x-4'
-                  )}
-                />
-              </button>
-              Data Pagamento
-            </label>
 
             <div className="relative min-w-[200px] flex-1">
               <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />

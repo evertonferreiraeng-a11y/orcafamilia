@@ -8,7 +8,7 @@ import type { Categoria, Subcategoria, Conta, Cartao } from '@/types/database';
 export default async function TransacoesPage({
   searchParams,
 }: {
-  searchParams: { mes?: string; porRegistro?: string };
+  searchParams: { mes?: string };
 }) {
   const supabase = createServerSupabase();
   const {
@@ -19,7 +19,6 @@ export default async function TransacoesPage({
   const mesSelecionado = parseMesParam(searchParams.mes);
   const inicio = primeiroDiaMes(mesSelecionado);
   const fim = ultimoDiaMes(mesSelecionado);
-  const colunaData = searchParams.porRegistro === '1' ? 'data_registro' : 'data';
 
   const [{ data: categorias }, { data: subcategorias }, { data: contas }, { data: cartoes }] = await Promise.all([
     supabase.from('categorias').select('*').eq('user_id', user.id).order('nome'),
@@ -32,8 +31,8 @@ export default async function TransacoesPage({
     .from('transacoes')
     .select('*, categorias(nome, cor), subcategorias(nome), contas(nome), cartoes(nome)')
     .eq('user_id', user.id)
-    .gte(colunaData, inicio)
-    .lte(colunaData, fim)
+    .gte('data', inicio)
+    .lte('data', fim)
     .order('data', { ascending: false });
 
   const transacoes: TransacaoComRelacoes[] = (transacoesBrutas ?? []).map((t) => {
@@ -52,23 +51,6 @@ export default async function TransacoesPage({
     };
   });
 
-  const naoTransferencia = transacoes.filter((t) => !t.eh_transferencia);
-  const receitas = naoTransferencia.filter((t) => t.tipo === 'receita');
-  const despesas = naoTransferencia.filter((t) => t.tipo === 'despesa');
-
-  const receitasPagas = receitas.filter((t) => t.pago).reduce((a, t) => a + t.valor, 0);
-  const receitasPendentes = receitas.filter((t) => !t.pago).reduce((a, t) => a + t.valor, 0);
-  const despesasPagas = despesas.filter((t) => t.pago).reduce((a, t) => a + t.valor, 0);
-  const despesasPendentes = despesas.filter((t) => !t.pago).reduce((a, t) => a + t.valor, 0);
-
-  const resumo = {
-    saldoProjetado: receitasPagas + receitasPendentes - (despesasPagas + despesasPendentes),
-    receitas: receitasPagas,
-    receitasPendentes,
-    despesas: despesasPagas,
-    despesasPendentes,
-  };
-
   return (
     <div className="space-y-4">
       <TransacoesClient
@@ -77,7 +59,6 @@ export default async function TransacoesPage({
         subcategorias={(subcategorias ?? []) as Subcategoria[]}
         contas={(contas ?? []) as Conta[]}
         cartoes={(cartoes ?? []) as Cartao[]}
-        resumo={resumo}
         seletorMes={
           <Suspense fallback={null}>
             <SeletorMesAno />
