@@ -27,7 +27,7 @@ import {
   definirDataPagamento,
 } from '@/app/(dashboard)/transacoes/actions';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
-import type { Categoria, Subcategoria, Conta, Cartao, Transacao } from '@/types/database';
+import type { Categoria, Subcategoria, Conta, Cartao, Transacao, TipoDespesa } from '@/types/database';
 
 export interface TransacaoComRelacoes extends Transacao {
   categoriaNome: string | null;
@@ -36,6 +36,12 @@ export interface TransacaoComRelacoes extends Transacao {
   contaNome: string | null;
   cartaoNome: string | null;
 }
+
+const TIPO_DESPESA_LABEL: Record<TipoDespesa, string> = {
+  fixa: 'Fixa',
+  variavel: 'Variável',
+  parcelada: 'Parcelada',
+};
 
 type StatusFiltro = 'todas' | 'pago' | 'pendente';
 type SortKey = 'registro' | 'vencimento' | 'pagamento' | 'valor';
@@ -389,6 +395,7 @@ export function TransacoesClient({
                 </th>
                 <th className="px-3 py-3 font-medium">Descrição</th>
                 <th className="px-3 py-3 font-medium">Categoria</th>
+                <th className="px-3 py-3 font-medium">Tipo</th>
                 <th className="px-3 py-3 font-medium">Conta</th>
                 <th className="px-3 py-3 font-medium">Cartão</th>
                 <th className="px-3 py-3 text-right font-medium">
@@ -429,6 +436,20 @@ export function TransacoesClient({
                         style={{ backgroundColor: `${t.categoriaCor ?? '#888888'}1a`, color: t.categoriaCor ?? '#888888' }}
                       >
                         {t.categoriaNome}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-3">
+                    {t.tipo_despesa && (
+                      <span
+                        className={cn(
+                          'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium',
+                          t.tipo_despesa === 'fixa' && 'bg-indigo-100 text-indigo-700',
+                          t.tipo_despesa === 'variavel' && 'bg-amber-100 text-amber-700',
+                          t.tipo_despesa === 'parcelada' && 'bg-red-100 text-red-700'
+                        )}
+                      >
+                        {TIPO_DESPESA_LABEL[t.tipo_despesa]}
                       </span>
                     )}
                   </td>
