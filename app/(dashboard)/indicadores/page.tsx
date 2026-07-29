@@ -1,6 +1,12 @@
 import { createServerSupabase } from '@/lib/supabase-server';
 import { indexarSubcategoriasPorCategoria, orcadoEfetivoCategoria } from '@/lib/orcamentos';
-import { IndicadoresClient, type PontoMes, type CategoriaEvolucao } from '@/components/indicadores/IndicadoresClient';
+import {
+  IndicadoresClient,
+  type PontoMes,
+  type CategoriaEvolucao,
+  type PontoTipoDespesa,
+  type ParcelamentoAtivo,
+} from '@/components/indicadores/IndicadoresClient';
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -18,10 +24,16 @@ export default async function IndicadoresPage({
   const anoAtual = new Date().getFullYear();
   const ano = searchParams.ano ? Number(searchParams.ano) : anoAtual;
 
-  const [{ data: transacoesAno }, { data: categoriasTodas }, { data: subcategoriasTodas }, { data: orcamentosAno }] = await Promise.all([
+  const [
+    { data: transacoesAno },
+    { data: categoriasTodas },
+    { data: subcategoriasTodas },
+    { data: orcamentosAno },
+    { data: parceladasTodas },
+  ] = await Promise.all([
     supabase
       .from('transacoes')
-      .select('data, tipo, valor, pago, categoria_id, subcategoria_id')
+      .select('data, tipo, valor, pago, categoria_id, subcategoria_id, tipo_despesa')
       .eq('user_id', user.id)
       .eq('eh_transferencia', false)
       .gte('data', `${ano}-01-01`)
@@ -34,6 +46,12 @@ export default async function IndicadoresPage({
       .eq('user_id', user.id)
       .gte('mes_referencia', `${ano}-01-01`)
       .lte('mes_referencia', `${ano}-12-01`),
+    supabase
+      .from('transacoes')
+      .select('descricao, valor, data_vencimento, parcela_atual, parcela_total, grupo_parcelamento, pago')
+      .eq('user_id', user.id)
+      .eq('tipo_despesa', 'parcelada')
+      .not('grupo_parcelamento', 'is', null),
   ]);
 
   const subcategoriaIdsPorCategoria = indexarSubcategoriasPorCategoria(subcategoriasTodas ?? []);
@@ -105,6 +123,48 @@ export default async function IndicadoresPage({
   const categoriasReceitaEvolucao = (categoriasTodas ?? []).filter((c) => c.tipo === 'receita').map(construirEvolucao);
   const categoriasDespesaEvolucao = (categoriasTodas ?? []).filter((c) => c.tipo === 'despesa').map(construirEvolucao);
 
+  const pontosTipoDespesaAno: PontoTipoDespesa[] = MESES_ABREV.map((label, i) => {
+    const mesNum = i + 1;
+    const doMes = (transacoesAno ?? []).filter(
+      (t) => t.pago && t.tipo === 'despesa' && Number(t.data.split('-')[1]) === mesNum
+    );
+    const somaTipo = (tipo: string) => doMes.filter((t) => t.tipo_despesa === tipo).reduce((a, t) => a + Number(t.valor), 0);
+    return {
+      label,
+      fixa: somaTipo('fixa'),
+      variavel: somaTipo('variavel') + doMes.filter((t) => !t.tipo_despesa).reduce((a, t) => a + Number(t.valor), 0),
+      parcelada: somaTipo('parcelada'),
+    };
+  });
+
+  const gruposParcelamento = new Map<
+    string,
+    { descricao: string; valor: number; parcela_total: number; parcelasPagas: number; dataFim: string | null }
+  >();
+  for (const linha of parceladasTodas ?? []) {
+    if (!linha.grupo_parcelamento || !linha.parcela_total) continue;
+    const atual = gruposParcelamento.get(linha.grupo_parcelamento) ?? {
+      descricao: linha.descricao,
+      valor: Number(linha.valor),
+      parcela_total: linha.parcela_total,
+      parcelasPagas: 0,
+      dataFim: null,
+    };
+    if (linha.pago) atual.parcelasPagas = Math.max(atual.parcelasPagas, linha.parcela_atual ?? 0);
+    if (linha.parcela_atual === linha.parcela_total) atual.dataFim = linha.data_vencimento;
+    gruposParcelamento.set(linha.grupo_parcelamento, atual);
+  }
+
+  const parcelamentosAtivos: ParcelamentoAtivo[] = Array.from(gruposParcelamento.values())
+    .filter((g) => g.parcelasPagas < g.parcela_total)
+    .map((g) => ({
+      descricao: g.descricao,
+      valorParcela: g.valor,
+      parcelaAtual: g.parcelasPagas,
+      parcelaTotal: g.parcela_total,
+      dataFim: g.dataFim,
+    }));
+
   return (
     <IndicadoresClient
       ano={ano}
@@ -112,6 +172,8 @@ export default async function IndicadoresPage({
       pontosOrcadoAno={pontosOrcadoAno}
       categoriasReceitaEvolucao={categoriasReceitaEvolucao}
       categoriasDespesaEvolucao={categoriasDespesaEvolucao}
+      pontosTipoDespesaAno={pontosTipoDespesaAno}
+      parcelamentosAtivos={parcelamentosAtivos}
     />
   );
 }

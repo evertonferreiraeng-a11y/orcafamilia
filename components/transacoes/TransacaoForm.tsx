@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
-import type { Categoria, Subcategoria, Conta, Cartao, Transacao } from '@/types/database';
+import type { Categoria, Subcategoria, Conta, Cartao, Transacao, TipoDespesa } from '@/types/database';
 import type { TransacaoFormState } from '@/app/(dashboard)/transacoes/actions';
 
 function BotaoSalvar({ label }: { label: string }) {
@@ -49,7 +49,7 @@ export function TransacaoForm({
   const [formaPagamento, setFormaPagamento] = useState<'debito' | 'credito'>(transacao?.cartao_id ? 'credito' : 'debito');
   const [categoriaId, setCategoriaId] = useState(transacao?.categoria_id ?? '');
   const [pago, setPago] = useState(transacao?.pago ?? false);
-  const [recorrente, setRecorrente] = useState(transacao?.recorrente ?? false);
+  const [tipoDespesa, setTipoDespesa] = useState<TipoDespesa>(transacao?.tipo_despesa ?? 'variavel');
 
   const tipoLancamento: 'despesa' | 'receita' = aba === 'transferencia' ? 'despesa' : aba;
   const categoriasFiltradas = categorias.filter((c) => c.tipo === tipoLancamento);
@@ -308,30 +308,61 @@ export function TransacaoForm({
         </div>
       )}
 
-      {aba !== 'transferencia' && !transacao && (
-        <div className="flex items-center gap-2">
-          <input
-            id="recorrente"
-            name="recorrente"
-            type="checkbox"
-            checked={recorrente}
-            onChange={(e) => setRecorrente(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
-          />
-          <label htmlFor="recorrente" className="text-sm text-gray-700">Transação Recorrente</label>
+      {aba === 'despesa' && (
+        <div>
+          <label className="label-field">Tipo de Despesa</label>
+          <input type="hidden" name="tipo_despesa" value={tipoDespesa} />
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => setTipoDespesa('variavel')}
+              className={
+                tipoDespesa === 'variavel'
+                  ? 'rounded-xl border-2 border-brand-500 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700'
+                  : 'rounded-xl border-2 border-transparent bg-gray-100 px-4 py-2 text-sm font-medium text-gray-600'
+              }
+            >
+              Variável
+            </button>
+            <button
+              type="button"
+              onClick={() => setTipoDespesa('fixa')}
+              className={
+                tipoDespesa === 'fixa'
+                  ? 'rounded-xl border-2 border-brand-500 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700'
+                  : 'rounded-xl border-2 border-transparent bg-gray-100 px-4 py-2 text-sm font-medium text-gray-600'
+              }
+            >
+              Fixa
+            </button>
+            <button
+              type="button"
+              onClick={() => setTipoDespesa('parcelada')}
+              className={
+                tipoDespesa === 'parcelada'
+                  ? 'rounded-xl border-2 border-brand-500 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700'
+                  : 'rounded-xl border-2 border-transparent bg-gray-100 px-4 py-2 text-sm font-medium text-gray-600'
+              }
+            >
+              Parcelada
+            </button>
+          </div>
         </div>
       )}
 
-      {recorrente && aba !== 'transferencia' && !transacao && (
+      {aba === 'despesa' && tipoDespesa !== 'variavel' && !transacao && (
         <div>
-          <label className="label-field" htmlFor="meses_recorrencia">Repetir por quantos meses?</label>
+          <label className="label-field" htmlFor="meses_recorrencia">
+            {tipoDespesa === 'parcelada' ? 'Número de parcelas' : 'Gerar lançamentos para quantos meses?'}
+          </label>
           <input
+            key={tipoDespesa}
             id="meses_recorrencia"
             name="meses_recorrencia"
             type="number"
             min="2"
             max="60"
-            defaultValue={2}
+            defaultValue={tipoDespesa === 'parcelada' ? 2 : 12}
             className="input-field"
           />
         </div>

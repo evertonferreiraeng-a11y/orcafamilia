@@ -1,5 +1,6 @@
 export type TipoConta = 'corrente' | 'poupanca' | 'investimento' | 'dinheiro';
 export type TipoLancamento = 'receita' | 'despesa';
+export type TipoDespesa = 'fixa' | 'variavel' | 'parcelada';
 export type Frequencia = 'mensal' | 'semanal';
 export type StatusDivida = 'ativa' | 'quitada';
 export type TipoInvestimento = 'renda_fixa' | 'renda_variavel' | 'fundo' | 'outro';
@@ -89,6 +90,7 @@ export type Transacao = {
   pagamento_divida_id: string | null;
   recorrente: boolean;
   frequencia: Frequencia | null;
+  tipo_despesa: TipoDespesa | null;
   criado_em: string;
 };
 

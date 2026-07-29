@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ResultadoFinanceiroReport } from '@/components/indicadores/ResultadoFinanceiroReport';
 import { EvolucaoContasReport } from '@/components/indicadores/EvolucaoContasReport';
+import { DespesasTipoReport } from '@/components/indicadores/DespesasTipoReport';
 import { cn } from '@/lib/utils';
 
 export interface PontoMes {
@@ -30,11 +31,27 @@ export interface CategoriaEvolucao {
   subcategorias: SubcategoriaEvolucao[];
 }
 
-type Aba = 'resultado' | 'evolucao';
+export interface PontoTipoDespesa {
+  label: string;
+  fixa: number;
+  variavel: number;
+  parcelada: number;
+}
+
+export interface ParcelamentoAtivo {
+  descricao: string;
+  valorParcela: number;
+  parcelaAtual: number;
+  parcelaTotal: number;
+  dataFim: string | null;
+}
+
+type Aba = 'resultado' | 'evolucao' | 'despesas-tipo';
 
 const ABAS: { id: Aba; label: string }[] = [
   { id: 'resultado', label: 'Resultado Financeiro' },
   { id: 'evolucao', label: 'Evolução das Contas' },
+  { id: 'despesas-tipo', label: 'Fixas, Variáveis e Parceladas' },
 ];
 
 export function IndicadoresClient({
@@ -43,12 +60,16 @@ export function IndicadoresClient({
   pontosOrcadoAno,
   categoriasReceitaEvolucao,
   categoriasDespesaEvolucao,
+  pontosTipoDespesaAno,
+  parcelamentosAtivos,
 }: {
   ano: number;
   pontosAno: PontoMes[];
   pontosOrcadoAno: PontoMes[];
   categoriasReceitaEvolucao: CategoriaEvolucao[];
   categoriasDespesaEvolucao: CategoriaEvolucao[];
+  pontosTipoDespesaAno: PontoTipoDespesa[];
+  parcelamentosAtivos: ParcelamentoAtivo[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -105,6 +126,9 @@ export function IndicadoresClient({
           categoriasReceita={categoriasReceitaEvolucao}
           categoriasDespesa={categoriasDespesaEvolucao}
         />
+      )}
+      {aba === 'despesas-tipo' && (
+        <DespesasTipoReport pontosTipoDespesaAno={pontosTipoDespesaAno} parcelamentosAtivos={parcelamentosAtivos} />
       )}
     </div>
   );

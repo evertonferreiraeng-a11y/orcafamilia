@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createServerSupabase } from '@/lib/supabase-server';
+import type { TipoDespesa } from '@/types/database';
 
 export interface TransacaoFormState {
   error?: string;
@@ -88,8 +89,11 @@ export async function criarTransacao(_prevState: TransacaoFormState, formData: F
   const pago = formData.get('pago') === 'on';
   const contaId = String(formData.get('conta_id') || '') || null;
   const cartaoId = String(formData.get('cartao_id') || '') || null;
-  const recorrente = formData.get('recorrente') === 'on';
-  const mesesRecorrencia = recorrente ? Math.max(2, Math.min(60, Number(formData.get('meses_recorrencia') || 2))) : 1;
+  const tipoDespesa = aba === 'despesa' ? (String(formData.get('tipo_despesa') || 'variavel') as TipoDespesa) : null;
+  const mesesRecorrencia =
+    tipoDespesa && tipoDespesa !== 'variavel'
+      ? Math.max(2, Math.min(60, Number(formData.get('meses_recorrencia') || 2)))
+      : 1;
   const dataRegistro = String(formData.get('data_registro') || '');
   const dataVencimento = String(formData.get('data_vencimento') || '');
   const dataBase = data || dataVencimento || dataRegistro;
@@ -121,6 +125,7 @@ export async function criarTransacao(_prevState: TransacaoFormState, formData: F
     grupo_parcelamento: grupoParcelamento,
     parcela_atual: mesesRecorrencia > 1 ? i + 1 : null,
     parcela_total: mesesRecorrencia > 1 ? mesesRecorrencia : null,
+    tipo_despesa: tipoDespesa,
   }));
 
   const { error } = await supabase.from('transacoes').insert(linhas);
@@ -187,6 +192,7 @@ export async function atualizarTransacao(
   const pago = formData.get('pago') === 'on';
   const contaId = String(formData.get('conta_id') || '') || null;
   const cartaoId = String(formData.get('cartao_id') || '') || null;
+  const tipoDespesa = aba === 'despesa' ? (String(formData.get('tipo_despesa') || 'variavel') as TipoDespesa) : null;
   const dataRegistro = String(formData.get('data_registro') || '');
   const dataVencimento = String(formData.get('data_vencimento') || '');
   const dataBase = data || dataVencimento || dataRegistro;
@@ -212,6 +218,7 @@ export async function atualizarTransacao(
       conta_id: contaId,
       cartao_id: cartaoId,
       pago,
+      tipo_despesa: tipoDespesa,
     })
     .eq('id', id)
     .eq('user_id', user.id);
