@@ -1,6 +1,5 @@
 'use client';
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, type TooltipProps } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
 import type { PontoTipoDespesa, ParcelamentoAtivo } from '@/components/indicadores/IndicadoresClient';
 
@@ -8,24 +7,6 @@ const MESES_NOME = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
 ];
-
-function TipoDespesaTooltip({ active, payload, label }: TooltipProps<number, string>) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="rounded-xl bg-gray-900 px-3 py-2.5 text-xs text-white shadow-elevated">
-      <p className="mb-1.5 font-medium text-gray-300">{label}</p>
-      <div className="space-y-1">
-        {payload.map((item) => (
-          <p key={item.dataKey as string} className="flex items-center gap-1.5 whitespace-nowrap">
-            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: item.color }} />
-            <span className="text-gray-300">{item.name}:</span>
-            <span className="font-semibold">{formatCurrency(Number(item.value ?? 0))}</span>
-          </p>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function formatarDataFim(dataFim: string | null): string {
   if (!dataFim) return '—';
@@ -63,18 +44,38 @@ export function DespesasTipoReport({
 
       <div className="card p-4">
         <h3 className="mb-3 text-sm font-semibold text-gray-700">Evolução Mensal por Tipo de Despesa</h3>
-        <div className="h-72 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={pontosTipoDespesaAno}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-              <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => formatCurrency(v)} width={80} />
-              <Tooltip content={<TipoDespesaTooltip />} />
-              <Bar dataKey="fixa" name="Fixa" stackId="a" fill="#6366f1" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="variavel" name="Variável" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="parcelada" name="Parcelada" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 text-left text-xs uppercase text-gray-400">
+                <th className="px-2 py-2 font-medium">Mês</th>
+                <th className="px-2 py-2 text-right font-medium">Fixa</th>
+                <th className="px-2 py-2 text-right font-medium">Variável</th>
+                <th className="px-2 py-2 text-right font-medium">Parcelada</th>
+                <th className="px-2 py-2 text-right font-medium">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pontosTipoDespesaAno.map((p) => (
+                <tr key={p.label} className="border-b border-gray-50 last:border-0">
+                  <td className="px-2 py-1.5 text-gray-600">{p.label}</td>
+                  <td className="px-2 py-1.5 text-right text-gray-500">{formatCurrency(p.fixa)}</td>
+                  <td className="px-2 py-1.5 text-right text-gray-500">{formatCurrency(p.variavel)}</td>
+                  <td className="px-2 py-1.5 text-right text-gray-500">{formatCurrency(p.parcelada)}</td>
+                  <td className="px-2 py-1.5 text-right font-medium text-gray-900">
+                    {formatCurrency(p.fixa + p.variavel + p.parcelada)}
+                  </td>
+                </tr>
+              ))}
+              <tr className="font-semibold text-gray-900">
+                <td className="px-2 py-2">Total</td>
+                <td className="px-2 py-2 text-right">{formatCurrency(totalFixa)}</td>
+                <td className="px-2 py-2 text-right">{formatCurrency(totalVariavel)}</td>
+                <td className="px-2 py-2 text-right">{formatCurrency(totalParcelada)}</td>
+                <td className="px-2 py-2 text-right">{formatCurrency(totalFixa + totalVariavel + totalParcelada)}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 

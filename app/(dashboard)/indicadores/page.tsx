@@ -163,7 +163,12 @@ export default async function IndicadoresPage({
       parcelaAtual: g.parcelasPagas,
       parcelaTotal: g.parcela_total,
       dataFim: g.dataFim,
-    }));
+    }))
+    .sort((a, b) => {
+      if (!a.dataFim) return 1;
+      if (!b.dataFim) return -1;
+      return a.dataFim.localeCompare(b.dataFim);
+    });
 
   return (
     <IndicadoresClient
