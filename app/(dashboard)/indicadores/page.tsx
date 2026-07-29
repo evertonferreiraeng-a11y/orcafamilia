@@ -126,7 +126,7 @@ export default async function IndicadoresPage({
   const pontosTipoDespesaAno: PontoTipoDespesa[] = MESES_ABREV.map((label, i) => {
     const mesNum = i + 1;
     const doMes = (transacoesAno ?? []).filter(
-      (t) => t.pago && t.tipo === 'despesa' && Number(t.data.split('-')[1]) === mesNum
+      (t) => t.tipo === 'despesa' && Number(t.data.split('-')[1]) === mesNum
     );
     const somaTipo = (tipo: string) => doMes.filter((t) => t.tipo_despesa === tipo).reduce((a, t) => a + Number(t.valor), 0);
     return {
