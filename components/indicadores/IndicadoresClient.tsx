@@ -5,6 +5,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ResultadoFinanceiroReport } from '@/components/indicadores/ResultadoFinanceiroReport';
 import { EvolucaoContasReport } from '@/components/indicadores/EvolucaoContasReport';
 import { DespesasTipoReport } from '@/components/indicadores/DespesasTipoReport';
+import { PatrimonioLiquidoReport } from '@/components/indicadores/PatrimonioLiquidoReport';
 import { cn } from '@/lib/utils';
 import type { ParcelamentoAtivo } from '@/lib/parcelamentos';
 
@@ -45,12 +46,20 @@ export interface PontoTipoDespesa {
   parceladaFinalizada: string[];
 }
 
-type Aba = 'resultado' | 'evolucao' | 'despesas-tipo';
+export interface PontoPatrimonio {
+  label: string;
+  contas: number;
+  dividas: number;
+  liquido: number;
+}
+
+type Aba = 'resultado' | 'evolucao' | 'despesas-tipo' | 'patrimonio';
 
 const ABAS: { id: Aba; label: string }[] = [
   { id: 'resultado', label: 'Resultado Financeiro' },
   { id: 'evolucao', label: 'Evolução das Contas' },
   { id: 'despesas-tipo', label: 'Fixas, Variáveis e Parceladas' },
+  { id: 'patrimonio', label: 'Patrimônio Líquido' },
 ];
 
 export function IndicadoresClient({
@@ -61,6 +70,7 @@ export function IndicadoresClient({
   categoriasDespesaEvolucao,
   pontosTipoDespesaAno,
   parcelamentosAtivos,
+  pontosPatrimonioAno,
 }: {
   ano: number;
   pontosAno: PontoMes[];
@@ -69,6 +79,7 @@ export function IndicadoresClient({
   categoriasDespesaEvolucao: CategoriaEvolucao[];
   pontosTipoDespesaAno: PontoTipoDespesa[];
   parcelamentosAtivos: ParcelamentoAtivo[];
+  pontosPatrimonioAno: PontoPatrimonio[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -129,6 +140,7 @@ export function IndicadoresClient({
       {aba === 'despesas-tipo' && (
         <DespesasTipoReport pontosTipoDespesaAno={pontosTipoDespesaAno} parcelamentosAtivos={parcelamentosAtivos} />
       )}
+      {aba === 'patrimonio' && <PatrimonioLiquidoReport pontosPatrimonioAno={pontosPatrimonioAno} />}
     </div>
   );
 }
