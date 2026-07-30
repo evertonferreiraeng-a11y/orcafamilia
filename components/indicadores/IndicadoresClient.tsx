@@ -36,6 +36,10 @@ export interface PontoTipoDespesa {
   fixa: number;
   variavel: number;
   parcelada: number;
+  fixaIniciada: string[];
+  fixaFinalizada: string[];
+  parceladaIniciada: string[];
+  parceladaFinalizada: string[];
 }
 
 export interface ParcelamentoAtivo {

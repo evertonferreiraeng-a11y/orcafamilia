@@ -33,7 +33,7 @@ export default async function IndicadoresPage({
   ] = await Promise.all([
     supabase
       .from('transacoes')
-      .select('data, tipo, valor, pago, categoria_id, subcategoria_id, tipo_despesa')
+      .select('data, tipo, valor, pago, categoria_id, subcategoria_id, tipo_despesa, descricao, parcela_atual, parcela_total')
       .eq('user_id', user.id)
       .eq('eh_transferencia', false)
       .gte('data', `${ano}-01-01`)
@@ -129,11 +129,21 @@ export default async function IndicadoresPage({
       (t) => t.tipo === 'despesa' && Number(t.data.split('-')[1]) === mesNum
     );
     const somaTipo = (tipo: string) => doMes.filter((t) => t.tipo_despesa === tipo).reduce((a, t) => a + Number(t.valor), 0);
+    const nomesIniciados = (tipo: string) =>
+      doMes.filter((t) => t.tipo_despesa === tipo && t.parcela_atual === 1).map((t) => t.descricao);
+    const nomesFinalizados = (tipo: string) =>
+      doMes
+        .filter((t) => t.tipo_despesa === tipo && t.parcela_total !== null && t.parcela_atual === t.parcela_total)
+        .map((t) => t.descricao);
     return {
       label,
       fixa: somaTipo('fixa'),
       variavel: somaTipo('variavel') + doMes.filter((t) => !t.tipo_despesa).reduce((a, t) => a + Number(t.valor), 0),
       parcelada: somaTipo('parcelada'),
+      fixaIniciada: nomesIniciados('fixa'),
+      fixaFinalizada: nomesFinalizados('fixa'),
+      parceladaIniciada: nomesIniciados('parcelada'),
+      parceladaFinalizada: nomesFinalizados('parcelada'),
     };
   });
 
