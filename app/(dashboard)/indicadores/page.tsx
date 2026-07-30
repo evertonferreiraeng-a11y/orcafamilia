@@ -1,11 +1,11 @@
 import { createServerSupabase } from '@/lib/supabase-server';
 import { indexarSubcategoriasPorCategoria, orcadoEfetivoCategoria } from '@/lib/orcamentos';
+import { agruparParcelamentosAtivos } from '@/lib/parcelamentos';
 import {
   IndicadoresClient,
   type PontoMes,
   type CategoriaEvolucao,
   type PontoTipoDespesa,
-  type ParcelamentoAtivo,
 } from '@/components/indicadores/IndicadoresClient';
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -147,38 +147,7 @@ export default async function IndicadoresPage({
     };
   });
 
-  const gruposParcelamento = new Map<
-    string,
-    { descricao: string; valor: number; parcela_total: number; parcelasPagas: number; dataFim: string | null }
-  >();
-  for (const linha of parceladasTodas ?? []) {
-    if (!linha.grupo_parcelamento || !linha.parcela_total) continue;
-    const atual = gruposParcelamento.get(linha.grupo_parcelamento) ?? {
-      descricao: linha.descricao,
-      valor: Number(linha.valor),
-      parcela_total: linha.parcela_total,
-      parcelasPagas: 0,
-      dataFim: null,
-    };
-    if (linha.pago) atual.parcelasPagas = Math.max(atual.parcelasPagas, linha.parcela_atual ?? 0);
-    if (linha.parcela_atual === linha.parcela_total) atual.dataFim = linha.data_vencimento;
-    gruposParcelamento.set(linha.grupo_parcelamento, atual);
-  }
-
-  const parcelamentosAtivos: ParcelamentoAtivo[] = Array.from(gruposParcelamento.values())
-    .filter((g) => g.parcelasPagas < g.parcela_total)
-    .map((g) => ({
-      descricao: g.descricao,
-      valorParcela: g.valor,
-      parcelaAtual: g.parcelasPagas,
-      parcelaTotal: g.parcela_total,
-      dataFim: g.dataFim,
-    }))
-    .sort((a, b) => {
-      if (!a.dataFim) return 1;
-      if (!b.dataFim) return -1;
-      return a.dataFim.localeCompare(b.dataFim);
-    });
+  const parcelamentosAtivos = agruparParcelamentosAtivos(parceladasTodas ?? []);
 
   return (
     <IndicadoresClient

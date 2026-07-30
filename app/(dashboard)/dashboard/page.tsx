@@ -1,4 +1,4 @@
-import { eachDayOfInterval, format } from 'date-fns';
+import { eachDayOfInterval, format, addDays, differenceInCalendarDays } from 'date-fns';
 import { createServerSupabase } from '@/lib/supabase-server';
 import {
   parseMesParam,
@@ -9,11 +9,13 @@ import {
   formatPercent,
 } from '@/lib/utils';
 import { indexarSubcategoriasPorCategoria, orcadoEfetivoCategoria } from '@/lib/orcamentos';
+import { gerarInsights, type DadosGerente } from '@/lib/gerente';
 import { StatRow } from '@/components/dashboard/StatRow';
 import { ValorMonetario } from '@/components/ui/ValorMonetario';
 import { MinhasContasCarousel } from '@/components/dashboard/MinhasContasCarousel';
 import { PlanejadoGaugeCard } from '@/components/dashboard/PlanejadoGaugeCard';
 import { BalancoMensalChart, type PontoBalanco } from '@/components/dashboard/BalancoMensalChart';
+import { GerenteFinanceiroCard } from '@/components/dashboard/GerenteFinanceiroCard';
 import { IconTrendUp, IconTrendDown, IconWallet } from '@/components/icons';
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -38,6 +40,8 @@ export default async function DashboardPage({
   const inicioAnterior = primeiroDiaMes(mesAnterior);
   const fimAnterior = ultimoDiaMes(mesAnterior);
   const anoAtual = mesSelecionado.getFullYear();
+  const hojeStr = format(new Date(), 'yyyy-MM-dd');
+  const em7DiasStr = format(addDays(new Date(), 7), 'yyyy-MM-dd');
 
   const [
     { data: contas },
@@ -49,6 +53,7 @@ export default async function DashboardPage({
     { data: categoriasTodas },
     { data: subcategoriasTodas },
     { data: transacoesMultiAno },
+    { data: dividasProximas },
   ] = await Promise.all([
     supabase.from('contas').select('*').eq('user_id', user.id).eq('ativa', true).order('nome'),
     supabase
@@ -59,7 +64,7 @@ export default async function DashboardPage({
       .not('conta_id', 'is', null),
     supabase
       .from('transacoes')
-      .select('valor, data, tipo, pago')
+      .select('valor, data, tipo, pago, tipo_despesa, descricao, parcela_atual, parcela_total')
       .eq('user_id', user.id)
       .eq('eh_transferencia', false)
       .gte('data', inicio)
@@ -67,7 +72,7 @@ export default async function DashboardPage({
       .order('data', { ascending: false }),
     supabase
       .from('transacoes')
-      .select('tipo, valor')
+      .select('tipo, valor, tipo_despesa')
       .eq('user_id', user.id)
       .eq('eh_transferencia', false)
       .gte('data', inicioAnterior)
@@ -94,6 +99,13 @@ export default async function DashboardPage({
       .eq('eh_transferencia', false)
       .gte('data', `${anoAtual}-01-01`)
       .lte('data', `${anoAtual}-12-31`),
+    supabase
+      .from('dividas')
+      .select('descricao, valor_total, valor_pago, data_vencimento')
+      .eq('user_id', user.id)
+      .eq('status', 'ativa')
+      .gte('data_vencimento', hojeStr)
+      .lte('data_vencimento', em7DiasStr),
   ]);
 
   const subcategoriaIdsPorCategoria = indexarSubcategoriasPorCategoria(subcategoriasTodas ?? []);
@@ -152,6 +164,52 @@ export default async function DashboardPage({
     (o) => (gastoPorCategoria.get(o.categoria_id) ?? 0) > o.valor_limite
   ).length;
 
+  const nomePorCategoria = new Map((categoriasTodas ?? []).map((c) => [c.id, c.nome]));
+  const categoriasAcimaDetalhe = orcamentosEfetivosMes
+    .filter((o) => (gastoPorCategoria.get(o.categoria_id) ?? 0) > o.valor_limite)
+    .map((o) => {
+      const gasto = gastoPorCategoria.get(o.categoria_id) ?? 0;
+      return {
+        nome: nomePorCategoria.get(o.categoria_id) ?? 'Categoria',
+        percentual: o.valor_limite > 0 ? (gasto / o.valor_limite) * 100 : 0,
+      };
+    });
+
+  const despesaFixaMes = periodo
+    .filter((t) => t.tipo === 'despesa' && t.tipo_despesa === 'fixa')
+    .reduce((a, t) => a + Number(t.valor), 0);
+  const despesaFixaMesAnterior = mesAnteriorTransacoes
+    .filter((t) => t.tipo === 'despesa' && t.tipo_despesa === 'fixa')
+    .reduce((a, t) => a + Number(t.valor), 0);
+  const despesaParceladaMes = periodo
+    .filter((t) => t.tipo === 'despesa' && t.tipo_despesa === 'parcelada')
+    .reduce((a, t) => a + Number(t.valor), 0);
+
+  const parcelamentosTerminandoMes = periodo
+    .filter(
+      (t) => t.tipo === 'despesa' && t.tipo_despesa === 'parcelada' && t.parcela_total !== null && t.parcela_atual === t.parcela_total
+    )
+    .map((t) => ({ descricao: t.descricao, valorParcela: Number(t.valor) }));
+
+  const dividasVencendo = (dividasProximas ?? []).map((d) => ({
+    descricao: d.descricao,
+    valorRestante: Number(d.valor_total) - Number(d.valor_pago),
+    diasRestantes: differenceInCalendarDays(new Date(`${d.data_vencimento}T00:00:00`), new Date(`${hojeStr}T00:00:00`)),
+  }));
+
+  const dadosGerente: DadosGerente = {
+    saldoTotalContas,
+    receitaMes,
+    despesaMes,
+    despesaFixaMes,
+    despesaFixaMesAnterior,
+    despesaParceladaMes,
+    categoriasAcima: categoriasAcimaDetalhe,
+    dividasVencendo,
+    parcelamentosTerminandoMes,
+  };
+  const insights = gerarInsights(dadosGerente);
+
   const diasDoMes = eachDayOfInterval({
     start: new Date(`${inicio}T00:00:00`),
     end: new Date(`${fim}T00:00:00`),
@@ -190,6 +248,8 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-4">
+      <GerenteFinanceiroCard insights={insights} />
+
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-4 lg:min-h-[calc(100vh-190px)]">
         <div className="card flex flex-col p-4 lg:col-span-3">
           <div className="grid grid-cols-1 divide-y divide-gray-100 border-b border-gray-100 pb-4 sm:grid-cols-3 sm:divide-x sm:divide-y-0">

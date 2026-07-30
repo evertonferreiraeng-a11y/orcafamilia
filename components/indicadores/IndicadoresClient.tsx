@@ -6,6 +6,9 @@ import { ResultadoFinanceiroReport } from '@/components/indicadores/ResultadoFin
 import { EvolucaoContasReport } from '@/components/indicadores/EvolucaoContasReport';
 import { DespesasTipoReport } from '@/components/indicadores/DespesasTipoReport';
 import { cn } from '@/lib/utils';
+import type { ParcelamentoAtivo } from '@/lib/parcelamentos';
+
+export type { ParcelamentoAtivo };
 
 export interface PontoMes {
   label: string;
@@ -40,14 +43,6 @@ export interface PontoTipoDespesa {
   fixaFinalizada: string[];
   parceladaIniciada: string[];
   parceladaFinalizada: string[];
-}
-
-export interface ParcelamentoAtivo {
-  descricao: string;
-  valorParcela: number;
-  parcelaAtual: number;
-  parcelaTotal: number;
-  dataFim: string | null;
 }
 
 type Aba = 'resultado' | 'evolucao' | 'despesas-tipo';

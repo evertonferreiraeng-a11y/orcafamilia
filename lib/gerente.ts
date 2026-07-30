@@ -1,0 +1,122 @@
+import { formatCurrency } from '@/lib/utils';
+
+export type InsightSeveridade = 'alerta' | 'aviso' | 'dica' | 'elogio';
+
+export interface Insight {
+  severidade: InsightSeveridade;
+  mensagem: string;
+}
+
+export interface CategoriaAcima {
+  nome: string;
+  percentual: number;
+}
+
+export interface DividaVencendo {
+  descricao: string;
+  valorRestante: number;
+  diasRestantes: number;
+}
+
+export interface ParcelamentoTerminando {
+  descricao: string;
+  valorParcela: number;
+}
+
+export interface DadosGerente {
+  saldoTotalContas: number;
+  receitaMes: number;
+  despesaMes: number;
+  despesaFixaMes: number;
+  despesaFixaMesAnterior: number;
+  despesaParceladaMes: number;
+  categoriasAcima: CategoriaAcima[];
+  dividasVencendo: DividaVencendo[];
+  parcelamentosTerminandoMes: ParcelamentoTerminando[];
+}
+
+const LIMITE_INSIGHTS = 4;
+const LIMITE_COMPROMETIMENTO_PARCELAS = 0.3;
+
+function listarNomes(nomes: string[], max = 3): string {
+  if (nomes.length <= max) return nomes.join(', ');
+  return `${nomes.slice(0, max).join(', ')} e mais ${nomes.length - max}`;
+}
+
+export function gerarInsights(dados: DadosGerente): Insight[] {
+  const insights: Insight[] = [];
+
+  if (dados.saldoTotalContas < 0) {
+    insights.push({
+      severidade: 'alerta',
+      mensagem: `Seu saldo total está negativo (${formatCurrency(dados.saldoTotalContas)}). Evite novos compromissos até equilibrar as contas.`,
+    });
+  }
+
+  if (dados.categoriasAcima.length > 0) {
+    const nomes = listarNomes(dados.categoriasAcima.map((c) => c.nome));
+    insights.push({
+      severidade: 'alerta',
+      mensagem:
+        dados.categoriasAcima.length === 1
+          ? `A categoria "${nomes}" já ultrapassou o orçamento do mês.`
+          : `${dados.categoriasAcima.length} categorias já ultrapassaram o orçamento este mês: ${nomes}.`,
+    });
+  }
+
+  if (dados.dividasVencendo.length > 0) {
+    if (dados.dividasVencendo.length === 1) {
+      const d = dados.dividasVencendo[0];
+      insights.push({
+        severidade: 'alerta',
+        mensagem: `A dívida "${d.descricao}" (${formatCurrency(d.valorRestante)}) vence em ${d.diasRestantes} dia(s).`,
+      });
+    } else {
+      const total = dados.dividasVencendo.reduce((a, d) => a + d.valorRestante, 0);
+      insights.push({
+        severidade: 'alerta',
+        mensagem: `Você tem ${dados.dividasVencendo.length} dívidas vencendo nos próximos dias, somando ${formatCurrency(total)}.`,
+      });
+    }
+  }
+
+  if (dados.despesaMes > dados.receitaMes) {
+    insights.push({
+      severidade: 'aviso',
+      mensagem: `Suas despesas (${formatCurrency(dados.despesaMes)}) superaram as receitas (${formatCurrency(dados.receitaMes)}) este mês.`,
+    });
+  }
+
+  if (dados.receitaMes > 0 && dados.despesaParceladaMes / dados.receitaMes > LIMITE_COMPROMETIMENTO_PARCELAS) {
+    const percentual = (dados.despesaParceladaMes / dados.receitaMes) * 100;
+    insights.push({
+      severidade: 'aviso',
+      mensagem: `Suas parcelas já comprometem ${percentual.toFixed(0)}% da sua renda este mês. Evite novos parcelamentos por enquanto.`,
+    });
+  }
+
+  if (dados.despesaFixaMesAnterior > 0 && dados.despesaFixaMes > dados.despesaFixaMesAnterior) {
+    insights.push({
+      severidade: 'aviso',
+      mensagem: `Suas despesas fixas subiram de ${formatCurrency(dados.despesaFixaMesAnterior)} para ${formatCurrency(dados.despesaFixaMes)} em relação ao mês passado.`,
+    });
+  }
+
+  if (dados.parcelamentosTerminandoMes.length > 0) {
+    const nomes = listarNomes(dados.parcelamentosTerminandoMes.map((p) => p.descricao));
+    const alivio = dados.parcelamentosTerminandoMes.reduce((a, p) => a + p.valorParcela, 0);
+    insights.push({
+      severidade: 'dica',
+      mensagem: `${nomes} termina${dados.parcelamentosTerminandoMes.length === 1 ? '' : 'm'} este mês, liberando ${formatCurrency(alivio)} no seu orçamento a partir do mês que vem.`,
+    });
+  }
+
+  if (insights.length === 0) {
+    insights.push({
+      severidade: 'elogio',
+      mensagem: 'Suas finanças estão em dia este mês. Continue assim!',
+    });
+  }
+
+  return insights.slice(0, LIMITE_INSIGHTS);
+}
