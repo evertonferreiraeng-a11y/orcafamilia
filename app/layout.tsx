@@ -16,6 +16,11 @@ export const metadata: Metadata = {
   },
   description: 'Painel de controle financeiro para o casal: contas, cartões, orçamentos e metas em um só lugar.',
   applicationName: 'OrçaFamília',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'OrçaFamília',
+  },
 };
 
 export const viewport: Viewport = {
