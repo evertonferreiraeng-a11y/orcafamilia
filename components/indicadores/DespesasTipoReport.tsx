@@ -85,20 +85,30 @@ export function DespesasTipoReport({
           <p className="text-sm text-gray-400">Nenhum parcelamento em andamento.</p>
         ) : (
           <div className="space-y-2">
-            {parcelamentosAtivos.map((p, i) => (
-              <div
-                key={`${p.descricao}-${i}`}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-gray-100 px-3 py-2"
-              >
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{p.descricao}</p>
-                  <p className="text-xs text-gray-400">
-                    {p.parcelaAtual} de {p.parcelaTotal} parcelas · {formatCurrency(p.valorParcela)}/mês
-                  </p>
+            {parcelamentosAtivos.map((p, i) => {
+              const ultimaParcela = p.parcelaTotal - p.parcelaAtual === 1;
+              return (
+                <div
+                  key={`${p.descricao}-${i}`}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-gray-100 px-3 py-2"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {p.descricao}
+                      {ultimaParcela && (
+                        <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                          Última parcela
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {p.parcelaAtual} de {p.parcelaTotal} parcelas · {formatCurrency(p.valorParcela)}/mês
+                    </p>
+                  </div>
+                  <p className="text-xs font-medium text-gray-600">Termina em {formatarDataFim(p.dataFim)}</p>
                 </div>
-                <p className="text-xs font-medium text-gray-600">Termina em {formatarDataFim(p.dataFim)}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
