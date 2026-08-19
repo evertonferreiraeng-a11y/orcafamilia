@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { DeleteButton } from '@/components/ui/DeleteButton';
 import { SummaryCard } from '@/components/ui/SummaryCard';
@@ -18,11 +18,13 @@ import {
   IconOrdenar,
   IconFiltro,
   IconCartao,
+  IconTrash,
 } from '@/components/icons';
 import {
   criarTransacao,
   atualizarTransacao,
   excluirTransacao,
+  excluirTransacoes,
   alternarPagoTransacao,
   definirDataPagamento,
 } from '@/app/(dashboard)/transacoes/actions';
@@ -168,6 +170,9 @@ export function TransacoesClient({
   const [sortKey, setSortKey] = useState<SortKey>('pagamento');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
 
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  const [excluindoSelecionados, startExclusaoSelecionados] = useTransition();
+
   function limparFiltrosAvancados() {
     setFiltroPeriodo('');
     setFiltroCategorias([]);
@@ -298,6 +303,39 @@ export function TransacoesClient({
     sortDir,
   ]);
 
+  const idsVisiveis = useMemo(() => transacoesFiltradas.map((t) => t.id), [transacoesFiltradas]);
+  const todosVisiveisSelecionados = idsVisiveis.length > 0 && idsVisiveis.every((id) => selecionados.has(id));
+
+  function alternarSelecao(id: string) {
+    setSelecionados((prev) => {
+      const novo = new Set(prev);
+      if (novo.has(id)) novo.delete(id);
+      else novo.add(id);
+      return novo;
+    });
+  }
+
+  function alternarSelecaoTodos() {
+    setSelecionados((prev) => {
+      if (todosVisiveisSelecionados) {
+        const novo = new Set(prev);
+        idsVisiveis.forEach((id) => novo.delete(id));
+        return novo;
+      }
+      return new Set([...prev, ...idsVisiveis]);
+    });
+  }
+
+  function excluirSelecionados() {
+    const ids = Array.from(selecionados);
+    if (ids.length === 0) return;
+    if (!window.confirm(`Excluir ${ids.length} transação(ões) selecionada(s)? Essa ação não pode ser desfeita.`)) return;
+    startExclusaoSelecionados(async () => {
+      await excluirTransacoes(ids);
+      setSelecionados(new Set());
+    });
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -392,6 +430,26 @@ export function TransacoesClient({
         )}
       </div>
 
+      {visao === 'lista' && selecionados.size > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-100 bg-brand-50 px-4 py-3">
+          <p className="text-sm font-medium text-brand-700">{selecionados.size} transação(ões) selecionada(s)</p>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setSelecionados(new Set())} className="btn-secondary">
+              Cancelar seleção
+            </button>
+            <button
+              type="button"
+              onClick={excluirSelecionados}
+              disabled={excluindoSelecionados}
+              className="inline-flex items-center gap-2 rounded-xl bg-negative px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
+            >
+              <IconTrash className="h-4 w-4" />
+              {excluindoSelecionados ? 'Excluindo...' : 'Excluir selecionadas'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {visao === 'faturas' ? (
         <FaturasView transacoes={transacoes} cartoes={cartoes} contas={contas} />
       ) : transacoesFiltradas.length === 0 ? (
@@ -401,6 +459,15 @@ export function TransacoesClient({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 text-left text-xs uppercase text-gray-400">
+                <th className="w-8 px-3 py-3 font-medium">
+                  <input
+                    type="checkbox"
+                    checked={todosVisiveisSelecionados}
+                    onChange={alternarSelecaoTodos}
+                    className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                    aria-label="Selecionar todas as transações"
+                  />
+                </th>
                 <th className="px-3 py-3 font-medium">
                   <button type="button" onClick={() => ordenarPor('registro')} className="flex items-center gap-1 hover:text-gray-600">
                     Registro <IconOrdenar className="h-3 w-3" />
@@ -433,6 +500,15 @@ export function TransacoesClient({
             <tbody>
               {transacoesFiltradas.map((t) => (
                 <tr key={t.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                  <td className="px-3 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selecionados.has(t.id)}
+                      onChange={() => alternarSelecao(t.id)}
+                      className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                      aria-label={`Selecionar transação ${t.descricao}`}
+                    />
+                  </td>
                   <td className="px-3 py-3 text-gray-500">{formatDate(t.data_registro ?? t.criado_em)}</td>
                   <td className="px-3 py-3 text-gray-800">
                     <p>{t.descricao}</p>

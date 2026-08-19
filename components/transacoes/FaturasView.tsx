@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { pagarFatura, desfazerPagamentoFatura } from '@/app/(dashboard)/transacoes/actions';
+import { pagarFatura, desfazerPagamentoFatura, excluirTransacoes } from '@/app/(dashboard)/transacoes/actions';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Modal } from '@/components/ui/Modal';
-import { IconCartao, IconCheck } from '@/components/icons';
+import { IconCartao, IconCheck, IconTrash } from '@/components/icons';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
 import type { Cartao, Conta } from '@/types/database';
 import type { TransacaoComRelacoes } from '@/components/transacoes/TransacoesClient';
@@ -67,6 +67,18 @@ export function FaturasView({
     setProcessando(null);
   }
 
+  async function excluirFatura(cartaoId: string, itens: TransacaoComRelacoes[]) {
+    if (
+      !window.confirm(
+        `Excluir todos os ${itens.length} lançamentos desta fatura? Essa ação não pode ser desfeita.`
+      )
+    )
+      return;
+    setProcessando(cartaoId);
+    await excluirTransacoes(itens.map((t) => t.id));
+    setProcessando(null);
+  }
+
   if (faturas.length === 0) {
     return <EmptyState mensagem="Nenhuma compra no cartão neste período." />;
   }
@@ -90,19 +102,31 @@ export function FaturasView({
                 </p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-lg font-bold text-gray-900">{formatCurrency(total)}</p>
+            <div className="flex items-start gap-2 text-right">
+              <div>
+                <p className="text-lg font-bold text-gray-900">{formatCurrency(total)}</p>
+                <button
+                  type="button"
+                  disabled={processando === cartao.id}
+                  onClick={() => (pago ? desfazer(cartao.id, itens) : abrirPagamento(cartao, itens))}
+                  className={cn(
+                    'mt-1 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium disabled:opacity-50',
+                    pago ? 'bg-positive/10 text-positive' : 'bg-amber-100 text-amber-700'
+                  )}
+                >
+                  <IconCheck className="h-3 w-3" />
+                  {pago ? 'Fatura paga' : 'Pagar fatura'}
+                </button>
+              </div>
               <button
                 type="button"
                 disabled={processando === cartao.id}
-                onClick={() => (pago ? desfazer(cartao.id, itens) : abrirPagamento(cartao, itens))}
-                className={cn(
-                  'mt-1 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium disabled:opacity-50',
-                  pago ? 'bg-positive/10 text-positive' : 'bg-amber-100 text-amber-700'
-                )}
+                onClick={() => excluirFatura(cartao.id, itens)}
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-negative disabled:opacity-50"
+                aria-label="Excluir fatura completa"
+                title="Excluir fatura completa"
               >
-                <IconCheck className="h-3 w-3" />
-                {pago ? 'Fatura paga' : 'Pagar fatura'}
+                <IconTrash className="h-4 w-4" />
               </button>
             </div>
           </div>

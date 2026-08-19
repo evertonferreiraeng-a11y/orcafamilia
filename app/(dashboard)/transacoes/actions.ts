@@ -361,24 +361,41 @@ async function reverterPagamentoDivida(supabase: SupabaseClient, userId: string,
   await supabase.from('pagamentos_dividas').delete().eq('id', pagamentoId).eq('user_id', userId);
 }
 
-export async function excluirTransacao(id: string): Promise<void> {
-  const { supabase, user } = await getUser();
-  if (!user) return;
-
+async function excluirTransacaoInterna(supabase: SupabaseClient, userId: string, id: string): Promise<void> {
   const { data: linha } = await supabase
     .from('transacoes')
     .select('grupo_transferencia, pagamento_divida_id')
     .eq('id', id)
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .maybeSingle();
 
   if (linha?.pagamento_divida_id) {
-    await reverterPagamentoDivida(supabase, user.id, linha.pagamento_divida_id);
-    await supabase.from('transacoes').delete().eq('id', id).eq('user_id', user.id);
+    await reverterPagamentoDivida(supabase, userId, linha.pagamento_divida_id);
+    await supabase.from('transacoes').delete().eq('id', id).eq('user_id', userId);
   } else if (linha?.grupo_transferencia) {
-    await supabase.from('transacoes').delete().eq('grupo_transferencia', linha.grupo_transferencia).eq('user_id', user.id);
+    await supabase.from('transacoes').delete().eq('grupo_transferencia', linha.grupo_transferencia).eq('user_id', userId);
   } else {
-    await supabase.from('transacoes').delete().eq('id', id).eq('user_id', user.id);
+    await supabase.from('transacoes').delete().eq('id', id).eq('user_id', userId);
+  }
+}
+
+export async function excluirTransacao(id: string): Promise<void> {
+  const { supabase, user } = await getUser();
+  if (!user) return;
+
+  await excluirTransacaoInterna(supabase, user.id, id);
+
+  revalidatePath('/transacoes');
+  revalidatePath('/dashboard');
+  revalidatePath('/dividas');
+}
+
+export async function excluirTransacoes(ids: string[]): Promise<void> {
+  const { supabase, user } = await getUser();
+  if (!user || ids.length === 0) return;
+
+  for (const id of ids) {
+    await excluirTransacaoInterna(supabase, user.id, id);
   }
 
   revalidatePath('/transacoes');
