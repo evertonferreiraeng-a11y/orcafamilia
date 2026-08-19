@@ -14,7 +14,7 @@ export interface CategoriaAcima {
 
 export interface DividaVencendo {
   descricao: string;
-  valorRestante: number;
+  valorParcela: number;
   diasRestantes: number;
 }
 
@@ -69,10 +69,10 @@ export function gerarInsights(dados: DadosGerente): Insight[] {
       const d = dados.dividasVencendo[0];
       insights.push({
         severidade: 'alerta',
-        mensagem: `A dívida "${d.descricao}" (${formatCurrency(d.valorRestante)}) vence em ${d.diasRestantes} dia(s).`,
+        mensagem: `A dívida "${d.descricao}" (${formatCurrency(d.valorParcela)}) vence em ${d.diasRestantes} dia(s).`,
       });
     } else {
-      const total = dados.dividasVencendo.reduce((a, d) => a + d.valorRestante, 0);
+      const total = dados.dividasVencendo.reduce((a, d) => a + d.valorParcela, 0);
       insights.push({
         severidade: 'alerta',
         mensagem: `Você tem ${dados.dividasVencendo.length} dívidas vencendo nos próximos dias, somando ${formatCurrency(total)}.`,

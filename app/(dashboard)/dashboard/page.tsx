@@ -102,7 +102,7 @@ export default async function DashboardPage({
       .lte('data', `${anoAtual}-12-31`),
     supabase
       .from('dividas')
-      .select('descricao, valor_total, valor_pago, data_vencimento')
+      .select('descricao, valor_total, valor_pago, parcelas_total, data_vencimento')
       .eq('user_id', user.id)
       .eq('status', 'ativa')
       .gte('data_vencimento', hojeStr)
@@ -212,11 +212,15 @@ export default async function DashboardPage({
     )
     .map((t) => ({ descricao: t.descricao, valorParcela: Number(t.valor) }));
 
-  const dividasVencendo = (dividasProximas ?? []).map((d) => ({
-    descricao: d.descricao,
-    valorRestante: Number(d.valor_total) - Number(d.valor_pago),
-    diasRestantes: differenceInCalendarDays(new Date(`${d.data_vencimento}T00:00:00`), new Date(`${hojeStr}T00:00:00`)),
-  }));
+  const dividasVencendo = (dividasProximas ?? []).map((d) => {
+    const restante = Number(d.valor_total) - Number(d.valor_pago);
+    const valorParcela = d.parcelas_total ? Number(d.valor_total) / d.parcelas_total : restante;
+    return {
+      descricao: d.descricao,
+      valorParcela: Math.min(valorParcela, restante),
+      diasRestantes: differenceInCalendarDays(new Date(`${d.data_vencimento}T00:00:00`), new Date(`${hojeStr}T00:00:00`)),
+    };
+  });
 
   const dadosGerente: DadosGerente = {
     saldoTotalContas,
