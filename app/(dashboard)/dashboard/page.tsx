@@ -292,7 +292,7 @@ export default async function DashboardPage({
               }
               footer={
                 <span className="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-600">
-                  Saldo acumulado: <ValorMonetario valor={saldoTotalContas} />
+                  Saldo acumulado (todas as contas): <ValorMonetario valor={saldoTotalContas} />
                 </span>
               }
             />
