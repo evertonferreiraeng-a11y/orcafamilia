@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { ValorMonetario } from '@/components/ui/ValorMonetario';
 import { IconOrcamentos } from '@/components/icons';
@@ -17,6 +18,29 @@ export interface CategoriaGasto {
 const CINZA_OUTROS = '#cbd5e1';
 const MAX_CATEGORIAS_ANEL = 7;
 const TOLERANCIA = 0.01;
+const RAIO_EXTERNO = 100;
+const RAIO_INTERNO = 60;
+const CENTRO = 100;
+
+function pontoNoCirculo(raio: number, anguloGraus: number) {
+  const rad = ((anguloGraus - 90) * Math.PI) / 180;
+  return { x: CENTRO + raio * Math.cos(rad), y: CENTRO + raio * Math.sin(rad) };
+}
+
+function fatiaDonutPath(anguloInicio: number, anguloFim: number) {
+  const largeArc = anguloFim - anguloInicio > 180 ? 1 : 0;
+  const inicioExterno = pontoNoCirculo(RAIO_EXTERNO, anguloInicio);
+  const fimExterno = pontoNoCirculo(RAIO_EXTERNO, anguloFim);
+  const fimInterno = pontoNoCirculo(RAIO_INTERNO, anguloFim);
+  const inicioInterno = pontoNoCirculo(RAIO_INTERNO, anguloInicio);
+  return [
+    `M ${inicioExterno.x} ${inicioExterno.y}`,
+    `A ${RAIO_EXTERNO} ${RAIO_EXTERNO} 0 ${largeArc} 1 ${fimExterno.x} ${fimExterno.y}`,
+    `L ${fimInterno.x} ${fimInterno.y}`,
+    `A ${RAIO_INTERNO} ${RAIO_INTERNO} 0 ${largeArc} 0 ${inicioInterno.x} ${inicioInterno.y}`,
+    'Z',
+  ].join(' ');
+}
 
 export function GastosPorCategoriaCard({
   categorias,
@@ -31,6 +55,10 @@ export function GastosPorCategoriaCard({
   variavelValor: number;
   className?: string;
 }) {
+  const [segmentoAtivo, setSegmentoAtivo] = useState<{ nome: string; valor: number; percentual: number } | null>(
+    null
+  );
+
   const ordenadas = [...categorias].sort((a, b) => b.gasto - a.gasto).filter((c) => c.gasto > 0);
 
   const principais = ordenadas.slice(0, MAX_CATEGORIAS_ANEL);
@@ -38,21 +66,19 @@ export function GastosPorCategoriaCard({
   const gastoRestante = restante.reduce((a, c) => a + c.gasto, 0);
 
   const segmentos = [
-    ...principais.map((c) => ({ cor: c.cor ?? CINZA_OUTROS, valor: c.gasto })),
-    ...(gastoRestante > 0 ? [{ cor: CINZA_OUTROS, valor: gastoRestante }] : []),
+    ...principais.map((c) => ({ id: c.id, nome: c.nome, cor: c.cor ?? CINZA_OUTROS, valor: c.gasto })),
+    ...(gastoRestante > 0 ? [{ id: '__outros__', nome: 'Outros', cor: CINZA_OUTROS, valor: gastoRestante }] : []),
   ];
 
   const totalAnel = segmentos.reduce((a, s) => a + s.valor, 0);
 
   let acumulado = 0;
-  const gradiente = segmentos
-    .map((s) => {
-      const inicio = totalAnel > 0 ? (acumulado / totalAnel) * 360 : 0;
-      acumulado += s.valor;
-      const fim = totalAnel > 0 ? (acumulado / totalAnel) * 360 : 0;
-      return `${s.cor} ${inicio}deg ${fim}deg`;
-    })
-    .join(', ');
+  const arcos = segmentos.map((s) => {
+    const anguloInicio = totalAnel > 0 ? (acumulado / totalAnel) * 360 : 0;
+    acumulado += s.valor;
+    const anguloFim = totalAnel > 0 ? (acumulado / totalAnel) * 360 : 0;
+    return { ...s, anguloInicio, anguloFim, percentual: totalAnel > 0 ? (s.valor / totalAnel) * 100 : 0 };
+  });
 
   const totalFixoVariavel = fixoValor + variavelValor;
   const percentualFixo = totalFixoVariavel > 0 ? (fixoValor / totalFixoVariavel) * 100 : 0;
@@ -74,19 +100,42 @@ export function GastosPorCategoriaCard({
 
       {totalAnel > 0 ? (
         <div className="mt-4 flex flex-col items-center gap-6 sm:flex-row sm:items-center">
-          <div
-            className="relative h-64 w-64 shrink-0 rounded-full"
-            style={{ background: `conic-gradient(${gradiente})` }}
-          >
-            <div className="absolute inset-[20%] flex flex-col items-center justify-center rounded-full bg-white text-center">
-              <p className="text-xs text-gray-400">Variáveis ({formatPercent0(percentualVariavel)})</p>
-              <p className="text-lg font-bold text-gray-900">
-                <ValorMonetario valor={variavelValor} />
-              </p>
-              <p className="mt-1.5 text-xs text-gray-400">Fixas ({formatPercent0(percentualFixo)})</p>
-              <p className="text-lg font-bold text-gray-900">
-                <ValorMonetario valor={fixoValor} />
-              </p>
+          <div className="relative h-64 w-64 shrink-0">
+            <svg viewBox="0 0 200 200" className="h-full w-full">
+              {arcos.map((s) => (
+                <path
+                  key={s.id}
+                  d={fatiaDonutPath(s.anguloInicio, s.anguloFim)}
+                  fill={s.cor}
+                  stroke="white"
+                  strokeWidth={2}
+                  className="cursor-pointer transition-opacity hover:opacity-80"
+                  onMouseEnter={() => setSegmentoAtivo({ nome: s.nome, valor: s.valor, percentual: s.percentual })}
+                  onMouseLeave={() => setSegmentoAtivo(null)}
+                />
+              ))}
+            </svg>
+            <div className="pointer-events-none absolute inset-[20%] flex flex-col items-center justify-center rounded-full bg-white text-center">
+              {segmentoAtivo ? (
+                <>
+                  <p className="max-w-[85%] truncate text-xs font-medium text-gray-500">{segmentoAtivo.nome}</p>
+                  <p className="text-lg font-bold text-gray-900">
+                    <ValorMonetario valor={segmentoAtivo.valor} />
+                  </p>
+                  <p className="mt-1 text-xs text-gray-400">{formatPercent0(segmentoAtivo.percentual)} do total</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs text-gray-400">Variáveis ({formatPercent0(percentualVariavel)})</p>
+                  <p className="text-lg font-bold text-gray-900">
+                    <ValorMonetario valor={variavelValor} />
+                  </p>
+                  <p className="mt-1.5 text-xs text-gray-400">Fixas ({formatPercent0(percentualFixo)})</p>
+                  <p className="text-lg font-bold text-gray-900">
+                    <ValorMonetario valor={fixoValor} />
+                  </p>
+                </>
+              )}
             </div>
           </div>
 
