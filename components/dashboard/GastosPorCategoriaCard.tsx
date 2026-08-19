@@ -73,18 +73,18 @@ export function GastosPorCategoriaCard({
       </div>
 
       {totalAnel > 0 ? (
-        <div className="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:items-center">
+        <div className="mt-4 flex flex-col items-center gap-6 sm:flex-row sm:items-center">
           <div
-            className="relative h-40 w-40 shrink-0 rounded-full"
+            className="relative h-64 w-64 shrink-0 rounded-full"
             style={{ background: `conic-gradient(${gradiente})` }}
           >
-            <div className="absolute inset-[18%] flex flex-col items-center justify-center rounded-full bg-white text-center">
-              <p className="text-[11px] text-gray-400">Variáveis ({formatPercent0(percentualVariavel)})</p>
-              <p className="text-sm font-bold text-gray-900">
+            <div className="absolute inset-[20%] flex flex-col items-center justify-center rounded-full bg-white text-center">
+              <p className="text-xs text-gray-400">Variáveis ({formatPercent0(percentualVariavel)})</p>
+              <p className="text-lg font-bold text-gray-900">
                 <ValorMonetario valor={variavelValor} />
               </p>
-              <p className="mt-1 text-[11px] text-gray-400">Fixas ({formatPercent0(percentualFixo)})</p>
-              <p className="text-sm font-bold text-gray-900">
+              <p className="mt-1.5 text-xs text-gray-400">Fixas ({formatPercent0(percentualFixo)})</p>
+              <p className="text-lg font-bold text-gray-900">
                 <ValorMonetario valor={fixoValor} />
               </p>
             </div>
