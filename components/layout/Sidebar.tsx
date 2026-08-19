@@ -24,7 +24,7 @@ const NAV_GROUPS = [
       { href: '/dashboard', label: 'Dashboard', icon: IconDashboard },
       { href: '/transacoes', label: 'Transações', icon: IconTransacoes },
       { href: '/orcamentos', label: 'Orçamentos', icon: IconOrcamentos },
-      { href: '/indicadores', label: 'Indicadores', icon: IconChart },
+      { href: '/indicadores', label: 'Patrimônio Líquido', icon: IconChart },
     ],
   },
   {

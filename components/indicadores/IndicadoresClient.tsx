@@ -35,8 +35,8 @@ export function IndicadoresClient({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Indicadores</h1>
-          <p className="mt-1 text-sm text-gray-500">Relatórios e evolução financeira do ano</p>
+          <h1 className="text-2xl font-bold text-gray-900">Patrimônio Líquido</h1>
+          <p className="mt-1 text-sm text-gray-500">Evolução do seu patrimônio líquido ao longo do ano</p>
         </div>
         <select value={ano} onChange={(e) => mudarAno(Number(e.target.value))} className="input-field w-auto">
           {anosDisponiveis
