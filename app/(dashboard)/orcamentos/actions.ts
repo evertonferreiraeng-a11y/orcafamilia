@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createServerSupabase } from '@/lib/supabase-server';
 import { addMeses, primeiroDiaMes } from '@/lib/utils';
+import { valorOrcamentoSugerido } from '@/lib/orcamentoSugestao';
 
 type SupabaseClient = ReturnType<typeof createServerSupabase>;
 
@@ -99,4 +100,87 @@ export async function salvarOrcamento(
   revalidatePath('/dashboard');
   revalidatePath('/indicadores');
   return {};
+}
+
+export interface SugestaoOrcamentoResultado {
+  error?: string;
+  preenchidos?: number;
+  rendaBase?: number;
+}
+
+const MESES_JANELA_RENDA = 3;
+
+/**
+ * Preenche automaticamente as categorias de despesa que ainda não têm
+ * orçamento definido em nenhum mês do ano informado, usando como base a
+ * média das receitas pagas nos últimos 3 meses. Nunca sobrescreve valores
+ * já definidos pelo usuário — só preenche o que está vazio.
+ */
+export async function sugerirOrcamentosVazios(ano: number): Promise<SugestaoOrcamentoResultado> {
+  const supabase = createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Sessão expirada.' };
+
+  const hoje = new Date();
+  const inicioJanela = primeiroDiaMes(addMeses(hoje, -(MESES_JANELA_RENDA - 1)));
+  const fimJanela = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+
+  const { data: receitas } = await supabase
+    .from('transacoes')
+    .select('valor')
+    .eq('user_id', user.id)
+    .eq('tipo', 'receita')
+    .eq('pago', true)
+    .eq('eh_transferencia', false)
+    .gte('data', inicioJanela)
+    .lte('data', fimJanela);
+
+  const rendaBase = (receitas ?? []).reduce((a, t) => a + Number(t.valor), 0) / MESES_JANELA_RENDA;
+
+  if (rendaBase <= 0) {
+    return { error: 'Não encontrei receitas pagas nos últimos meses para calcular uma sugestão. Cadastre suas receitas primeiro.' };
+  }
+
+  const [{ data: categoriasDespesa }, { data: subcategoriasTodas }, { data: orcamentosAno }] = await Promise.all([
+    supabase.from('categorias').select('id, nome').eq('user_id', user.id).eq('tipo', 'despesa'),
+    supabase.from('subcategorias').select('categoria_id').eq('user_id', user.id),
+    supabase
+      .from('orcamentos')
+      .select('categoria_id, mes_referencia')
+      .eq('user_id', user.id)
+      .is('subcategoria_id', null)
+      .gte('mes_referencia', `${ano}-01-01`)
+      .lte('mes_referencia', `${ano}-12-01`),
+  ]);
+
+  const categoriasComSubcategoria = new Set((subcategoriasTodas ?? []).map((s) => s.categoria_id));
+  const jaDefinidos = new Set((orcamentosAno ?? []).map((o) => `${o.categoria_id}:${o.mes_referencia}`));
+
+  const linhas = (categoriasDespesa ?? [])
+    .filter((categoria) => !categoriasComSubcategoria.has(categoria.id))
+    .flatMap((categoria) => {
+      const valorSugerido = valorOrcamentoSugerido(categoria.nome, rendaBase);
+      return Array.from({ length: 12 }, (_, i) => i + 1)
+        .map((mes) => `${ano}-${String(mes).padStart(2, '0')}-01`)
+        .filter((mesReferencia) => !jaDefinidos.has(`${categoria.id}:${mesReferencia}`))
+        .map((mesReferencia) => ({
+          user_id: user.id,
+          categoria_id: categoria.id,
+          subcategoria_id: null,
+          mes_referencia: mesReferencia,
+          valor_limite: valorSugerido,
+        }));
+    });
+
+  if (linhas.length > 0) {
+    const { error } = await supabase.from('orcamentos').insert(linhas);
+    if (error) return { error: error.message };
+  }
+
+  revalidatePath('/orcamentos');
+  revalidatePath('/dashboard');
+  revalidatePath('/indicadores');
+  return { preenchidos: linhas.length, rendaBase };
 }

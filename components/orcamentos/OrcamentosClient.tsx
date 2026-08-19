@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { salvarOrcamento } from '@/app/(dashboard)/orcamentos/actions';
+import { salvarOrcamento, sugerirOrcamentosVazios } from '@/app/(dashboard)/orcamentos/actions';
 import { Modal } from '@/components/ui/Modal';
 import { IconChevronDown, IconChevronRight, IconCheck } from '@/components/icons';
 import { cn, formatCurrency } from '@/lib/utils';
@@ -321,6 +321,35 @@ export function OrcamentosClient({
   const [dadosReceita, setDadosReceita] = useState(categoriasReceita);
   const [dadosDespesa, setDadosDespesa] = useState(categoriasDespesa);
 
+  const [sugerindo, startSugestao] = useTransition();
+  const [mensagemSugestao, setMensagemSugestao] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);
+
+  function aplicarSugestoes() {
+    if (
+      !window.confirm(
+        `Preencher com valores sugeridos as categorias de despesa que ainda não têm orçamento definido em ${ano}? Categorias já preenchidas não serão alteradas.`
+      )
+    )
+      return;
+    setMensagemSugestao(null);
+    startSugestao(async () => {
+      const resultado = await sugerirOrcamentosVazios(ano);
+      if (resultado.error) {
+        setMensagemSugestao({ tipo: 'erro', texto: resultado.error });
+        return;
+      }
+      if (!resultado.preenchidos) {
+        setMensagemSugestao({ tipo: 'sucesso', texto: 'Todas as categorias já tinham orçamento definido — nada para preencher.' });
+        return;
+      }
+      setMensagemSugestao({
+        tipo: 'sucesso',
+        texto: `${resultado.preenchidos} célula(s) preenchida(s) com base numa renda média de ${formatCurrency(resultado.rendaBase ?? 0)}/mês. Recarregando...`,
+      });
+      window.location.reload();
+    });
+  }
+
   function mudarAno(novoAno: number) {
     const params = new URLSearchParams(searchParams.toString());
     params.set('ano', String(novoAno));
@@ -408,16 +437,27 @@ export function OrcamentosClient({
           <h1 className="text-2xl font-bold text-gray-900">Orçamentos</h1>
           <p className="mt-1 text-sm text-gray-500">Base anual de receitas e gastos, mês a mês</p>
         </div>
-        <select value={ano} onChange={(e) => mudarAno(Number(e.target.value))} className="input-field w-auto">
-          {anosDisponiveis
-            .sort((a, b) => b - a)
-            .map((a) => (
-              <option key={a} value={a}>
-                {a}
-              </option>
-            ))}
-        </select>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={aplicarSugestoes} disabled={sugerindo} className="btn-secondary">
+            {sugerindo ? 'Calculando sugestões...' : 'Sugerir orçamentos vazios'}
+          </button>
+          <select value={ano} onChange={(e) => mudarAno(Number(e.target.value))} className="input-field w-auto">
+            {anosDisponiveis
+              .sort((a, b) => b - a)
+              .map((a) => (
+                <option key={a} value={a}>
+                  {a}
+                </option>
+              ))}
+          </select>
+        </div>
       </div>
+
+      {mensagemSugestao && (
+        <p className={cn('text-sm', mensagemSugestao.tipo === 'erro' ? 'text-negative' : 'text-positive')}>
+          {mensagemSugestao.texto}
+        </p>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="card p-4">

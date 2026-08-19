@@ -33,10 +33,13 @@ export interface DadosGerente {
   categoriasAcima: CategoriaAcima[];
   dividasVencendo: DividaVencendo[];
   parcelamentosTerminandoMes: ParcelamentoTerminando[];
+  dividasAtivasTotal: number;
 }
 
 const LIMITE_INSIGHTS = 4;
 const LIMITE_COMPROMETIMENTO_PARCELAS = 0.3;
+const META_TAXA_POUPANCA = 0.2;
+const MESES_RESERVA_IDEAL = 3;
 
 function listarNomes(nomes: string[], max = 3): string {
   if (nomes.length <= max) return nomes.join(', ');
@@ -109,6 +112,39 @@ export function gerarInsights(dados: DadosGerente): Insight[] {
       severidade: 'dica',
       mensagem: `${nomes} termina${dados.parcelamentosTerminandoMes.length === 1 ? '' : 'm'} este mês, liberando ${formatCurrency(alivio)} no seu orçamento a partir do mês que vem.`,
     });
+  }
+
+  if (dados.saldoTotalContas > 0 && dados.despesaMes > 0) {
+    const mesesReserva = dados.saldoTotalContas / dados.despesaMes;
+    if (mesesReserva < MESES_RESERVA_IDEAL) {
+      insights.push({
+        severidade: 'dica',
+        mensagem: `Sua reserva cobre ${mesesReserva.toFixed(1)} mês(es) de despesas. Para construir patrimônio com segurança, tente guardar de ${MESES_RESERVA_IDEAL} a 6 meses de despesas antes de investir em outros objetivos.`,
+      });
+    }
+  }
+
+  if (dados.dividasAtivasTotal > 0) {
+    insights.push({
+      severidade: 'dica',
+      mensagem: `Você tem ${formatCurrency(dados.dividasAtivasTotal)} em dívidas ativas. Quitá-las costuma valer mais a pena do que investir agora, já que os juros de dívida geralmente superam o retorno de qualquer investimento.`,
+    });
+  }
+
+  if (dados.receitaMes > 0) {
+    const taxaPoupanca = (dados.receitaMes - dados.despesaMes) / dados.receitaMes;
+    const percentual = Math.round(taxaPoupanca * 100);
+    if (taxaPoupanca >= META_TAXA_POUPANCA) {
+      insights.push({
+        severidade: 'elogio',
+        mensagem: `Você guardou ${percentual}% da sua renda este mês — ótimo ritmo para fazer seu patrimônio crescer. Continue assim!`,
+      });
+    } else if (taxaPoupanca >= 0) {
+      insights.push({
+        severidade: 'dica',
+        mensagem: `Você guardou ${percentual}% da sua renda este mês. Tente chegar a ${Math.round(META_TAXA_POUPANCA * 100)}% para acelerar a construção do seu patrimônio.`,
+      });
+    }
   }
 
   if (insights.length === 0) {

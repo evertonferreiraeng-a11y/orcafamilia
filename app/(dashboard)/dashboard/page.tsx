@@ -55,6 +55,7 @@ export default async function DashboardPage({
     { data: subcategoriasTodas },
     { data: transacoesMultiAno },
     { data: dividasProximas },
+    { data: dividasAtivasTodas },
   ] = await Promise.all([
     supabase.from('contas').select('*').eq('user_id', user.id).eq('ativa', true).order('nome'),
     supabase
@@ -107,6 +108,7 @@ export default async function DashboardPage({
       .eq('status', 'ativa')
       .gte('data_vencimento', hojeStr)
       .lte('data_vencimento', em7DiasStr),
+    supabase.from('dividas').select('valor_total, valor_pago').eq('user_id', user.id).eq('status', 'ativa'),
   ]);
 
   const subcategoriaIdsPorCategoria = indexarSubcategoriasPorCategoria(subcategoriasTodas ?? []);
@@ -222,6 +224,11 @@ export default async function DashboardPage({
     };
   });
 
+  const dividasAtivasTotal = (dividasAtivasTodas ?? []).reduce(
+    (a, d) => a + Math.max(0, Number(d.valor_total) - Number(d.valor_pago)),
+    0
+  );
+
   const dadosGerente: DadosGerente = {
     saldoTotalContas,
     receitaMes,
@@ -232,6 +239,7 @@ export default async function DashboardPage({
     categoriasAcima: categoriasAcimaDetalhe,
     dividasVencendo,
     parcelamentosTerminandoMes,
+    dividasAtivasTotal,
   };
   const insights = gerarInsights(dadosGerente);
 
