@@ -88,6 +88,7 @@ export type Transacao = {
   parcela_atual: number | null;
   parcela_total: number | null;
   pagamento_divida_id: string | null;
+  divida_id: string | null;
   recorrente: boolean;
   frequencia: Frequencia | null;
   tipo_despesa: TipoDespesa | null;
@@ -282,6 +283,13 @@ export interface Database {
             columns: ['pagamento_divida_id'];
             isOneToOne: false;
             referencedRelation: 'pagamentos_dividas';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'transacoes_divida_id_fkey';
+            columns: ['divida_id'];
+            isOneToOne: false;
+            referencedRelation: 'dividas';
             referencedColumns: ['id'];
           },
         ]

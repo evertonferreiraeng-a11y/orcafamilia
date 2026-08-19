@@ -196,6 +196,7 @@ export async function atualizarTransacao(
   const dataRegistro = String(formData.get('data_registro') || '');
   const dataVencimento = String(formData.get('data_vencimento') || '');
   const dataBase = data || dataVencimento || dataRegistro;
+  const escopo = String(formData.get('escopo') || 'somente');
 
   if (!descricao || !valor || !categoriaId || !dataRegistro || !dataVencimento) {
     return { error: 'Preencha descrição, valor, categoria, data de registro e data de vencimento.' };
@@ -203,6 +204,13 @@ export async function atualizarTransacao(
   if (!contaId && !cartaoId) {
     return { error: 'Selecione uma conta ou cartão.' };
   }
+
+  const { data: linhaAtual } = await supabase
+    .from('transacoes')
+    .select('grupo_parcelamento, parcela_atual, descricao, tipo, data, data_vencimento')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .maybeSingle();
 
   const { error } = await supabase
     .from('transacoes')
@@ -224,6 +232,40 @@ export async function atualizarTransacao(
     .eq('user_id', user.id);
   if (error) return { error: error.message };
 
+  if (escopo === 'futuras' && linhaAtual) {
+    // Propaga apenas os campos "estáveis" (não as datas, que são específicas de cada parcela)
+    // para as próximas parcelas ainda não pagas — pelo grupo_parcelamento quando existe,
+    // ou por descrição+tipo+data quando as parcelas foram lançadas sem esse vínculo.
+    let query = supabase
+      .from('transacoes')
+      .update({
+        descricao,
+        valor,
+        categoria_id: categoriaId,
+        subcategoria_id: subcategoriaId,
+        conta_id: contaId,
+        cartao_id: cartaoId,
+        tipo_despesa: tipoDespesa,
+      })
+      .eq('user_id', user.id)
+      .eq('pago', false)
+      .neq('id', id);
+
+    if (linhaAtual.grupo_parcelamento && linhaAtual.parcela_atual != null) {
+      query = query.eq('grupo_parcelamento', linhaAtual.grupo_parcelamento).gt('parcela_atual', linhaAtual.parcela_atual);
+    } else {
+      const dataRefAtual = linhaAtual.data_vencimento ?? linhaAtual.data;
+      query = query
+        .eq('descricao', linhaAtual.descricao)
+        .eq('tipo', linhaAtual.tipo)
+        .is('grupo_parcelamento', null)
+        .or(`data_vencimento.gt.${dataRefAtual},and(data_vencimento.is.null,data.gt.${dataRefAtual})`);
+    }
+
+    const { error: erroFuturas } = await query;
+    if (erroFuturas) return { error: erroFuturas.message };
+  }
+
   revalidatePath('/transacoes');
   revalidatePath('/dashboard');
   return {};
@@ -241,6 +283,39 @@ export async function definirDataPagamento(id: string, data: string): Promise<vo
   const { supabase, user } = await getUser();
   if (!user) return;
   await supabase.from('transacoes').update({ data, pago: true }).eq('id', id).eq('user_id', user.id);
+  revalidatePath('/transacoes');
+  revalidatePath('/dashboard');
+}
+
+export interface PagarFaturaState {
+  error?: string;
+}
+
+export async function pagarFatura(ids: string[], contaId: string, dataPagamento: string): Promise<PagarFaturaState> {
+  const { supabase, user } = await getUser();
+  if (!user) return { error: 'Sessão expirada.' };
+  if (ids.length === 0) return {};
+  if (!contaId) return { error: 'Selecione a conta usada no pagamento.' };
+  if (!dataPagamento) return { error: 'Informe a data do pagamento.' };
+
+  // Vincula cada compra do cartão à conta usada no pagamento (para contar no saldo)
+  // e marca como paga, mantendo cartao_id/categoria de cada item para os relatórios.
+  const { error } = await supabase
+    .from('transacoes')
+    .update({ pago: true, conta_id: contaId, data: dataPagamento })
+    .eq('user_id', user.id)
+    .in('id', ids);
+  if (error) return { error: error.message };
+
+  revalidatePath('/transacoes');
+  revalidatePath('/dashboard');
+  return {};
+}
+
+export async function desfazerPagamentoFatura(ids: string[]): Promise<void> {
+  const { supabase, user } = await getUser();
+  if (!user || ids.length === 0) return;
+  await supabase.from('transacoes').update({ pago: false, conta_id: null }).eq('user_id', user.id).in('id', ids);
   revalidatePath('/transacoes');
   revalidatePath('/dashboard');
 }

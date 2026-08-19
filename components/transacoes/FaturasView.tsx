@@ -1,21 +1,32 @@
 'use client';
 
 import { useState } from 'react';
-import { alternarPagoTransacao } from '@/app/(dashboard)/transacoes/actions';
+import { pagarFatura, desfazerPagamentoFatura } from '@/app/(dashboard)/transacoes/actions';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Modal } from '@/components/ui/Modal';
 import { IconCartao, IconCheck } from '@/components/icons';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
-import type { Cartao } from '@/types/database';
+import type { Cartao, Conta } from '@/types/database';
 import type { TransacaoComRelacoes } from '@/components/transacoes/TransacoesClient';
+
+function hoje(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export function FaturasView({
   transacoes,
   cartoes,
+  contas,
 }: {
   transacoes: TransacaoComRelacoes[];
   cartoes: Cartao[];
+  contas: Conta[];
 }) {
   const [processando, setProcessando] = useState<string | null>(null);
+  const [faturaAbrindo, setFaturaAbrindo] = useState<{ cartaoId: string; itens: TransacaoComRelacoes[] } | null>(null);
+  const [contaSelecionada, setContaSelecionada] = useState('');
+  const [dataPagamento, setDataPagamento] = useState(hoje());
+  const [erro, setErro] = useState('');
 
   const faturas = cartoes
     .map((cartao) => {
@@ -26,9 +37,33 @@ export function FaturasView({
     })
     .filter((f) => f.itens.length > 0);
 
-  async function marcarFaturaPaga(cartaoId: string, itens: TransacaoComRelacoes[], pago: boolean) {
+  function abrirPagamento(cartao: Cartao, itens: TransacaoComRelacoes[]) {
+    setErro('');
+    setContaSelecionada(cartao.conta_pagamento_id ?? '');
+    setDataPagamento(hoje());
+    setFaturaAbrindo({ cartaoId: cartao.id, itens });
+  }
+
+  async function confirmarPagamento() {
+    if (!faturaAbrindo) return;
+    setProcessando(faturaAbrindo.cartaoId);
+    const resultado = await pagarFatura(
+      faturaAbrindo.itens.map((t) => t.id),
+      contaSelecionada,
+      dataPagamento
+    );
+    setProcessando(null);
+    if (resultado.error) {
+      setErro(resultado.error);
+      return;
+    }
+    setFaturaAbrindo(null);
+  }
+
+  async function desfazer(cartaoId: string, itens: TransacaoComRelacoes[]) {
+    if (!window.confirm('Desfazer o pagamento desta fatura? Os lançamentos voltarão a ficar pendentes.')) return;
     setProcessando(cartaoId);
-    await Promise.all(itens.map((t) => alternarPagoTransacao(t.id, pago)));
+    await desfazerPagamentoFatura(itens.map((t) => t.id));
     setProcessando(null);
   }
 
@@ -60,14 +95,14 @@ export function FaturasView({
               <button
                 type="button"
                 disabled={processando === cartao.id}
-                onClick={() => marcarFaturaPaga(cartao.id, itens, !pago)}
+                onClick={() => (pago ? desfazer(cartao.id, itens) : abrirPagamento(cartao, itens))}
                 className={cn(
                   'mt-1 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium disabled:opacity-50',
                   pago ? 'bg-positive/10 text-positive' : 'bg-amber-100 text-amber-700'
                 )}
               >
                 <IconCheck className="h-3 w-3" />
-                {pago ? 'Fatura paga' : 'Marcar fatura como paga'}
+                {pago ? 'Fatura paga' : 'Pagar fatura'}
               </button>
             </div>
           </div>
@@ -88,6 +123,52 @@ export function FaturasView({
           </div>
         </div>
       ))}
+
+      <Modal open={faturaAbrindo !== null} onClose={() => setFaturaAbrindo(null)} title="Pagar fatura">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Total da fatura: <span className="font-semibold text-gray-900">{formatCurrency(faturaAbrindo?.itens.reduce((a, t) => a + t.valor, 0) ?? 0)}</span>
+          </p>
+          <div>
+            <label className="label-field" htmlFor="conta_pagamento_fatura">Conta usada no pagamento</label>
+            <select
+              id="conta_pagamento_fatura"
+              value={contaSelecionada}
+              onChange={(e) => setContaSelecionada(e.target.value)}
+              className="input-field"
+            >
+              <option value="">Selecione a conta</option>
+              {contas.map((c) => (
+                <option key={c.id} value={c.id}>{c.nome}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label-field" htmlFor="data_pagamento_fatura">Data do pagamento</label>
+            <input
+              id="data_pagamento_fatura"
+              type="date"
+              value={dataPagamento}
+              onChange={(e) => setDataPagamento(e.target.value)}
+              className="input-field"
+            />
+          </div>
+          {erro && <p className="text-sm text-negative">{erro}</p>}
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={() => setFaturaAbrindo(null)} className="btn-secondary">
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={confirmarPagamento}
+              disabled={processando === faturaAbrindo?.cartaoId}
+              className="btn-primary"
+            >
+              {processando === faturaAbrindo?.cartaoId ? 'Salvando...' : 'Confirmar pagamento'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

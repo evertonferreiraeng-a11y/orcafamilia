@@ -29,6 +29,7 @@ export function TransacaoForm({
   contas,
   cartoes,
   transacao,
+  temProximasParcelas,
   onSucesso,
 }: {
   action: (state: TransacaoFormState, formData: FormData) => Promise<TransacaoFormState>;
@@ -37,6 +38,7 @@ export function TransacaoForm({
   contas: Conta[];
   cartoes: Cartao[];
   transacao?: Transacao;
+  temProximasParcelas?: boolean;
   onSucesso: () => void;
 }) {
   const [state, formAction] = useFormState(async (state: TransacaoFormState, formData: FormData) => {
@@ -50,6 +52,9 @@ export function TransacaoForm({
   const [categoriaId, setCategoriaId] = useState(transacao?.categoria_id ?? '');
   const [pago, setPago] = useState(transacao?.pago ?? false);
   const [tipoDespesa, setTipoDespesa] = useState<TipoDespesa>(transacao?.tipo_despesa ?? 'variavel');
+  const [escopo, setEscopo] = useState<'somente' | 'futuras'>('somente');
+
+  const ehParteDeParcelamento = Boolean(temProximasParcelas);
 
   const tipoLancamento: 'despesa' | 'receita' = aba === 'transferencia' ? 'despesa' : aba;
   const categoriasFiltradas = categorias.filter((c) => c.tipo === tipoLancamento);
@@ -163,7 +168,7 @@ export function TransacaoForm({
               id="data"
               name="data"
               type="date"
-              defaultValue={transacao?.data ?? ''}
+              defaultValue={transacao?.pago ? transacao?.data ?? '' : ''}
               onChange={(e) => setPago(e.target.value !== '')}
               className="input-field"
               placeholder="Preencher ao pagar"
@@ -365,6 +370,42 @@ export function TransacaoForm({
             defaultValue={tipoDespesa === 'parcelada' ? 2 : 12}
             className="input-field"
           />
+        </div>
+      )}
+
+      {ehParteDeParcelamento && (
+        <div>
+          <label className="label-field">Aplicar alteração em</label>
+          <input type="hidden" name="escopo" value={escopo} />
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setEscopo('somente')}
+              className={
+                escopo === 'somente'
+                  ? 'rounded-xl border-2 border-brand-500 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700'
+                  : 'rounded-xl border-2 border-transparent bg-gray-100 px-4 py-2 text-sm font-medium text-gray-600'
+              }
+            >
+              Somente esta
+            </button>
+            <button
+              type="button"
+              onClick={() => setEscopo('futuras')}
+              className={
+                escopo === 'futuras'
+                  ? 'rounded-xl border-2 border-brand-500 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700'
+                  : 'rounded-xl border-2 border-transparent bg-gray-100 px-4 py-2 text-sm font-medium text-gray-600'
+              }
+            >
+              Esta e as próximas
+            </button>
+          </div>
+          <p className="mt-1 text-xs text-gray-400">
+            {escopo === 'futuras'
+              ? 'Valor, categoria, conta/cartão e descrição serão atualizados nas próximas parcelas ainda não pagas.'
+              : 'Apenas esta parcela será alterada.'}
+          </p>
         </div>
       )}
 

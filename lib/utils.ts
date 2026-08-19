@@ -37,6 +37,10 @@ export function formatPercent(valor: number): string {
   return `${valor >= 0 ? '+' : ''}${valor.toFixed(1)}%`;
 }
 
+export function formatPercent0(valor: number): string {
+  return `${Math.round(valor)}%`;
+}
+
 export function parseMesParam(mesParam?: string): Date {
   if (mesParam && /^\d{4}-\d{2}$/.test(mesParam)) {
     const [ano, mes] = mesParam.split('-').map(Number);

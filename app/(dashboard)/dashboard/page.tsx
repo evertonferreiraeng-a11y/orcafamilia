@@ -16,6 +16,7 @@ import { MinhasContasCarousel } from '@/components/dashboard/MinhasContasCarouse
 import { PlanejadoGaugeCard } from '@/components/dashboard/PlanejadoGaugeCard';
 import { BalancoMensalChart, type PontoBalanco } from '@/components/dashboard/BalancoMensalChart';
 import { GerenteFinanceiroCard } from '@/components/dashboard/GerenteFinanceiroCard';
+import { GastosPorCategoriaCard, type CategoriaGasto } from '@/components/dashboard/GastosPorCategoriaCard';
 import { IconTrendUp, IconTrendDown, IconWallet } from '@/components/icons';
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -90,7 +91,7 @@ export default async function DashboardPage({
       .eq('eh_transferencia', false)
       .gte('data', inicio)
       .lte('data', fim),
-    supabase.from('categorias').select('id, nome, cor, tipo').eq('user_id', user.id),
+    supabase.from('categorias').select('id, nome, cor, icone, tipo').eq('user_id', user.id),
     supabase.from('subcategorias').select('id, categoria_id').eq('user_id', user.id),
     supabase
       .from('transacoes')
@@ -174,6 +175,29 @@ export default async function DashboardPage({
         percentual: o.valor_limite > 0 ? (gasto / o.valor_limite) * 100 : 0,
       };
     });
+
+  const categoriasGastoDetalhe: CategoriaGasto[] = orcamentosEfetivosMes
+    .map((o) => {
+      const cat = (categoriasTodas ?? []).find((c) => c.id === o.categoria_id);
+      return {
+        id: o.categoria_id,
+        nome: cat?.nome ?? 'Categoria',
+        cor: cat?.cor ?? null,
+        icone: cat?.icone ?? null,
+        gasto: gastoPorCategoria.get(o.categoria_id) ?? 0,
+        orcado: o.valor_limite,
+      };
+    })
+    .sort((a, b) => b.gasto - a.gasto);
+
+  const despesaFixaMesPaga = realizado
+    .filter((t) => t.tipo === 'despesa' && t.tipo_despesa === 'fixa')
+    .reduce((a, t) => a + Number(t.valor), 0);
+  const despesaParceladaMesPaga = realizado
+    .filter((t) => t.tipo === 'despesa' && t.tipo_despesa === 'parcelada')
+    .reduce((a, t) => a + Number(t.valor), 0);
+  const gastoFixoMes = despesaFixaMesPaga + despesaParceladaMesPaga;
+  const gastoVariavelMes = despesaMes - gastoFixoMes;
 
   const despesaFixaMes = periodo
     .filter((t) => t.tipo === 'despesa' && t.tipo_despesa === 'fixa')
@@ -344,6 +368,13 @@ export default async function DashboardPage({
           />
         </div>
       </div>
+
+      <GastosPorCategoriaCard
+        categorias={categoriasGastoDetalhe}
+        totalGasto={despesaMes}
+        fixoValor={gastoFixoMes}
+        variavelValor={gastoVariavelMes}
+      />
     </div>
   );
 }

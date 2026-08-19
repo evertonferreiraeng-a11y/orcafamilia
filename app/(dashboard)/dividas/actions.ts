@@ -43,8 +43,12 @@ export async function criarDivida(_prevState: DividaFormState, formData: FormDat
     return { error: 'Selecione a conta para gerar as parcelas em Transações.' };
   }
 
-  const { error } = await supabase.from('dividas').insert({ user_id: user.id, ...dados });
-  if (error) return { error: error.message };
+  const { data: dividaCriada, error } = await supabase
+    .from('dividas')
+    .insert({ user_id: user.id, ...dados })
+    .select('id')
+    .single();
+  if (error || !dividaCriada) return { error: error?.message ?? 'Não foi possível criar a dívida.' };
 
   if (gerarParcelas) {
     const parcelasTotal = dados.parcelas_total ?? 1;
@@ -71,6 +75,7 @@ export async function criarDivida(_prevState: DividaFormState, formData: FormDat
         grupo_parcelamento: grupoParcelamento,
         parcela_atual: parcelasTotal > 1 ? i + 1 : null,
         parcela_total: parcelasTotal > 1 ? parcelasTotal : null,
+        divida_id: dividaCriada.id,
       };
     });
 
@@ -185,19 +190,51 @@ export async function registrarPagamentoDivida(
 
   if (error) return { error: error.message };
 
-  const { error: erroTransacao } = await supabase.from('transacoes').insert({
-    user_id: user.id,
-    tipo: 'despesa',
-    descricao: `Pagamento: ${divida.descricao}`,
-    valor: valorPagamento,
-    data: dataPagamento,
-    categoria_id: divida.categoria_id,
-    subcategoria_id: divida.subcategoria_id,
-    conta_id: contaId,
-    pago: true,
-    pagamento_divida_id: pagamento.id,
-  });
-  if (erroTransacao) return { error: erroTransacao.message };
+  // Se já existe uma parcela pendente gerada para esta dívida com o mesmo valor,
+  // reaproveita essa transação (marcando como paga) em vez de criar uma nova —
+  // evita duplicar/"esconder" lançamentos quando a parcela original ainda existe em Transações.
+  const { data: parcelaPendente } = await supabase
+    .from('transacoes')
+    .select('id, valor')
+    .eq('user_id', user.id)
+    .eq('divida_id', id)
+    .eq('pago', false)
+    .order('data', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  const reaproveitarParcela = parcelaPendente && Math.abs(Number(parcelaPendente.valor) - valorPagamento) < 0.01;
+
+  if (reaproveitarParcela) {
+    const { error: erroAtualizacao } = await supabase
+      .from('transacoes')
+      .update({
+        pago: true,
+        data: dataPagamento,
+        conta_id: contaId,
+        pagamento_divida_id: pagamento.id,
+      })
+      .eq('id', parcelaPendente.id)
+      .eq('user_id', user.id);
+    if (erroAtualizacao) return { error: erroAtualizacao.message };
+  } else {
+    const { error: erroTransacao } = await supabase.from('transacoes').insert({
+      user_id: user.id,
+      tipo: 'despesa',
+      descricao: `Pagamento: ${divida.descricao}`,
+      valor: valorPagamento,
+      data: dataPagamento,
+      data_registro: dataPagamento,
+      data_vencimento: dataPagamento,
+      categoria_id: divida.categoria_id,
+      subcategoria_id: divida.subcategoria_id,
+      conta_id: contaId,
+      pago: true,
+      pagamento_divida_id: pagamento.id,
+      divida_id: id,
+    });
+    if (erroTransacao) return { error: erroTransacao.message };
+  }
 
   revalidatePath('/dividas');
   revalidatePath('/dashboard');

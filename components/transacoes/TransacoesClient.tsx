@@ -191,6 +191,19 @@ export function TransacoesClient({
     setModalForm(true);
   }
 
+  const temProximasParcelas = useMemo(() => {
+    if (!editando || editando.eh_transferencia) return false;
+    const dataRefAtual = editando.data_vencimento ?? editando.data;
+    return transacoes.some((t) => {
+      if (t.id === editando.id || t.pago) return false;
+      if (editando.grupo_parcelamento) {
+        return t.grupo_parcelamento === editando.grupo_parcelamento && (t.parcela_atual ?? 0) > (editando.parcela_atual ?? 0);
+      }
+      const dataRefOutra = t.data_vencimento ?? t.data;
+      return t.descricao === editando.descricao && t.tipo === editando.tipo && dataRefOutra > dataRefAtual;
+    });
+  }, [editando, transacoes]);
+
   function ordenarPor(chave: SortKey) {
     if (sortKey === chave) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -380,7 +393,7 @@ export function TransacoesClient({
       </div>
 
       {visao === 'faturas' ? (
-        <FaturasView transacoes={transacoes} cartoes={cartoes} />
+        <FaturasView transacoes={transacoes} cartoes={cartoes} contas={contas} />
       ) : transacoesFiltradas.length === 0 ? (
         <EmptyState mensagem="Nenhuma transação encontrada para os filtros selecionados." />
       ) : (
@@ -502,6 +515,7 @@ export function TransacoesClient({
           contas={contas}
           cartoes={cartoes}
           transacao={editando}
+          temProximasParcelas={temProximasParcelas}
           onSucesso={() => setModalForm(false)}
         />
       </Modal>
