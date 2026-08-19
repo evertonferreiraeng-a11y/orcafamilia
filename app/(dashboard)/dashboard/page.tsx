@@ -176,28 +176,22 @@ export default async function DashboardPage({
       };
     });
 
-  const categoriasGastoDetalhe: CategoriaGasto[] = orcamentosEfetivosMes
-    .map((o) => {
-      const cat = (categoriasTodas ?? []).find((c) => c.id === o.categoria_id);
-      return {
-        id: o.categoria_id,
-        nome: cat?.nome ?? 'Categoria',
-        cor: cat?.cor ?? null,
-        icone: cat?.icone ?? null,
-        gasto: gastoPorCategoria.get(o.categoria_id) ?? 0,
-        orcado: o.valor_limite,
-      };
-    })
+  const orcadoPorCategoria = new Map(orcamentosEfetivosMes.map((o) => [o.categoria_id, o.valor_limite]));
+
+  const categoriasGastoDetalhe: CategoriaGasto[] = (categoriasTodas ?? [])
+    .filter((c) => c.tipo === 'despesa')
+    .map((c) => ({
+      id: c.id,
+      nome: c.nome,
+      cor: c.cor,
+      icone: c.icone,
+      gasto: gastoPorCategoria.get(c.id) ?? 0,
+      orcado: orcadoPorCategoria.get(c.id) ?? 0,
+    }))
+    .filter((c) => c.gasto > 0)
     .sort((a, b) => b.gasto - a.gasto);
 
-  const despesaFixaMesPaga = realizado
-    .filter((t) => t.tipo === 'despesa' && t.tipo_despesa === 'fixa')
-    .reduce((a, t) => a + Number(t.valor), 0);
-  const despesaParceladaMesPaga = realizado
-    .filter((t) => t.tipo === 'despesa' && t.tipo_despesa === 'parcelada')
-    .reduce((a, t) => a + Number(t.valor), 0);
-  const gastoFixoMes = despesaFixaMesPaga + despesaParceladaMesPaga;
-  const gastoVariavelMes = despesaMes - gastoFixoMes;
+  const totalGastoCategorias = (despesasPorCategoriaMes ?? []).reduce((a, t) => a + Number(t.valor), 0);
 
   const despesaFixaMes = periodo
     .filter((t) => t.tipo === 'despesa' && t.tipo_despesa === 'fixa')
@@ -208,6 +202,9 @@ export default async function DashboardPage({
   const despesaParceladaMes = periodo
     .filter((t) => t.tipo === 'despesa' && t.tipo_despesa === 'parcelada')
     .reduce((a, t) => a + Number(t.valor), 0);
+
+  const gastoFixoMes = despesaFixaMes + despesaParceladaMes;
+  const gastoVariavelMes = totalGastoCategorias - gastoFixoMes;
 
   const parcelamentosTerminandoMes = periodo
     .filter(
@@ -371,7 +368,7 @@ export default async function DashboardPage({
 
       <GastosPorCategoriaCard
         categorias={categoriasGastoDetalhe}
-        totalGasto={despesaMes}
+        totalGasto={totalGastoCategorias}
         fixoValor={gastoFixoMes}
         variavelValor={gastoVariavelMes}
       />

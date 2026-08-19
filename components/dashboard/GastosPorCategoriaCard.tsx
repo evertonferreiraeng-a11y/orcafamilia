@@ -16,7 +16,7 @@ export interface CategoriaGasto {
 
 const CINZA_OUTROS = '#cbd5e1';
 const MAX_CATEGORIAS_ANEL = 7;
-const MAX_CATEGORIAS_LISTA = 5;
+const TOLERANCIA = 0.01;
 
 export function GastosPorCategoriaCard({
   categorias,
@@ -58,8 +58,6 @@ export function GastosPorCategoriaCard({
   const percentualFixo = totalFixoVariavel > 0 ? (fixoValor / totalFixoVariavel) * 100 : 0;
   const percentualVariavel = totalFixoVariavel > 0 ? (variavelValor / totalFixoVariavel) * 100 : 0;
 
-  const listaExibida = ordenadas.slice(0, MAX_CATEGORIAS_LISTA);
-
   return (
     <div className={cn('card flex flex-col p-4', className)}>
       <div className="flex items-center gap-3">
@@ -93,10 +91,10 @@ export function GastosPorCategoriaCard({
           </div>
 
           <div className="flex w-full flex-1 flex-col gap-3">
-            {listaExibida.map((c) => {
+            {ordenadas.map((c) => {
               const percentualOrcado = c.orcado > 0 ? Math.min(100, (c.gasto / c.orcado) * 100) : 0;
               const percentualDoTotal = totalGasto > 0 ? (c.gasto / totalGasto) * 100 : 0;
-              const acimaDoLimite = c.orcado > 0 && c.gasto > c.orcado;
+              const acimaDoLimite = c.orcado > 0 && c.gasto > c.orcado + TOLERANCIA;
               const cor = c.cor ?? CINZA_OUTROS;
               return (
                 <div key={c.id} className="flex items-center gap-3">
@@ -120,22 +118,26 @@ export function GastosPorCategoriaCard({
                     </div>
                     <p className="text-xs text-gray-400">
                       <ValorMonetario valor={c.gasto} />
-                      {c.orcado > 0 && (
+                      {c.orcado > 0 ? (
                         <>
                           {' '}
                           | <span className="font-semibold text-gray-700"><ValorMonetario valor={c.orcado} /></span>
                         </>
+                      ) : (
+                        <span className="italic"> · sem orçamento definido</span>
                       )}
                     </p>
-                    <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${c.orcado > 0 ? percentualOrcado : 100}%`,
-                          backgroundColor: acimaDoLimite ? '#ef4444' : cor,
-                        }}
-                      />
-                    </div>
+                    {c.orcado > 0 && (
+                      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${percentualOrcado}%`,
+                            backgroundColor: acimaDoLimite ? '#ef4444' : cor,
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -147,7 +149,7 @@ export function GastosPorCategoriaCard({
       )}
 
       <Link href="/orcamentos" className="mt-4 block text-center text-xs font-medium text-brand-600 hover:underline">
-        Ver todas as categorias
+        Gerenciar orçamentos
       </Link>
     </div>
   );
