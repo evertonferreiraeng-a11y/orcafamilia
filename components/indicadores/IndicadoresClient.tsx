@@ -1,50 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { ResultadoFinanceiroReport } from '@/components/indicadores/ResultadoFinanceiroReport';
-import { EvolucaoContasReport } from '@/components/indicadores/EvolucaoContasReport';
-import { DespesasTipoReport } from '@/components/indicadores/DespesasTipoReport';
 import { PatrimonioLiquidoReport } from '@/components/indicadores/PatrimonioLiquidoReport';
-import { cn } from '@/lib/utils';
-import type { ParcelamentoAtivo } from '@/lib/parcelamentos';
-
-export type { ParcelamentoAtivo };
-
-export interface PontoMes {
-  label: string;
-  receita: number;
-  despesa: number;
-  resultado: number;
-  percentualLucro: number;
-  percentualGasto: number;
-}
-
-export interface SubcategoriaEvolucao {
-  id: string;
-  nome: string;
-  realizadoPorMes: number[];
-}
-
-export interface CategoriaEvolucao {
-  id: string;
-  nome: string;
-  cor: string | null;
-  realizadoPorMes: number[];
-  orcadoPorMes: number[];
-  subcategorias: SubcategoriaEvolucao[];
-}
-
-export interface PontoTipoDespesa {
-  label: string;
-  fixa: number;
-  variavel: number;
-  parcelada: number;
-  fixaIniciada: string[];
-  fixaFinalizada: string[];
-  parceladaIniciada: string[];
-  parceladaFinalizada: string[];
-}
 
 export interface PontoPatrimonio {
   label: string;
@@ -53,38 +10,16 @@ export interface PontoPatrimonio {
   liquido: number;
 }
 
-type Aba = 'resultado' | 'evolucao' | 'despesas-tipo' | 'patrimonio';
-
-const ABAS: { id: Aba; label: string }[] = [
-  { id: 'resultado', label: 'Resultado Financeiro' },
-  { id: 'evolucao', label: 'Evolução das Contas' },
-  { id: 'despesas-tipo', label: 'Fixas, Variáveis e Parceladas' },
-  { id: 'patrimonio', label: 'Patrimônio Líquido' },
-];
-
 export function IndicadoresClient({
   ano,
-  pontosAno,
-  pontosOrcadoAno,
-  categoriasReceitaEvolucao,
-  categoriasDespesaEvolucao,
-  pontosTipoDespesaAno,
-  parcelamentosAtivos,
   pontosPatrimonioAno,
 }: {
   ano: number;
-  pontosAno: PontoMes[];
-  pontosOrcadoAno: PontoMes[];
-  categoriasReceitaEvolucao: CategoriaEvolucao[];
-  categoriasDespesaEvolucao: CategoriaEvolucao[];
-  pontosTipoDespesaAno: PontoTipoDespesa[];
-  parcelamentosAtivos: ParcelamentoAtivo[];
   pontosPatrimonioAno: PontoPatrimonio[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [aba, setAba] = useState<Aba>('resultado');
 
   function mudarAno(novoAno: number) {
     const params = new URLSearchParams(searchParams.toString());
@@ -114,33 +49,7 @@ export function IndicadoresClient({
         </select>
       </div>
 
-      <div className="flex flex-wrap gap-2 rounded-xl border border-gray-200 bg-white p-1">
-        {ABAS.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => setAba(item.id)}
-            className={cn(
-              'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-              aba === item.id ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
-            )}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-
-      {aba === 'resultado' && <ResultadoFinanceiroReport pontosAno={pontosAno} pontosOrcadoAno={pontosOrcadoAno} />}
-      {aba === 'evolucao' && (
-        <EvolucaoContasReport
-          categoriasReceita={categoriasReceitaEvolucao}
-          categoriasDespesa={categoriasDespesaEvolucao}
-        />
-      )}
-      {aba === 'despesas-tipo' && (
-        <DespesasTipoReport pontosTipoDespesaAno={pontosTipoDespesaAno} parcelamentosAtivos={parcelamentosAtivos} />
-      )}
-      {aba === 'patrimonio' && <PatrimonioLiquidoReport pontosPatrimonioAno={pontosPatrimonioAno} />}
+      <PatrimonioLiquidoReport pontosPatrimonioAno={pontosPatrimonioAno} />
     </div>
   );
 }
