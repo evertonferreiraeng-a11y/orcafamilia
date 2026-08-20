@@ -427,7 +427,7 @@ export function OrcamentosClient({
   const totalAnoResultado = totalAnoReceitas - totalAnoGastos;
 
   const anoAtual = new Date().getFullYear();
-  const anosDisponiveis = Array.from({ length: 6 }, (_, i) => anoAtual - i);
+  const anosDisponiveis = Array.from({ length: 6 }, (_, i) => anoAtual + i);
   if (!anosDisponiveis.includes(ano)) anosDisponiveis.unshift(ano);
 
   return (
