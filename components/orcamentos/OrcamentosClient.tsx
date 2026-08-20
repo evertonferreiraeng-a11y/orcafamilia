@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { salvarOrcamento, sugerirOrcamentosVazios, ajustarOrcamentoAPartirDoMes } from '@/app/(dashboard)/orcamentos/actions';
+import { salvarOrcamento, sugerirOrcamentosVazios } from '@/app/(dashboard)/orcamentos/actions';
 import { Modal } from '@/components/ui/Modal';
 import { IconChevronDown, IconChevronRight, IconCheck } from '@/components/icons';
 import { cn, formatCurrency } from '@/lib/utils';
@@ -324,30 +324,6 @@ export function OrcamentosClient({
   const [sugerindo, startSugestao] = useTransition();
   const [mensagemSugestao, setMensagemSugestao] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);
 
-  const [ajustando, startAjuste] = useTransition();
-
-  function aplicarAjuste2026e2027() {
-    if (
-      !window.confirm(
-        'Isso vai APAGAR todo orçamento de janeiro a agosto/2026, e usar o orçamento de setembro/2026 como modelo para preencher os 12 meses de 2027 (substituindo valores que já existam em 2027 para as mesmas categorias/subcategorias). Confirma?'
-      )
-    )
-      return;
-    setMensagemSugestao(null);
-    startAjuste(async () => {
-      const resultado = await ajustarOrcamentoAPartirDoMes(2026, 9, 2027);
-      if (resultado.error) {
-        setMensagemSugestao({ tipo: 'erro', texto: resultado.error });
-        return;
-      }
-      setMensagemSugestao({
-        tipo: 'sucesso',
-        texto: `${resultado.apagados ?? 0} valor(es) apagado(s) em 2026 (jan-ago) e ${resultado.replicados ?? 0} célula(s) preenchida(s)/atualizada(s) em 2027 com o modelo de setembro/2026. Recarregando...`,
-      });
-      window.location.reload();
-    });
-  }
-
   function aplicarSugestoes() {
     if (
       !window.confirm(
@@ -464,9 +440,6 @@ export function OrcamentosClient({
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={aplicarSugestoes} disabled={sugerindo} className="btn-secondary">
             {sugerindo ? 'Calculando sugestões...' : 'Sugerir orçamentos vazios'}
-          </button>
-          <button type="button" onClick={aplicarAjuste2026e2027} disabled={ajustando} className="btn-secondary">
-            {ajustando ? 'Aplicando ajuste...' : 'Zerar jan-ago/2026 e replicar set/2026 → 2027'}
           </button>
           <select value={ano} onChange={(e) => mudarAno(Number(e.target.value))} className="input-field w-auto">
             {anosDisponiveis
