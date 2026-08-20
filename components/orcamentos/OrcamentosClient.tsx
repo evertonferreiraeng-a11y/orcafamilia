@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { salvarOrcamento, sugerirOrcamentosVazios } from '@/app/(dashboard)/orcamentos/actions';
 import { Modal } from '@/components/ui/Modal';
@@ -47,6 +47,14 @@ function CelulaOrcamento({
   const [modalAberto, setModalAberto] = useState(false);
   const [escopo, setEscopo] = useState<'mes' | 'futuro'>('mes');
   const [quantidadeMeses, setQuantidadeMeses] = useState(12);
+
+  // O valor pode mudar "por fora" (ex: aplicando o valor para os próximos
+  // meses a partir de outra célula) — resincroniza o texto exibido quando
+  // isso acontece, sem interferir numa edição em andamento nesta célula.
+  useEffect(() => {
+    setTexto(valorTexto);
+    setSalvo(valorTexto);
+  }, [valorTexto]);
 
   const alterado = texto !== salvo;
 
