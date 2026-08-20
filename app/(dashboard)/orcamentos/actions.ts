@@ -111,10 +111,12 @@ export interface SugestaoOrcamentoResultado {
 const MESES_JANELA_RENDA = 3;
 
 /**
- * Preenche automaticamente as categorias de despesa que ainda não têm
- * orçamento definido em nenhum mês do ano informado, usando como base a
- * média das receitas pagas nos últimos 3 meses. Nunca sobrescreve valores
- * já definidos pelo usuário — só preenche o que está vazio.
+ * Preenche automaticamente as categorias/subcategorias de despesa que ainda
+ * não têm orçamento definido em algum mês do ano informado, usando como base
+ * a média das receitas pagas nos últimos 3 meses. Categorias com
+ * subcategorias são sugeridas por subcategoria (única forma editável no
+ * grid — o total da categoria é sempre a soma delas). Nunca sobrescreve
+ * valores já definidos pelo usuário — só preenche o que está vazio.
  */
 export async function sugerirOrcamentosVazios(ano: number): Promise<SugestaoOrcamentoResultado> {
   const supabase = createServerSupabase();
@@ -145,34 +147,49 @@ export async function sugerirOrcamentosVazios(ano: number): Promise<SugestaoOrca
 
   const [{ data: categoriasDespesa }, { data: subcategoriasTodas }, { data: orcamentosAno }] = await Promise.all([
     supabase.from('categorias').select('id, nome').eq('user_id', user.id).eq('tipo', 'despesa'),
-    supabase.from('subcategorias').select('categoria_id').eq('user_id', user.id),
+    supabase.from('subcategorias').select('id, nome, categoria_id').eq('user_id', user.id),
     supabase
       .from('orcamentos')
-      .select('categoria_id, mes_referencia')
+      .select('categoria_id, subcategoria_id, mes_referencia')
       .eq('user_id', user.id)
-      .is('subcategoria_id', null)
       .gte('mes_referencia', `${ano}-01-01`)
       .lte('mes_referencia', `${ano}-12-01`),
   ]);
 
-  const categoriasComSubcategoria = new Set((subcategoriasTodas ?? []).map((s) => s.categoria_id));
-  const jaDefinidos = new Set((orcamentosAno ?? []).map((o) => `${o.categoria_id}:${o.mes_referencia}`));
+  const subcategoriasPorCategoria = new Map<string, { id: string; nome: string }[]>();
+  for (const s of subcategoriasTodas ?? []) {
+    const lista = subcategoriasPorCategoria.get(s.categoria_id) ?? [];
+    lista.push({ id: s.id, nome: s.nome });
+    subcategoriasPorCategoria.set(s.categoria_id, lista);
+  }
 
-  const linhas = (categoriasDespesa ?? [])
-    .filter((categoria) => !categoriasComSubcategoria.has(categoria.id))
-    .flatMap((categoria) => {
-      const valorSugerido = valorOrcamentoSugerido(categoria.nome, rendaBase);
-      return Array.from({ length: 12 }, (_, i) => i + 1)
-        .map((mes) => `${ano}-${String(mes).padStart(2, '0')}-01`)
-        .filter((mesReferencia) => !jaDefinidos.has(`${categoria.id}:${mesReferencia}`))
-        .map((mesReferencia) => ({
-          user_id: user.id,
-          categoria_id: categoria.id,
-          subcategoria_id: null,
-          mes_referencia: mesReferencia,
-          valor_limite: valorSugerido,
-        }));
-    });
+  const jaDefinidos = new Set(
+    (orcamentosAno ?? []).map((o) => `${o.categoria_id}:${o.subcategoria_id ?? 'null'}:${o.mes_referencia}`)
+  );
+
+  // Categorias sem subcategoria são orçadas no próprio nível; categorias com
+  // subcategoria só são editáveis por subcategoria (o total da categoria é
+  // sempre a soma delas), então o alvo da sugestão precisa descer um nível.
+  const alvos = (categoriasDespesa ?? []).flatMap((categoria) => {
+    const subs = subcategoriasPorCategoria.get(categoria.id) ?? [];
+    if (subs.length === 0) {
+      return [{ categoriaId: categoria.id, subcategoriaId: null as string | null, nome: categoria.nome }];
+    }
+    return subs.map((s) => ({ categoriaId: categoria.id, subcategoriaId: s.id as string | null, nome: s.nome }));
+  });
+
+  const linhas = alvos.flatMap((alvo) => {
+    const valorSugerido = valorOrcamentoSugerido(alvo.nome, rendaBase);
+    return Array.from({ length: 12 }, (_, i) => `${ano}-${String(i + 1).padStart(2, '0')}-01`)
+      .filter((mesReferencia) => !jaDefinidos.has(`${alvo.categoriaId}:${alvo.subcategoriaId ?? 'null'}:${mesReferencia}`))
+      .map((mesReferencia) => ({
+        user_id: user.id,
+        categoria_id: alvo.categoriaId,
+        subcategoria_id: alvo.subcategoriaId,
+        mes_referencia: mesReferencia,
+        valor_limite: valorSugerido,
+      }));
+  });
 
   if (linhas.length > 0) {
     const { error } = await supabase.from('orcamentos').insert(linhas);
