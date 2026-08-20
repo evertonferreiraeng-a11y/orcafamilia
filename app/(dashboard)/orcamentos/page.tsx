@@ -52,5 +52,5 @@ export default async function OrcamentosPage({
   const categoriasReceita = (categoriasTodas ?? []).filter((c) => c.tipo === 'receita').map(construirCategoria);
   const categoriasDespesa = (categoriasTodas ?? []).filter((c) => c.tipo === 'despesa').map(construirCategoria);
 
-  return <OrcamentosClient ano={ano} categoriasReceita={categoriasReceita} categoriasDespesa={categoriasDespesa} />;
+  return <OrcamentosClient key={ano} ano={ano} categoriasReceita={categoriasReceita} categoriasDespesa={categoriasDespesa} />;
 }
