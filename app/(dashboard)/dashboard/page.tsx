@@ -422,9 +422,8 @@ export default async function DashboardPage({
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-4 lg:min-h-[calc(100vh-190px)]">
         <div className="card flex flex-col p-4 lg:col-span-3">
-          <div className="grid grid-cols-1 divide-y divide-gray-100 border-b border-gray-100 pb-4 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          <div className="grid grid-cols-1 gap-3 pb-4 sm:grid-cols-3">
             <StatRow
-              className="py-4 sm:py-0 sm:pr-4"
               titulo="Saldo (Este mês)"
               valor={saldoMes}
               valorLabel="Pago"
@@ -442,7 +441,6 @@ export default async function DashboardPage({
               }
             />
             <StatRow
-              className="py-4 sm:py-0 sm:px-4"
               titulo="Receitas"
               valor={receitaMes}
               valorLabel="Pago"
@@ -465,7 +463,6 @@ export default async function DashboardPage({
               }
             />
             <StatRow
-              className="py-4 sm:py-0 sm:pl-4"
               titulo="Despesas"
               valor={despesaMes}
               valorLabel="Pago"
