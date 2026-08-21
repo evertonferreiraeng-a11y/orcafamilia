@@ -7,6 +7,7 @@ import {
   addMeses,
   calcularVariacaoPercentual,
   formatPercent,
+  formatPercent0,
 } from '@/lib/utils';
 import { indexarSubcategoriasPorCategoria, orcadoEfetivoCategoria } from '@/lib/orcamentos';
 import { gerarInsights, type DadosGerente } from '@/lib/gerente';
@@ -240,6 +241,9 @@ export default async function DashboardPage({
   const gastoFixoMes = despesaFixaMes;
   const gastoVariavelMes = totalGastoCategorias - gastoFixoMes;
 
+  const percentualFixasGeral = totalGastoCategorias > 0 ? (gastoFixoMes / totalGastoCategorias) * 100 : 0;
+  const percentualVariaveisGeral = totalGastoCategorias > 0 ? (gastoVariavelMes / totalGastoCategorias) * 100 : 0;
+
   const parcelamentosTerminandoMes = periodo
     .filter((t) => t.tipo === 'despesa' && t.parcela_total !== null && t.parcela_atual === t.parcela_total)
     .map((t) => ({ descricao: t.descricao, valorParcela: Number(t.valor) }));
@@ -413,6 +417,23 @@ export default async function DashboardPage({
         fixoValor={gastoFixoMes}
         variavelValor={gastoVariavelMes}
       />
+
+      <div className="card flex flex-wrap items-center justify-between gap-3 p-4">
+        <div>
+          <p className="text-sm font-medium text-gray-500">Total Geral de Despesas (Fixas + Variáveis)</p>
+          <p className="text-xl font-bold text-gray-900">
+            <ValorMonetario valor={totalGastoCategorias} />
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs font-medium">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1.5 text-indigo-700">
+            Fixas <ValorMonetario valor={gastoFixoMes} /> ({formatPercent0(percentualFixasGeral)})
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-amber-700">
+            Variáveis <ValorMonetario valor={gastoVariavelMes} /> ({formatPercent0(percentualVariaveisGeral)})
+          </span>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <DespesasPorTipoCard
