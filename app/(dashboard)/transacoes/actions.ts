@@ -90,12 +90,14 @@ export async function criarTransacao(_prevState: TransacaoFormState, formData: F
   const contaId = String(formData.get('conta_id') || '') || null;
   const cartaoId = String(formData.get('cartao_id') || '') || null;
   const tipoDespesa = aba === 'despesa' ? (String(formData.get('tipo_despesa') || 'variavel') as TipoDespesa) : null;
-  const dataRegistro = String(formData.get('data_registro') || '');
   const dataVencimento = String(formData.get('data_vencimento') || '');
+  // A data de registro não é mais preenchida pelo usuário: o que define o mês do lançamento
+  // é a data de vencimento, então a registro simplesmente acompanha o mesmo valor.
+  const dataRegistro = dataVencimento;
   const dataBase = data || dataVencimento || dataRegistro;
 
-  if (!descricao || !valor || !categoriaId || !dataRegistro || !dataVencimento) {
-    return { error: 'Preencha descrição, valor, categoria, data de registro e data de vencimento.' };
+  if (!descricao || !valor || !categoriaId || !dataVencimento) {
+    return { error: 'Preencha descrição, valor, categoria e data de vencimento.' };
   }
   if (!contaId && !cartaoId) {
     return { error: 'Selecione uma conta ou cartão.' };
@@ -228,13 +230,13 @@ export async function atualizarTransacao(
   const contaId = String(formData.get('conta_id') || '') || null;
   const cartaoId = String(formData.get('cartao_id') || '') || null;
   const tipoDespesa = aba === 'despesa' ? (String(formData.get('tipo_despesa') || 'variavel') as TipoDespesa) : null;
-  const dataRegistro = String(formData.get('data_registro') || '');
   const dataVencimento = String(formData.get('data_vencimento') || '');
+  const dataRegistro = dataVencimento;
   const dataBase = data || dataVencimento || dataRegistro;
   const escopo = String(formData.get('escopo') || 'somente');
 
-  if (!descricao || !valor || !categoriaId || !dataRegistro || !dataVencimento) {
-    return { error: 'Preencha descrição, valor, categoria, data de registro e data de vencimento.' };
+  if (!descricao || !valor || !categoriaId || !dataVencimento) {
+    return { error: 'Preencha descrição, valor, categoria e data de vencimento.' };
   }
   if (!contaId && !cartaoId) {
     return { error: 'Selecione uma conta ou cartão.' };
