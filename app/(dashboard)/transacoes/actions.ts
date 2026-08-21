@@ -90,10 +90,10 @@ export async function criarTransacao(_prevState: TransacaoFormState, formData: F
   const contaId = String(formData.get('conta_id') || '') || null;
   const cartaoId = String(formData.get('cartao_id') || '') || null;
   const tipoDespesa = aba === 'despesa' ? (String(formData.get('tipo_despesa') || 'variavel') as TipoDespesa) : null;
-  const mesesRecorrencia =
-    tipoDespesa && tipoDespesa !== 'variavel'
-      ? Math.max(2, Math.min(60, Number(formData.get('meses_recorrencia') || 2)))
-      : 1;
+  const gerarMultiplos = aba === 'despesa' && String(formData.get('gerar_multiplos') || 'false') === 'true';
+  const mesesRecorrencia = gerarMultiplos
+    ? Math.max(2, Math.min(60, Number(formData.get('meses_recorrencia') || 2)))
+    : 1;
   const dataRegistro = String(formData.get('data_registro') || '');
   const dataVencimento = String(formData.get('data_vencimento') || '');
   const dataBase = data || dataVencimento || dataRegistro;

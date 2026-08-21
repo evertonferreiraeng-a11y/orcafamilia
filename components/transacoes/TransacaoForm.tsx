@@ -52,6 +52,7 @@ export function TransacaoForm({
   const [categoriaId, setCategoriaId] = useState(transacao?.categoria_id ?? '');
   const [pago, setPago] = useState(transacao?.pago ?? false);
   const [tipoDespesa, setTipoDespesa] = useState<TipoDespesa>(transacao?.tipo_despesa ?? 'variavel');
+  const [parcelado, setParcelado] = useState(false);
   const [escopo, setEscopo] = useState<'somente' | 'futuras'>('somente');
 
   const ehParteDeParcelamento = Boolean(temProximasParcelas);
@@ -344,18 +345,50 @@ export function TransacaoForm({
         </div>
       )}
 
-      {aba === 'despesa' && tipoDespesa === 'fixa' && !transacao && (
+      {aba === 'despesa' && !transacao && (
+        <div>
+          <label className="label-field">Parcelamento</label>
+          <input type="hidden" name="gerar_multiplos" value={parcelado || tipoDespesa === 'fixa' ? 'true' : 'false'} />
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setParcelado(false)}
+              className={
+                !parcelado
+                  ? 'rounded-xl border-2 border-brand-500 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700'
+                  : 'rounded-xl border-2 border-transparent bg-gray-100 px-4 py-2 text-sm font-medium text-gray-600'
+              }
+            >
+              À vista
+            </button>
+            <button
+              type="button"
+              onClick={() => setParcelado(true)}
+              className={
+                parcelado
+                  ? 'rounded-xl border-2 border-brand-500 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700'
+                  : 'rounded-xl border-2 border-transparent bg-gray-100 px-4 py-2 text-sm font-medium text-gray-600'
+              }
+            >
+              Parcelada
+            </button>
+          </div>
+        </div>
+      )}
+
+      {aba === 'despesa' && !transacao && (parcelado || tipoDespesa === 'fixa') && (
         <div>
           <label className="label-field" htmlFor="meses_recorrencia">
-            Gerar lançamentos para quantos meses? (use para compras parceladas também)
+            {parcelado ? 'Número de parcelas' : 'Gerar lançamentos para quantos meses?'}
           </label>
           <input
+            key={parcelado ? 'parcelas' : 'meses'}
             id="meses_recorrencia"
             name="meses_recorrencia"
             type="number"
             min="2"
             max="60"
-            defaultValue={12}
+            defaultValue={parcelado ? 2 : 12}
             className="input-field"
           />
         </div>
