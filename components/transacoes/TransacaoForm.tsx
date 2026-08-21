@@ -186,18 +186,7 @@ export function TransacaoForm({
           />
         </div>
       ) : (
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <label className="label-field" htmlFor="data_registro">Data de Registro</label>
-            <input
-              id="data_registro"
-              name="data_registro"
-              type="date"
-              required
-              defaultValue={transacao?.data_registro ?? new Date().toISOString().slice(0, 10)}
-              className="input-field"
-            />
-          </div>
+        <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="label-field" htmlFor="data_vencimento">Data de Vencimento</label>
             <input
