@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { Fragment, useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { salvarOrcamento, sugerirOrcamentosVazios } from '@/app/(dashboard)/orcamentos/actions';
 import { Modal } from '@/components/ui/Modal';
 import { SummaryCard } from '@/components/ui/SummaryCard';
 import { IconChevronDown, IconChevronRight, IconCheck, IconOrcamentos, IconTrendUp, IconTrendDown, IconWallet } from '@/components/icons';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency, formatPercent0 } from '@/lib/utils';
 import { resolverValorEfetivo } from '@/lib/orcamentos';
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -15,6 +15,7 @@ export interface SubcategoriaAnual {
   id: string;
   nome: string;
   valoresPorMes: (number | null)[];
+  valoresExecutadosPorMes: number[];
 }
 
 export interface CategoriaAnual {
@@ -22,6 +23,7 @@ export interface CategoriaAnual {
   nome: string;
   cor: string | null;
   valoresPorMes: (number | null)[];
+  valoresExecutadosPorMes: number[];
   subcategorias: SubcategoriaAnual[];
 }
 
@@ -29,6 +31,11 @@ function valorEfetivoCategoria(c: CategoriaAnual, mesIndex: number): number {
   const temSub = c.subcategorias.length > 0;
   const somaSubcategorias = c.subcategorias.reduce<number>((a, s) => a + (s.valoresPorMes[mesIndex] ?? 0), 0);
   return resolverValorEfetivo(temSub, c.valoresPorMes[mesIndex], somaSubcategorias);
+}
+
+function formatPercentAtingido(executado: number, orcado: number): string {
+  if (orcado <= 0) return '—';
+  return formatPercent0((executado / orcado) * 100);
 }
 
 function CelulaOrcamento({
@@ -190,11 +197,15 @@ const TOM_TABELA = {
   negativo: { cabecalho: 'bg-negative/5 text-negative', total: 'text-negative' },
 } as const;
 
+const COLUNAS_POR_MES = 3;
+const TOTAL_COLUNAS = 1 + 12 * COLUNAS_POR_MES + COLUNAS_POR_MES;
+
 function TabelaSecao({
   titulo,
   categorias,
   onEditar,
   totaisPorMes,
+  totaisExecutadosPorMes,
   tom,
 }: {
   titulo: string;
@@ -207,6 +218,7 @@ function TabelaSecao({
     mesesAFrente: number
   ) => Promise<string | undefined>;
   totaisPorMes: number[];
+  totaisExecutadosPorMes: number[];
   tom: 'positivo' | 'negativo';
 }) {
   const classes = TOM_TABELA[tom];
@@ -221,11 +233,14 @@ function TabelaSecao({
     });
   }
 
+  const totalExecutadoAno = totaisExecutadosPorMes.reduce((a, v) => a + v, 0);
+  const totalOrcadoAno = totaisPorMes.reduce((a, v) => a + v, 0);
+
   return (
     <>
       <tr className={classes.cabecalho}>
         <td
-          colSpan={14}
+          colSpan={TOTAL_COLUNAS}
           className={cn('sticky left-0 z-10 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide', classes.cabecalho)}
         >
           {titulo}
@@ -233,7 +248,7 @@ function TabelaSecao({
       </tr>
       {categorias.length === 0 && (
         <tr>
-          <td colSpan={14} className="px-3 py-4 text-center text-sm text-gray-400">
+          <td colSpan={TOTAL_COLUNAS} className="px-3 py-4 text-center text-sm text-gray-400">
             Nenhuma categoria de {titulo.toLowerCase()} cadastrada.
           </td>
         </tr>
@@ -242,10 +257,11 @@ function TabelaSecao({
         const temSub = c.subcategorias.length > 0;
         const expandida = expandidas.has(c.id);
         const valoresEfetivos = Array.from({ length: 12 }, (_, i) => valorEfetivoCategoria(c, i));
-        const totalCategoria = valoresEfetivos.reduce<number>((a, v) => a + v, 0);
+        const totalOrcadoCategoria = valoresEfetivos.reduce<number>((a, v) => a + v, 0);
+        const totalExecutadoCategoria = c.valoresExecutadosPorMes.reduce<number>((a, v) => a + v, 0);
         return (
-          <>
-            <tr key={c.id} className="group border-b border-gray-50 transition-colors hover:bg-gray-50/60">
+          <Fragment key={c.id}>
+            <tr className="group border-b border-gray-50 transition-colors hover:bg-gray-50/60">
               <td className="sticky left-0 z-10 min-w-[200px] bg-white px-3 py-1.5 transition-colors group-hover:bg-gray-50">
                 <button
                   type="button"
@@ -266,57 +282,108 @@ function TabelaSecao({
                   <span className="text-sm font-medium text-gray-800">{c.nome}</span>
                 </button>
               </td>
-              {MESES_ABREV.map((mes, i) =>
-                temSub ? (
-                  <td key={i} className="px-2.5 py-1 text-right text-xs tabular-nums text-gray-600">
-                    {valoresEfetivos[i] > 0 ? formatCurrency(valoresEfetivos[i]) : '—'}
-                  </td>
-                ) : (
-                  <td key={i} className="px-1 py-1">
-                    <CelulaOrcamento
-                      valor={c.valoresPorMes[i]}
-                      label={`${c.nome} · ${mes}`}
-                      onSalvar={(v, meses) => onEditar(c.id, null, i, v, meses)}
-                    />
-                  </td>
-                )
-              )}
-              <td className="px-2 py-1.5 text-right text-xs font-semibold text-gray-900">{formatCurrency(totalCategoria)}</td>
+              {MESES_ABREV.map((mes, i) => {
+                const executado = c.valoresExecutadosPorMes[i] ?? 0;
+                const orcado = valoresEfetivos[i];
+                return (
+                  <Fragment key={i}>
+                    <td className="border-l border-gray-50 px-2 py-1 text-right text-xs tabular-nums text-gray-600">
+                      {executado > 0 ? formatCurrency(executado) : '—'}
+                    </td>
+                    {temSub ? (
+                      <td className="px-2 py-1 text-right text-xs tabular-nums text-gray-600">
+                        {orcado > 0 ? formatCurrency(orcado) : '—'}
+                      </td>
+                    ) : (
+                      <td className="px-1 py-1">
+                        <CelulaOrcamento
+                          valor={c.valoresPorMes[i]}
+                          label={`${c.nome} · ${mes}`}
+                          onSalvar={(v, meses) => onEditar(c.id, null, i, v, meses)}
+                        />
+                      </td>
+                    )}
+                    <td className="px-2 py-1 text-right text-xs tabular-nums text-gray-400">
+                      {formatPercentAtingido(executado, orcado)}
+                    </td>
+                  </Fragment>
+                );
+              })}
+              <td className="border-l border-gray-100 px-2 py-1.5 text-right text-xs font-semibold text-gray-900">
+                {formatCurrency(totalExecutadoCategoria)}
+              </td>
+              <td className="px-2 py-1.5 text-right text-xs font-medium text-gray-500">
+                {totalOrcadoCategoria > 0 ? formatCurrency(totalOrcadoCategoria) : '—'}
+              </td>
+              <td className="px-2 py-1.5 text-right text-xs font-medium text-gray-500">
+                {formatPercentAtingido(totalExecutadoCategoria, totalOrcadoCategoria)}
+              </td>
             </tr>
             {temSub &&
               expandida &&
               c.subcategorias.map((s) => {
-                const totalSub = s.valoresPorMes.reduce<number>((a, v) => a + (v ?? 0), 0);
+                const totalOrcadoSub = s.valoresPorMes.reduce<number>((a, v) => a + (v ?? 0), 0);
+                const totalExecutadoSub = s.valoresExecutadosPorMes.reduce<number>((a, v) => a + v, 0);
                 return (
                   <tr key={s.id} className="border-b border-gray-50 bg-gray-50/40">
                     <td className="sticky left-0 z-10 bg-gray-50/40 py-1 pl-9 pr-3">
                       <span className="text-xs text-gray-500">{s.nome}</span>
                     </td>
-                    {MESES_ABREV.map((mes, i) => (
-                      <td key={i} className="px-1 py-1">
-                        <CelulaOrcamento
-                          valor={s.valoresPorMes[i]}
-                          label={`${c.nome} · ${s.nome} · ${mes}`}
-                          onSalvar={(v, meses) => onEditar(c.id, s.id, i, v, meses)}
-                        />
-                      </td>
-                    ))}
-                    <td className="px-2 py-1 text-right text-xs font-medium text-gray-500">{formatCurrency(totalSub)}</td>
+                    {MESES_ABREV.map((mes, i) => {
+                      const executado = s.valoresExecutadosPorMes[i] ?? 0;
+                      return (
+                        <Fragment key={i}>
+                          <td className="border-l border-gray-50 px-2 py-1 text-right text-xs tabular-nums text-gray-500">
+                            {executado > 0 ? formatCurrency(executado) : '—'}
+                          </td>
+                          <td className="px-1 py-1">
+                            <CelulaOrcamento
+                              valor={s.valoresPorMes[i]}
+                              label={`${c.nome} · ${s.nome} · ${mes}`}
+                              onSalvar={(v, meses) => onEditar(c.id, s.id, i, v, meses)}
+                            />
+                          </td>
+                          <td className="px-2 py-1 text-right text-xs tabular-nums text-gray-400">
+                            {formatPercentAtingido(executado, s.valoresPorMes[i] ?? 0)}
+                          </td>
+                        </Fragment>
+                      );
+                    })}
+                    <td className="border-l border-gray-100 px-2 py-1 text-right text-xs font-medium text-gray-500">
+                      {formatCurrency(totalExecutadoSub)}
+                    </td>
+                    <td className="px-2 py-1 text-right text-xs font-medium text-gray-500">
+                      {totalOrcadoSub > 0 ? formatCurrency(totalOrcadoSub) : '—'}
+                    </td>
+                    <td className="px-2 py-1 text-right text-xs font-medium text-gray-500">
+                      {formatPercentAtingido(totalExecutadoSub, totalOrcadoSub)}
+                    </td>
                   </tr>
                 );
               })}
-          </>
+          </Fragment>
         );
       })}
       <tr className="border-b-2 border-gray-100 font-semibold">
         <td className="sticky left-0 z-10 bg-white px-3 py-2 text-sm text-gray-900">TOTAL {titulo.toUpperCase()}</td>
-        {totaisPorMes.map((v, i) => (
-          <td key={i} className={cn('px-2 py-2 text-right text-xs', classes.total)}>
-            {formatCurrency(v)}
-          </td>
-        ))}
+        {totaisPorMes.map((v, i) => {
+          const executado = totaisExecutadosPorMes[i];
+          return (
+            <Fragment key={i}>
+              <td className={cn('border-l border-gray-100 px-2 py-2 text-right text-xs', classes.total)}>
+                {formatCurrency(executado)}
+              </td>
+              <td className={cn('px-2 py-2 text-right text-xs', classes.total)}>{formatCurrency(v)}</td>
+              <td className={cn('px-2 py-2 text-right text-xs', classes.total)}>{formatPercentAtingido(executado, v)}</td>
+            </Fragment>
+          );
+        })}
+        <td className={cn('border-l border-gray-100 px-2 py-2 text-right text-xs', classes.total)}>
+          {formatCurrency(totalExecutadoAno)}
+        </td>
+        <td className={cn('px-2 py-2 text-right text-xs', classes.total)}>{formatCurrency(totalOrcadoAno)}</td>
         <td className={cn('px-2 py-2 text-right text-xs', classes.total)}>
-          {formatCurrency(totaisPorMes.reduce((a, v) => a + v, 0))}
+          {formatPercentAtingido(totalExecutadoAno, totalOrcadoAno)}
         </td>
       </tr>
     </>
@@ -435,6 +502,14 @@ export function OrcamentosClient({
     () => Array.from({ length: 12 }, (_, i) => dadosDespesa.reduce((a, c) => a + valorEfetivoCategoria(c, i), 0)),
     [dadosDespesa]
   );
+  const totalReceitasExecutadoPorMes = useMemo(
+    () => Array.from({ length: 12 }, (_, i) => dadosReceita.reduce((a, c) => a + (c.valoresExecutadosPorMes[i] ?? 0), 0)),
+    [dadosReceita]
+  );
+  const totalGastosExecutadoPorMes = useMemo(
+    () => Array.from({ length: 12 }, (_, i) => dadosDespesa.reduce((a, c) => a + (c.valoresExecutadosPorMes[i] ?? 0), 0)),
+    [dadosDespesa]
+  );
   const resultadoPorMes = useMemo(
     () => totalReceitasPorMes.map((v, i) => v - totalGastosPorMes[i]),
     [totalReceitasPorMes, totalGastosPorMes]
@@ -497,15 +572,40 @@ export function OrcamentosClient({
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b border-gray-100">
-              <th className="sticky left-0 z-10 min-w-[200px] bg-white px-3 py-2 text-left text-xs font-medium uppercase text-gray-400">
+              <th
+                rowSpan={2}
+                className="sticky left-0 z-10 min-w-[200px] max-w-[200px] bg-white px-3 py-2 text-left align-bottom text-xs font-medium uppercase text-gray-400"
+              >
                 Categoria
               </th>
               {MESES_ABREV.map((label) => (
-                <th key={label} className="min-w-[86px] px-1 py-2 text-right text-xs font-medium uppercase text-gray-400">
+                <th
+                  key={label}
+                  colSpan={3}
+                  className="border-l border-gray-100 px-1 py-1.5 text-center text-xs font-semibold uppercase tracking-wide text-gray-500"
+                >
                   {label}
                 </th>
               ))}
-              <th className="min-w-[100px] px-2 py-2 text-right text-xs font-medium uppercase text-gray-400">Total</th>
+              <th colSpan={3} className="border-l border-gray-100 px-1 py-1.5 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Total
+              </th>
+            </tr>
+            <tr className="border-b border-gray-100">
+              {MESES_ABREV.map((label) => (
+                <Fragment key={label}>
+                  <th className="min-w-[68px] border-l border-gray-100 px-2 py-1.5 text-right text-[10px] font-medium uppercase text-gray-400">
+                    Exec.
+                  </th>
+                  <th className="min-w-[68px] px-1 py-1.5 text-right text-[10px] font-medium uppercase text-gray-400">Orç.</th>
+                  <th className="min-w-[44px] px-2 py-1.5 text-right text-[10px] font-medium uppercase text-gray-400">%</th>
+                </Fragment>
+              ))}
+              <th className="min-w-[68px] border-l border-gray-100 px-2 py-1.5 text-right text-[10px] font-medium uppercase text-gray-400">
+                Exec.
+              </th>
+              <th className="min-w-[68px] px-2 py-1.5 text-right text-[10px] font-medium uppercase text-gray-400">Orç.</th>
+              <th className="min-w-[44px] px-2 py-1.5 text-right text-[10px] font-medium uppercase text-gray-400">%</th>
             </tr>
           </thead>
           <tbody>
@@ -514,6 +614,7 @@ export function OrcamentosClient({
               categorias={dadosReceita}
               onEditar={editarReceita}
               totaisPorMes={totalReceitasPorMes}
+              totaisExecutadosPorMes={totalReceitasExecutadoPorMes}
               tom="positivo"
             />
             <TabelaSecao
@@ -521,16 +622,24 @@ export function OrcamentosClient({
               categorias={dadosDespesa}
               onEditar={editarDespesa}
               totaisPorMes={totalGastosPorMes}
+              totaisExecutadosPorMes={totalGastosExecutadoPorMes}
               tom="negativo"
             />
             <tr className="bg-gray-900">
               <td className="sticky left-0 z-10 bg-gray-900 px-3 py-2.5 text-sm font-semibold text-white">RESULTADO</td>
               {resultadoPorMes.map((v, i) => (
-                <td key={i} className={cn('px-2 py-2.5 text-right text-xs font-semibold', v >= 0 ? 'text-positive' : 'text-red-400')}>
+                <td
+                  key={i}
+                  colSpan={3}
+                  className={cn('border-l border-gray-800 px-2 py-2.5 text-right text-xs font-semibold', v >= 0 ? 'text-positive' : 'text-red-400')}
+                >
                   {formatCurrency(v)}
                 </td>
               ))}
-              <td className={cn('px-2 py-2.5 text-right text-xs font-semibold', totalAnoResultado >= 0 ? 'text-positive' : 'text-red-400')}>
+              <td
+                colSpan={3}
+                className={cn('border-l border-gray-800 px-2 py-2.5 text-right text-xs font-semibold', totalAnoResultado >= 0 ? 'text-positive' : 'text-red-400')}
+              >
                 {formatCurrency(totalAnoResultado)}
               </td>
             </tr>
