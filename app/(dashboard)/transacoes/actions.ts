@@ -90,10 +90,6 @@ export async function criarTransacao(_prevState: TransacaoFormState, formData: F
   const contaId = String(formData.get('conta_id') || '') || null;
   const cartaoId = String(formData.get('cartao_id') || '') || null;
   const tipoDespesa = aba === 'despesa' ? (String(formData.get('tipo_despesa') || 'variavel') as TipoDespesa) : null;
-  const gerarMultiplos = aba === 'despesa' && String(formData.get('gerar_multiplos') || 'false') === 'true';
-  const mesesRecorrencia = gerarMultiplos
-    ? Math.max(2, Math.min(60, Number(formData.get('meses_recorrencia') || 2)))
-    : 1;
   const dataRegistro = String(formData.get('data_registro') || '');
   const dataVencimento = String(formData.get('data_vencimento') || '');
   const dataBase = data || dataVencimento || dataRegistro;
@@ -105,21 +101,32 @@ export async function criarTransacao(_prevState: TransacaoFormState, formData: F
     return { error: 'Selecione uma conta ou cartão.' };
   }
 
+  // Fixa/Parcelada: o usuário escolhe exatamente em quais meses o lançamento deve se repetir
+  // (além do próprio mês lançado), em vez de apenas informar uma quantidade.
+  const offsetsFixaSelecionados = aba === 'despesa'
+    ? String(formData.get('meses_fixa_selecionados') || '')
+        .split(',')
+        .map((s) => Number(s.trim()))
+        .filter((n) => Number.isInteger(n) && n > 0 && n <= 60)
+    : [];
+  const offsetsRecorrencia = Array.from(new Set([0, ...offsetsFixaSelecionados])).sort((a, b) => a - b);
+  const mesesRecorrencia = offsetsRecorrencia.length;
+
   const grupoParcelamento = mesesRecorrencia > 1 ? crypto.randomUUID() : null;
 
-  const linhas = Array.from({ length: mesesRecorrencia }, (_, i) => ({
+  const linhas = offsetsRecorrencia.map((offset, i) => ({
     user_id: user.id,
     tipo: aba,
     descricao,
     valor,
-    data: adicionarMeses(dataBase, i),
+    data: adicionarMeses(dataBase, offset),
     data_registro: dataRegistro,
-    data_vencimento: adicionarMeses(dataVencimento, i),
+    data_vencimento: adicionarMeses(dataVencimento, offset),
     categoria_id: categoriaId,
     subcategoria_id: subcategoriaId,
     conta_id: contaId,
     cartao_id: cartaoId,
-    pago: i === 0 ? pago : false,
+    pago: offset === 0 ? pago : false,
     recorrente: mesesRecorrencia > 1,
     frequencia: mesesRecorrencia > 1 ? ('mensal' as const) : null,
     grupo_parcelamento: grupoParcelamento,
