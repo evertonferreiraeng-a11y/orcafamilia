@@ -19,6 +19,7 @@ import {
   IconFiltro,
   IconCartao,
   IconTrash,
+  IconTransacoes,
 } from '@/components/icons';
 import {
   criarTransacao,
@@ -338,9 +339,14 @@ export function TransacoesClient({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Transações</h1>
-          <p className="mt-1 text-sm text-gray-500">Gerencie todas as suas transações financeiras</p>
+        <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+            <IconTransacoes className="h-5 w-5" />
+          </span>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Transações</h1>
+            <p className="mt-1 text-sm text-gray-500">Gerencie todas as suas transações financeiras</p>
+          </div>
         </div>
         <div className="flex gap-2">
           <button type="button" onClick={() => setModalFiltros(true)} className="btn-secondary">
