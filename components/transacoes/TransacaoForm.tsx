@@ -332,7 +332,10 @@ export function TransacaoForm({
             </button>
             <button
               type="button"
-              onClick={() => setTipoDespesa('fixa')}
+              onClick={() => {
+                setTipoDespesa('fixa');
+                setParcelado(false);
+              }}
               className={
                 tipoDespesa === 'fixa'
                   ? 'rounded-xl border-2 border-brand-500 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700'
@@ -345,10 +348,9 @@ export function TransacaoForm({
         </div>
       )}
 
-      {aba === 'despesa' && !transacao && (
+      {aba === 'despesa' && !transacao && tipoDespesa === 'variavel' && (
         <div>
           <label className="label-field">Parcelamento</label>
-          <input type="hidden" name="gerar_multiplos" value={parcelado || tipoDespesa === 'fixa' ? 'true' : 'false'} />
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
@@ -376,19 +378,20 @@ export function TransacaoForm({
         </div>
       )}
 
-      {aba === 'despesa' && !transacao && (parcelado || tipoDespesa === 'fixa') && (
+      {aba === 'despesa' && !transacao && (tipoDespesa === 'fixa' || parcelado) && (
         <div>
+          <input type="hidden" name="gerar_multiplos" value="true" />
           <label className="label-field" htmlFor="meses_recorrencia">
-            {parcelado ? 'Número de parcelas' : 'Gerar lançamentos para quantos meses?'}
+            {tipoDespesa === 'fixa' ? 'Gerar lançamentos para quantos meses?' : 'Número de parcelas'}
           </label>
           <input
-            key={parcelado ? 'parcelas' : 'meses'}
+            key={tipoDespesa === 'fixa' ? 'meses' : 'parcelas'}
             id="meses_recorrencia"
             name="meses_recorrencia"
             type="number"
             min="2"
             max="60"
-            defaultValue={parcelado ? 2 : 12}
+            defaultValue={tipoDespesa === 'fixa' ? 12 : 2}
             className="input-field"
           />
         </div>
