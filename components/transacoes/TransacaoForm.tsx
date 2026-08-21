@@ -22,6 +22,28 @@ const ABA_LABEL: Record<Aba, string> = {
   transferencia: 'Transferência',
 };
 
+const NOMES_MESES = [
+  'Janeiro',
+  'Fevereiro',
+  'Março',
+  'Abril',
+  'Maio',
+  'Junho',
+  'Julho',
+  'Agosto',
+  'Setembro',
+  'Outubro',
+  'Novembro',
+  'Dezembro',
+];
+
+function nomeMesComOffset(dataStr: string, offset: number): string {
+  const [ano, mes, dia] = dataStr.split('-').map(Number);
+  if (!ano || !mes || !dia) return '';
+  const data = new Date(ano, mes - 1 + offset, 1);
+  return `${NOMES_MESES[data.getMonth()]}/${data.getFullYear()}`;
+}
+
 export function TransacaoForm({
   action,
   categorias,
@@ -54,8 +76,22 @@ export function TransacaoForm({
   const [tipoDespesa, setTipoDespesa] = useState<TipoDespesa>(transacao?.tipo_despesa ?? 'variavel');
   const [parcelado, setParcelado] = useState(false);
   const [escopo, setEscopo] = useState<'somente' | 'futuras'>('somente');
+  const [dataVencimento, setDataVencimento] = useState(
+    transacao?.data_vencimento ?? transacao?.data ?? new Date().toISOString().slice(0, 10)
+  );
+  const [duplicarAtivo, setDuplicarAtivo] = useState(false);
+  const [mesesDuplicar, setMesesDuplicar] = useState<Set<number>>(new Set());
 
   const ehParteDeParcelamento = Boolean(temProximasParcelas);
+
+  function alternarMesDuplicar(offset: number) {
+    setMesesDuplicar((atual) => {
+      const proximo = new Set(atual);
+      if (proximo.has(offset)) proximo.delete(offset);
+      else proximo.add(offset);
+      return proximo;
+    });
+  }
 
   const tipoLancamento: 'despesa' | 'receita' = aba === 'transferencia' ? 'despesa' : aba;
   const categoriasFiltradas = categorias.filter((c) => c.tipo === tipoLancamento);
@@ -159,7 +195,8 @@ export function TransacaoForm({
               name="data_vencimento"
               type="date"
               required
-              defaultValue={transacao?.data_vencimento ?? transacao?.data ?? new Date().toISOString().slice(0, 10)}
+              value={dataVencimento}
+              onChange={(e) => setDataVencimento(e.target.value)}
               className="input-field"
             />
           </div>
@@ -394,6 +431,57 @@ export function TransacaoForm({
             defaultValue={tipoDespesa === 'fixa' ? 12 : 2}
             className="input-field"
           />
+        </div>
+      )}
+
+      {aba !== 'transferencia' && !transacao && !(aba === 'despesa' && (tipoDespesa === 'fixa' || parcelado)) && (
+        <div>
+          <input type="hidden" name="duplicar_meses" value={Array.from(mesesDuplicar).sort((a, b) => a - b).join(',')} />
+          <div className="flex items-center gap-2">
+            <input
+              id="duplicar_ativo"
+              type="checkbox"
+              checked={duplicarAtivo}
+              onChange={(e) => {
+                setDuplicarAtivo(e.target.checked);
+                if (!e.target.checked) setMesesDuplicar(new Set());
+              }}
+              className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+            />
+            <label htmlFor="duplicar_ativo" className="text-sm text-gray-700">
+              Duplicar este lançamento para os meses seguintes
+            </label>
+          </div>
+
+          {duplicarAtivo && (
+            <div className="mt-3">
+              <p className="mb-2 text-xs text-gray-400">Selecione os meses para os quais deseja repetir este lançamento.</p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((offset) => {
+                  const selecionado = mesesDuplicar.has(offset);
+                  return (
+                    <button
+                      key={offset}
+                      type="button"
+                      onClick={() => alternarMesDuplicar(offset)}
+                      className={
+                        selecionado
+                          ? 'rounded-xl border-2 border-brand-500 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700'
+                          : 'rounded-xl border-2 border-transparent bg-gray-100 px-3 py-2 text-sm font-medium text-gray-600'
+                      }
+                    >
+                      {nomeMesComOffset(dataVencimento, offset)}
+                    </button>
+                  );
+                })}
+              </div>
+              {mesesDuplicar.size > 0 && (
+                <p className="mt-2 text-xs text-gray-400">
+                  {mesesDuplicar.size} {mesesDuplicar.size === 1 ? 'cópia será criada' : 'cópias serão criadas'}, além deste lançamento.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
