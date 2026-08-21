@@ -46,6 +46,7 @@ export function DespesasPorTipoCard({
 }) {
   const classes = TOM_CLASSES[tom];
   const ordenadas = [...categorias].sort((a, b) => b.executado - a.executado);
+  const percentualDoGeral = totalGeral > 0 ? (totalExecutado / totalGeral) * 100 : null;
 
   return (
     <div className={cn('card flex flex-col p-4', className)}>
@@ -54,7 +55,12 @@ export function DespesasPorTipoCard({
           <Icon className="h-5 w-5" />
         </span>
         <div>
-          <p className="text-sm font-medium text-gray-500">{titulo}</p>
+          <p className="text-sm font-medium text-gray-500">
+            {titulo}
+            {percentualDoGeral !== null && (
+              <span className="ml-1.5 font-normal text-gray-400">· {formatPercent0(percentualDoGeral)} do total</span>
+            )}
+          </p>
           <p className="text-xl font-bold text-gray-900">
             <ValorMonetario valor={totalExecutado} />
           </p>
