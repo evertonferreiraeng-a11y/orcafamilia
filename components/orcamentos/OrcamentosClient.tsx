@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { salvarOrcamento, sugerirOrcamentosVazios } from '@/app/(dashboard)/orcamentos/actions';
 import { Modal } from '@/components/ui/Modal';
-import { IconChevronDown, IconChevronRight, IconCheck } from '@/components/icons';
+import { SummaryCard } from '@/components/ui/SummaryCard';
+import { IconChevronDown, IconChevronRight, IconCheck, IconOrcamentos, IconTrendUp, IconTrendDown, IconWallet } from '@/components/icons';
 import { cn, formatCurrency } from '@/lib/utils';
 import { resolverValorEfetivo } from '@/lib/orcamentos';
 
@@ -184,12 +185,17 @@ function CelulaOrcamento({
   );
 }
 
+const TOM_TABELA = {
+  positivo: { cabecalho: 'bg-positive/5 text-positive', total: 'text-positive' },
+  negativo: { cabecalho: 'bg-negative/5 text-negative', total: 'text-negative' },
+} as const;
+
 function TabelaSecao({
   titulo,
   categorias,
   onEditar,
   totaisPorMes,
-  corTotal,
+  tom,
 }: {
   titulo: string;
   categorias: CategoriaAnual[];
@@ -201,8 +207,9 @@ function TabelaSecao({
     mesesAFrente: number
   ) => Promise<string | undefined>;
   totaisPorMes: number[];
-  corTotal: string;
+  tom: 'positivo' | 'negativo';
 }) {
+  const classes = TOM_TABELA[tom];
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
 
   function alternarExpandida(id: string) {
@@ -216,8 +223,11 @@ function TabelaSecao({
 
   return (
     <>
-      <tr className="bg-gray-50">
-        <td colSpan={14} className="sticky left-0 z-10 bg-gray-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+      <tr className={classes.cabecalho}>
+        <td
+          colSpan={14}
+          className={cn('sticky left-0 z-10 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide', classes.cabecalho)}
+        >
           {titulo}
         </td>
       </tr>
@@ -235,8 +245,8 @@ function TabelaSecao({
         const totalCategoria = valoresEfetivos.reduce<number>((a, v) => a + v, 0);
         return (
           <>
-            <tr key={c.id} className="border-b border-gray-50">
-              <td className="sticky left-0 z-10 min-w-[200px] bg-white px-3 py-1.5">
+            <tr key={c.id} className="group border-b border-gray-50 transition-colors hover:bg-gray-50/60">
+              <td className="sticky left-0 z-10 min-w-[200px] bg-white px-3 py-1.5 transition-colors group-hover:bg-gray-50">
                 <button
                   type="button"
                   onClick={() => temSub && alternarExpandida(c.id)}
@@ -301,11 +311,11 @@ function TabelaSecao({
       <tr className="border-b-2 border-gray-100 font-semibold">
         <td className="sticky left-0 z-10 bg-white px-3 py-2 text-sm text-gray-900">TOTAL {titulo.toUpperCase()}</td>
         {totaisPorMes.map((v, i) => (
-          <td key={i} className="px-2 py-2 text-right text-xs" style={{ color: corTotal }}>
+          <td key={i} className={cn('px-2 py-2 text-right text-xs', classes.total)}>
             {formatCurrency(v)}
           </td>
         ))}
-        <td className="px-2 py-2 text-right text-xs" style={{ color: corTotal }}>
+        <td className={cn('px-2 py-2 text-right text-xs', classes.total)}>
           {formatCurrency(totaisPorMes.reduce((a, v) => a + v, 0))}
         </td>
       </tr>
@@ -441,9 +451,14 @@ export function OrcamentosClient({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Orçamentos</h1>
-          <p className="mt-1 text-sm text-gray-500">Base anual de receitas e gastos, mês a mês</p>
+        <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+            <IconOrcamentos className="h-5 w-5" />
+          </span>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Orçamentos</h1>
+            <p className="mt-1 text-sm text-gray-500">Base anual de receitas e gastos, mês a mês</p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={aplicarSugestoes} disabled={sugerindo} className="btn-secondary">
@@ -468,20 +483,14 @@ export function OrcamentosClient({
       )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="card p-4">
-          <p className="text-sm font-medium text-gray-500">Total Receitas no ano</p>
-          <p className="mt-2 text-xl font-bold text-positive">{formatCurrency(totalAnoReceitas)}</p>
-        </div>
-        <div className="card p-4">
-          <p className="text-sm font-medium text-gray-500">Total Gastos no ano</p>
-          <p className="mt-2 text-xl font-bold text-negative">{formatCurrency(totalAnoGastos)}</p>
-        </div>
-        <div className="card p-4">
-          <p className="text-sm font-medium text-gray-500">Resultado do ano</p>
-          <p className={cn('mt-2 text-xl font-bold', totalAnoResultado >= 0 ? 'text-positive' : 'text-negative')}>
-            {formatCurrency(totalAnoResultado)}
-          </p>
-        </div>
+        <SummaryCard titulo="Total Receitas no ano" valor={totalAnoReceitas} tom="positivo" icon={IconTrendUp} />
+        <SummaryCard titulo="Total Gastos no ano" valor={totalAnoGastos} tom="negativo" icon={IconTrendDown} />
+        <SummaryCard
+          titulo="Resultado do ano"
+          valor={totalAnoResultado}
+          tom={totalAnoResultado >= 0 ? 'positivo' : 'negativo'}
+          icon={IconWallet}
+        />
       </div>
 
       <div className="card overflow-x-auto p-0">
@@ -505,14 +514,14 @@ export function OrcamentosClient({
               categorias={dadosReceita}
               onEditar={editarReceita}
               totaisPorMes={totalReceitasPorMes}
-              corTotal="#16a34a"
+              tom="positivo"
             />
             <TabelaSecao
               titulo="Gastos"
               categorias={dadosDespesa}
               onEditar={editarDespesa}
               totaisPorMes={totalGastosPorMes}
-              corTotal="#dc2626"
+              tom="negativo"
             />
             <tr className="bg-gray-900">
               <td className="sticky left-0 z-10 bg-gray-900 px-3 py-2.5 text-sm font-semibold text-white">RESULTADO</td>
