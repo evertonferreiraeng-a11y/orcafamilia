@@ -5,7 +5,8 @@ import { SummaryCard } from '@/components/ui/SummaryCard';
 import { AccountCard } from '@/components/ui/AccountCard';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { IconFamilia } from '@/components/icons';
+import { cn, formatCurrency, formatDate } from '@/lib/utils';
 
 export interface ContaResumo {
   id: string;
@@ -58,6 +59,16 @@ export function FamiliaClient({
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+          <IconFamilia className="h-5 w-5" />
+        </span>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Família</h1>
+          <p className="mt-1 text-sm text-gray-500">Visão consolidada das finanças do casal</p>
+        </div>
+      </div>
+
       <div className="flex gap-2">
         <button
           type="button"
@@ -109,7 +120,7 @@ export function FamiliaClient({
           ) : (
             <div className="card divide-y divide-gray-50">
               {visao.dividas.map((d) => (
-                <div key={d.id} className="flex items-center justify-between px-4 py-3">
+                <div key={d.id} className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-gray-50/60">
                   <div>
                     <p className="text-sm font-medium text-gray-800">{d.descricao}</p>
                     <p className="text-xs text-gray-400">Vence em {formatDate(d.dataVencimento)}</p>
@@ -130,14 +141,21 @@ export function FamiliaClient({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {visao.metas.map((m) => {
               const percentual = (m.valorAtual / m.valorAlvo) * 100;
+              const concluida = percentual >= 100;
               return (
-                <div key={m.id} className="card p-4">
+                <div
+                  key={m.id}
+                  className={cn(
+                    'rounded-2xl border p-4 transition-shadow hover:shadow-elevated',
+                    concluida ? 'border-positive/20 bg-positive/5' : 'border-brand-100 bg-brand-50'
+                  )}
+                >
                   <p className="font-medium text-gray-900">{m.nome}</p>
                   <p className="mt-1 text-sm text-gray-500">
                     {formatCurrency(m.valorAtual)} de {formatCurrency(m.valorAlvo)}
                   </p>
                   <div className="mt-2">
-                    <ProgressBar percentual={percentual} tom="brand" />
+                    <ProgressBar percentual={percentual} tom={concluida ? 'positive' : 'brand'} />
                   </div>
                 </div>
               );
