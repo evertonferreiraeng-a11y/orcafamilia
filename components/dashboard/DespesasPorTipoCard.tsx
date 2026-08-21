@@ -22,19 +22,22 @@ export interface CategoriaExecutadoOrcado {
 
 const TOM_CLASSES = {
   fixa: {
-    header: 'bg-indigo-600',
-    iconeFundo: 'bg-white/15 text-white',
-    totalFundo: 'bg-indigo-600',
+    fundo: 'bg-indigo-50',
+    iconeFundo: 'bg-indigo-100 text-indigo-600',
+    texto: 'text-indigo-700',
+    textoSecundario: 'text-indigo-700/70',
   },
   variavel: {
-    header: 'bg-amber-500',
-    iconeFundo: 'bg-white/15 text-white',
-    totalFundo: 'bg-amber-500',
+    fundo: 'bg-amber-50',
+    iconeFundo: 'bg-amber-100 text-amber-600',
+    texto: 'text-amber-700',
+    textoSecundario: 'text-amber-700/70',
   },
   receita: {
-    header: 'bg-emerald-600',
-    iconeFundo: 'bg-white/15 text-white',
-    totalFundo: 'bg-emerald-600',
+    fundo: 'bg-emerald-50',
+    iconeFundo: 'bg-emerald-100 text-emerald-600',
+    texto: 'text-emerald-700',
+    textoSecundario: 'text-emerald-700/70',
   },
 } as const;
 
@@ -67,20 +70,20 @@ export function DespesasPorTipoCard({
 
   return (
     <div className={cn('card flex flex-col overflow-hidden p-0', className)}>
-      <div className={cn('flex items-center gap-3 px-4 py-4', classes.header)}>
+      <div className={cn('flex items-center gap-3 px-4 py-4', classes.fundo)}>
         <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', classes.iconeFundo)}>
           <Icon className="h-5 w-5" />
         </span>
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-white/90">
+          <p className={cn('text-sm font-semibold uppercase tracking-wide', classes.texto)}>
             {titulo}
             {percentualDoGeral !== null && (
-              <span className="ml-1.5 font-normal normal-case text-white/70">
+              <span className={cn('ml-1.5 font-normal normal-case', classes.textoSecundario)}>
                 · {formatPercent0(percentualDoGeral)} do total
               </span>
             )}
           </p>
-          <p className="text-xl font-bold text-white">
+          <p className={cn('text-xl font-bold', classes.texto)}>
             <ValorMonetario valor={totalExecutado} />
           </p>
         </div>
@@ -108,18 +111,18 @@ export function DespesasPorTipoCard({
         )}
       </div>
 
-      <div className={cn('flex items-center gap-3 px-4 py-3 text-sm font-semibold text-white', classes.totalFundo)}>
+      <div className={cn('flex items-center gap-3 border-t border-gray-100 px-4 py-3 text-sm font-semibold', classes.fundo, classes.texto)}>
         <span className="flex-1 uppercase tracking-wide">Total</span>
         <span className="w-24 shrink-0 text-right">
           <ValorMonetario valor={totalExecutado} />
         </span>
-        <span className="w-24 shrink-0 text-right text-white/80">
+        <span className={cn('w-24 shrink-0 text-right text-xs font-medium', classes.textoSecundario)}>
           {totalOrcado > 0 ? <ValorMonetario valor={totalOrcado} /> : '—'}
         </span>
-        <span className="w-16 shrink-0 text-center text-xs text-white/80">
+        <span className={cn('w-16 shrink-0 text-center text-xs font-medium', classes.textoSecundario)}>
           {totalOrcado > 0 ? formatPercent0((totalExecutado / totalOrcado) * 100) : '—'}
         </span>
-        <span className="w-16 shrink-0 text-center text-xs text-white/80">
+        <span className={cn('w-16 shrink-0 text-center text-xs font-medium', classes.textoSecundario)}>
           {totalGeral > 0 ? formatPercent0((totalExecutado / totalGeral) * 100) : '—'}
         </span>
       </div>
