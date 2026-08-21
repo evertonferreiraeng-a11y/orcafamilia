@@ -5,6 +5,7 @@ import { ContasSection } from '@/components/cadastro/ContasSection';
 import { CartoesSection } from '@/components/cadastro/CartoesSection';
 import { CategoriasSection } from '@/components/cadastro/CategoriasSection';
 import { InvestimentosSection } from '@/components/cadastro/InvestimentosSection';
+import { IconCadastro } from '@/components/icons';
 import type { Conta, Cartao, Categoria, Subcategoria, Investimento } from '@/types/database';
 
 type Aba = 'contas' | 'cartoes' | 'categorias' | 'investimentos';
@@ -33,6 +34,16 @@ export function CadastroTabs({
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+          <IconCadastro className="h-5 w-5" />
+        </span>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Cadastro</h1>
+          <p className="mt-1 text-sm text-gray-500">Gerencie contas, cartões, categorias e investimentos</p>
+        </div>
+      </div>
+
       <div className="flex flex-wrap gap-2 border-b border-gray-100 pb-2">
         {ABAS.map((a) => (
           <button
