@@ -62,10 +62,11 @@ export function DespesasPorTipoCard({
       {ordenadas.length > 0 ? (
         <div className="mt-4 flex flex-col">
           <div className="flex items-center gap-3 px-1 pb-2 text-xs font-medium uppercase text-gray-400">
+            <span className="w-8 shrink-0" />
             <span className="flex-1">Categoria</span>
-            <span className="w-24 text-right">Executado</span>
-            <span className="w-24 text-right">Orçado</span>
-            <span className="w-14 text-right">%</span>
+            <span className="w-24 shrink-0 text-right">Executado</span>
+            <span className="w-24 shrink-0 text-right">Orçado</span>
+            <span className="w-14 shrink-0 text-right">%</span>
           </div>
           <div className="divide-y divide-gray-50">
             {ordenadas.map((c) => {
@@ -109,14 +110,16 @@ export function DespesasPorTipoCard({
         <p className="mt-4 text-center text-sm text-gray-400">Nenhuma despesa deste tipo registrada neste mês.</p>
       )}
 
-      <div className={cn('mt-3 flex items-center justify-between rounded-xl px-3 py-2 text-sm font-semibold', classes.totalFundo)}>
-        <span>Total</span>
-        <span className="flex items-center gap-4">
+      <div className={cn('mt-3 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold', classes.totalFundo)}>
+        <span className="flex-1">Total</span>
+        <span className="w-24 shrink-0 text-right">
           <ValorMonetario valor={totalExecutado} />
-          <span className="opacity-70">{totalOrcado > 0 ? <ValorMonetario valor={totalOrcado} /> : '—'}</span>
-          <span className="w-14 shrink-0 text-right text-xs opacity-70">
-            {totalOrcado > 0 ? formatPercent0((totalExecutado / totalOrcado) * 100) : '—'}
-          </span>
+        </span>
+        <span className="w-24 shrink-0 text-right opacity-70">
+          {totalOrcado > 0 ? <ValorMonetario valor={totalOrcado} /> : '—'}
+        </span>
+        <span className="w-14 shrink-0 text-right text-xs opacity-70">
+          {totalOrcado > 0 ? formatPercent0((totalExecutado / totalOrcado) * 100) : '—'}
         </span>
       </div>
     </div>
