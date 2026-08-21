@@ -87,14 +87,14 @@ export default async function DashboardPage({
       .eq('mes_referencia', inicio),
     supabase
       .from('transacoes')
-      .select('categoria_id, valor, pago, tipo_despesa')
+      .select('categoria_id, subcategoria_id, valor, pago, tipo_despesa')
       .eq('user_id', user.id)
       .eq('tipo', 'despesa')
       .eq('eh_transferencia', false)
       .gte('data', inicio)
       .lte('data', fim),
     supabase.from('categorias').select('id, nome, cor, icone, tipo').eq('user_id', user.id),
-    supabase.from('subcategorias').select('id, categoria_id').eq('user_id', user.id),
+    supabase.from('subcategorias').select('id, categoria_id, nome').eq('user_id', user.id),
     supabase
       .from('transacoes')
       .select('data, tipo, valor, pago, categoria_id')
@@ -158,13 +158,24 @@ export default async function DashboardPage({
   const gastoPorCategoria = new Map<string, number>();
   const gastoPorCategoriaFixa = new Map<string, number>();
   const gastoPorCategoriaVariavel = new Map<string, number>();
+  const gastoPorSubcategoriaFixa = new Map<string, number>();
+  const gastoPorSubcategoriaVariavel = new Map<string, number>();
   for (const t of despesasPorCategoriaMes ?? []) {
     if (!t.categoria_id) continue;
     gastoPorCategoria.set(t.categoria_id, (gastoPorCategoria.get(t.categoria_id) ?? 0) + Number(t.valor));
     if (t.tipo_despesa === 'fixa') {
       gastoPorCategoriaFixa.set(t.categoria_id, (gastoPorCategoriaFixa.get(t.categoria_id) ?? 0) + Number(t.valor));
+      if (t.subcategoria_id) {
+        gastoPorSubcategoriaFixa.set(t.subcategoria_id, (gastoPorSubcategoriaFixa.get(t.subcategoria_id) ?? 0) + Number(t.valor));
+      }
     } else if (t.tipo_despesa === 'variavel') {
       gastoPorCategoriaVariavel.set(t.categoria_id, (gastoPorCategoriaVariavel.get(t.categoria_id) ?? 0) + Number(t.valor));
+      if (t.subcategoria_id) {
+        gastoPorSubcategoriaVariavel.set(
+          t.subcategoria_id,
+          (gastoPorSubcategoriaVariavel.get(t.subcategoria_id) ?? 0) + Number(t.valor)
+        );
+      }
     }
   }
   const planejado = orcamentosEfetivosMes.reduce((a, o) => a + o.valor_limite, 0);
@@ -188,29 +199,50 @@ export default async function DashboardPage({
 
   const orcadoPorCategoria = new Map(orcamentosEfetivosMes.map((o) => [o.categoria_id, o.valor_limite]));
 
+  const orcadoPorSubcategoria = new Map<string, number>();
+  for (const o of orcamentosMes ?? []) {
+    if (!o.subcategoria_id) continue;
+    orcadoPorSubcategoria.set(o.subcategoria_id, (orcadoPorSubcategoria.get(o.subcategoria_id) ?? 0) + Number(o.valor_limite));
+  }
+
+  const subcategoriasPorCategoriaDetalhe = new Map<string, { id: string; nome: string }[]>();
+  for (const s of subcategoriasTodas ?? []) {
+    const lista = subcategoriasPorCategoriaDetalhe.get(s.categoria_id) ?? [];
+    lista.push({ id: s.id, nome: s.nome });
+    subcategoriasPorCategoriaDetalhe.set(s.categoria_id, lista);
+  }
+
   const categoriasDespesa = (categoriasTodas ?? []).filter((c) => c.tipo === 'despesa');
 
-  const categoriasFixasDetalhe: CategoriaExecutadoOrcado[] = categoriasDespesa
-    .map((c) => ({
-      id: c.id,
-      nome: c.nome,
-      cor: c.cor,
-      icone: c.icone,
-      executado: gastoPorCategoriaFixa.get(c.id) ?? 0,
-      orcado: orcadoPorCategoria.get(c.id) ?? 0,
-    }))
-    .filter((c) => c.executado > 0);
+  const categoriasFixasDetalhe: CategoriaExecutadoOrcado[] = categoriasDespesa.map((c) => ({
+    id: c.id,
+    nome: c.nome,
+    cor: c.cor,
+    icone: c.icone,
+    executado: gastoPorCategoriaFixa.get(c.id) ?? 0,
+    orcado: orcadoPorCategoria.get(c.id) ?? 0,
+    subcategorias: (subcategoriasPorCategoriaDetalhe.get(c.id) ?? []).map((s) => ({
+      id: s.id,
+      nome: s.nome,
+      executado: gastoPorSubcategoriaFixa.get(s.id) ?? 0,
+      orcado: orcadoPorSubcategoria.get(s.id) ?? 0,
+    })),
+  }));
 
-  const categoriasVariaveisDetalhe: CategoriaExecutadoOrcado[] = categoriasDespesa
-    .map((c) => ({
-      id: c.id,
-      nome: c.nome,
-      cor: c.cor,
-      icone: c.icone,
-      executado: gastoPorCategoriaVariavel.get(c.id) ?? 0,
-      orcado: orcadoPorCategoria.get(c.id) ?? 0,
-    }))
-    .filter((c) => c.executado > 0);
+  const categoriasVariaveisDetalhe: CategoriaExecutadoOrcado[] = categoriasDespesa.map((c) => ({
+    id: c.id,
+    nome: c.nome,
+    cor: c.cor,
+    icone: c.icone,
+    executado: gastoPorCategoriaVariavel.get(c.id) ?? 0,
+    orcado: orcadoPorCategoria.get(c.id) ?? 0,
+    subcategorias: (subcategoriasPorCategoriaDetalhe.get(c.id) ?? []).map((s) => ({
+      id: s.id,
+      nome: s.nome,
+      executado: gastoPorSubcategoriaVariavel.get(s.id) ?? 0,
+      orcado: orcadoPorSubcategoria.get(s.id) ?? 0,
+    })),
+  }));
 
   const orcadoFixasTotal = categoriasFixasDetalhe.reduce((a, c) => a + c.orcado, 0);
   const orcadoVariaveisTotal = categoriasVariaveisDetalhe.reduce((a, c) => a + c.orcado, 0);
