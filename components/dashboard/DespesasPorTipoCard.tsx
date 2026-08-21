@@ -92,13 +92,13 @@ export function DespesasPorTipoCard({
       <div className="flex flex-col p-4">
         {ordenadas.length > 0 ? (
           <div className="flex flex-col">
-            <div className="flex items-center gap-3 px-1 pb-2 text-xs font-medium uppercase text-gray-400">
+            <div className="flex items-center gap-2 px-1 pb-2 text-xs font-medium uppercase text-gray-400 sm:gap-3">
               <span className="w-8 shrink-0" />
               <span className="flex-1">Categoria</span>
-              <span className="w-24 shrink-0 text-right">Executado</span>
-              <span className="w-24 shrink-0 text-right">Orçado</span>
-              <span className="w-16 shrink-0 whitespace-nowrap text-center">% Orç.</span>
-              <span className="w-16 shrink-0 whitespace-nowrap text-center">% Geral</span>
+              <span className="w-16 shrink-0 text-right sm:w-24">Executado</span>
+              <span className="w-16 shrink-0 text-right sm:w-24">Orçado</span>
+              <span className="w-12 shrink-0 whitespace-nowrap text-center sm:w-16">% Orç.</span>
+              <span className="hidden w-16 shrink-0 whitespace-nowrap text-center sm:block">% Geral</span>
             </div>
             <div className="divide-y divide-gray-50">
               {ordenadas.map((c) => (
@@ -111,18 +111,24 @@ export function DespesasPorTipoCard({
         )}
       </div>
 
-      <div className={cn('flex items-center gap-3 border-t border-gray-100 px-4 py-3 text-sm font-semibold', classes.fundo, classes.texto)}>
+      <div
+        className={cn(
+          'flex items-center gap-2 border-t border-gray-100 px-4 py-3 text-sm font-semibold sm:gap-3',
+          classes.fundo,
+          classes.texto
+        )}
+      >
         <span className="flex-1 uppercase tracking-wide">Total</span>
-        <span className="w-24 shrink-0 text-right">
+        <span className="w-16 shrink-0 text-right sm:w-24">
           <ValorMonetario valor={totalExecutado} />
         </span>
-        <span className={cn('w-24 shrink-0 text-right text-xs font-medium', classes.textoSecundario)}>
+        <span className={cn('w-16 shrink-0 text-right text-xs font-medium sm:w-24', classes.textoSecundario)}>
           {totalOrcado > 0 ? <ValorMonetario valor={totalOrcado} /> : '—'}
         </span>
-        <span className={cn('w-16 shrink-0 text-center text-xs font-medium', classes.textoSecundario)}>
+        <span className={cn('w-12 shrink-0 text-center text-xs font-medium sm:w-16', classes.textoSecundario)}>
           {totalOrcado > 0 ? formatPercent0((totalExecutado / totalOrcado) * 100) : '—'}
         </span>
-        <span className={cn('w-16 shrink-0 text-center text-xs font-medium', classes.textoSecundario)}>
+        <span className={cn('hidden w-16 shrink-0 text-center text-xs font-medium sm:block', classes.textoSecundario)}>
           {totalGeral > 0 ? formatPercent0((totalExecutado / totalGeral) * 100) : '—'}
         </span>
       </div>
