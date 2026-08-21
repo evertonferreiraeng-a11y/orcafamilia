@@ -16,6 +16,7 @@ import { MinhasContasCarousel } from '@/components/dashboard/MinhasContasCarouse
 import { BalancoMensalChart, type PontoBalanco } from '@/components/dashboard/BalancoMensalChart';
 import { GerenteFinanceiroCard } from '@/components/dashboard/GerenteFinanceiroCard';
 import { DespesasPorTipoCard, type CategoriaExecutadoOrcado } from '@/components/dashboard/DespesasPorTipoCard';
+import { SaldoDoMesCard } from '@/components/dashboard/SaldoDoMesCard';
 import { IconTrendUp, IconTrendDown, IconWallet, IconRecorrente, IconCompras } from '@/components/icons';
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -492,6 +493,8 @@ export default async function DashboardPage({
           />
         </div>
       </div>
+
+      <SaldoDoMesCard receita={totalReceitaCategorias} despesaFixa={despesaFixaMes} despesaVariavel={gastoVariavelMes} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <DespesasPorTipoCard
