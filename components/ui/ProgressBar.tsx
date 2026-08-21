@@ -1,11 +1,13 @@
 import { cn } from '@/lib/utils';
 
-export function ProgressBar({ percentual, tom }: { percentual: number; tom?: 'auto' | 'brand' }) {
+export function ProgressBar({ percentual, tom }: { percentual: number; tom?: 'auto' | 'brand' | 'positive' }) {
   const p = Math.max(0, Math.min(100, percentual));
 
   const cor =
     tom === 'brand'
       ? 'bg-brand-500'
+      : tom === 'positive'
+      ? 'bg-positive'
       : p >= 100
       ? 'bg-negative'
       : p >= 80
