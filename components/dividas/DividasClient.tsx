@@ -15,6 +15,7 @@ import {
   IconCalendario,
   IconSearch,
   IconCartao,
+  IconDividas,
 } from '@/components/icons';
 import { DividaForm } from '@/components/dividas/DividaForm';
 import { PagamentoForm } from '@/components/dividas/PagamentoForm';
@@ -106,9 +107,14 @@ export function DividasClient({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Controle de Dívidas</h1>
-          <p className="mt-1 text-sm text-gray-500">Gerencie suas dívidas e acompanhe os pagamentos</p>
+        <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+            <IconDividas className="h-5 w-5" />
+          </span>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Controle de Dívidas</h1>
+            <p className="mt-1 text-sm text-gray-500">Gerencie suas dívidas e acompanhe os pagamentos</p>
+          </div>
         </div>
         <button type="button" onClick={abrirNova} className="btn-primary">
           <IconPlus className="h-4 w-4" />
@@ -131,12 +137,22 @@ export function DividasClient({
           subtitulo="Ainda precisa ser pago"
           icon={IconTrendDown}
         />
-        <div className="card p-4">
+        <div
+          className={cn(
+            'rounded-2xl p-4 transition-shadow hover:shadow-card',
+            dividasVencidas > 0 ? 'bg-negative/5' : 'bg-brand-50'
+          )}
+        >
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+            <span
+              className={cn(
+                'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
+                dividasVencidas > 0 ? 'bg-negative/15 text-negative' : 'bg-brand-100 text-brand-600'
+              )}
+            >
               <IconAlerta className="h-5 w-5" />
             </span>
-            <p className="text-sm font-medium text-gray-500">Dívidas Vencidas</p>
+            <p className="text-sm font-semibold text-gray-600">Dívidas Vencidas</p>
           </div>
           <p className={cn('mt-4 text-xl font-bold', dividasVencidas > 0 ? 'text-negative' : 'text-gray-900')}>
             {dividasVencidas}
@@ -186,7 +202,7 @@ export function DividasClient({
             const status = statusDivida(d, hoje);
 
             return (
-              <div key={d.id} className="card p-4">
+              <div key={d.id} className="card p-4 transition-shadow hover:shadow-elevated">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="font-semibold text-gray-900">{d.descricao}</p>
