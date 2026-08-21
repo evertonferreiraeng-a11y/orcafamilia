@@ -79,8 +79,12 @@ export default function CadastroPage() {
         </div>
       )}
 
-      {state.error && <p className="text-sm text-negative">{state.error}</p>}
-      {state.mensagem && <p className="text-sm text-positive">{state.mensagem}</p>}
+      {state.error && (
+        <p className="rounded-xl bg-negative/10 px-3 py-2 text-sm font-medium text-negative">{state.error}</p>
+      )}
+      {state.mensagem && (
+        <p className="rounded-xl bg-positive/10 px-3 py-2 text-sm font-medium text-positive">{state.mensagem}</p>
+      )}
 
       <BotaoCriar />
 
