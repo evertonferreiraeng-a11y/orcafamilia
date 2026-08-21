@@ -2,6 +2,8 @@
 
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, type TooltipProps } from 'recharts';
 import { formatCurrency, formatPercent, calcularVariacaoPercentual, cn } from '@/lib/utils';
+import { SummaryCard } from '@/components/ui/SummaryCard';
+import { IconWallet, IconTrendUp, IconTrendDown } from '@/components/icons';
 import type { PontoPatrimonio } from '@/components/indicadores/IndicadoresClient';
 
 function PatrimonioTooltip({ active, payload, label }: TooltipProps<number, string>) {
@@ -30,17 +32,31 @@ export function PatrimonioLiquidoReport({ pontosPatrimonioAno }: { pontosPatrimo
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="card p-4 text-center">
-          <p className="text-sm font-medium text-gray-500">Patrimônio no início do ano</p>
-          <p className="mt-2 text-lg font-bold text-gray-900">{formatCurrency(inicio)}</p>
-        </div>
-        <div className="card p-4 text-center">
-          <p className="text-sm font-medium text-gray-500">Patrimônio no fim do ano</p>
-          <p className="mt-2 text-lg font-bold text-gray-900">{formatCurrency(fim)}</p>
-        </div>
-        <div className="card p-4 text-center">
-          <p className="text-sm font-medium text-gray-500">Variação no ano</p>
-          <p className={cn('mt-2 text-lg font-bold', fim >= inicio ? 'text-positive' : 'text-negative')}>
+        <SummaryCard
+          titulo="Patrimônio no início do ano"
+          valor={inicio}
+          tom={inicio >= 0 ? 'positivo' : 'negativo'}
+          icon={IconWallet}
+        />
+        <SummaryCard
+          titulo="Patrimônio no fim do ano"
+          valor={fim}
+          tom={fim >= 0 ? 'positivo' : 'negativo'}
+          icon={IconWallet}
+        />
+        <div className={cn('rounded-2xl p-4 transition-shadow hover:shadow-card', fim >= inicio ? 'bg-positive/5' : 'bg-negative/5')}>
+          <div className="flex items-center gap-3">
+            <span
+              className={cn(
+                'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
+                fim >= inicio ? 'bg-positive/15 text-positive' : 'bg-negative/15 text-negative'
+              )}
+            >
+              {fim >= inicio ? <IconTrendUp className="h-5 w-5" /> : <IconTrendDown className="h-5 w-5" />}
+            </span>
+            <p className="text-sm font-semibold text-gray-600">Variação no ano</p>
+          </div>
+          <p className={cn('mt-4 text-xl font-bold', fim >= inicio ? 'text-positive' : 'text-negative')}>
             {variacao === null ? '—' : formatPercent(variacao)}
           </p>
         </div>
@@ -96,7 +112,7 @@ export function PatrimonioLiquidoReport({ pontosPatrimonioAno }: { pontosPatrimo
             </thead>
             <tbody>
               {pontosPatrimonioAno.map((p) => (
-                <tr key={p.label} className="border-b border-gray-50 last:border-0">
+                <tr key={p.label} className="border-b border-gray-50 transition-colors last:border-0 hover:bg-gray-50/60">
                   <td className="px-2 py-1.5 text-gray-600">{p.label}</td>
                   <td className="px-2 py-1.5 text-right text-gray-500">{formatCurrency(p.contas)}</td>
                   <td className="px-2 py-1.5 text-right text-gray-500">{formatCurrency(p.dividas)}</td>
