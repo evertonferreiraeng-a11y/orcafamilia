@@ -223,38 +223,74 @@ export default async function DashboardPage({
 
   const categoriasDespesa = (categoriasTodas ?? []).filter((c) => c.tipo === 'despesa');
 
+  // O orçamento é definido por categoria (não por fixa/variável), então uma mesma categoria
+  // pode ter uma única verba mensal. Para não repetir esse valor cheio nos dois cards (o que dá a
+  // falsa impressão de orçamento em dobro), o orçado é dividido entre Fixas e Variáveis
+  // proporcionalmente a onde a categoria realmente teve gasto neste mês.
+  function dividirOrcado(execFixa: number, execVariavel: number, orcadoTotal: number): { fixa: number; variavel: number } {
+    if (orcadoTotal <= 0) return { fixa: 0, variavel: 0 };
+    if (execFixa > 0 && execVariavel > 0) {
+      const totalExec = execFixa + execVariavel;
+      const fixa = orcadoTotal * (execFixa / totalExec);
+      return { fixa, variavel: orcadoTotal - fixa };
+    }
+    if (execFixa > 0) return { fixa: orcadoTotal, variavel: 0 };
+    if (execVariavel > 0) return { fixa: 0, variavel: orcadoTotal };
+    return { fixa: orcadoTotal, variavel: 0 };
+  }
+
   const categoriasFixasDetalhe: CategoriaExecutadoOrcado[] = categoriasDespesa
-    .map((c) => ({
-      id: c.id,
-      nome: c.nome,
-      cor: c.cor,
-      icone: c.icone,
-      executado: gastoPorCategoriaFixa.get(c.id) ?? 0,
-      orcado: orcadoPorCategoria.get(c.id) ?? 0,
-      subcategorias: (subcategoriasPorCategoriaDetalhe.get(c.id) ?? []).map((s) => ({
-        id: s.id,
-        nome: s.nome,
-        executado: gastoPorSubcategoriaFixa.get(s.id) ?? 0,
-        orcado: orcadoPorSubcategoria.get(s.id) ?? 0,
-      })),
-    }))
+    .map((c) => {
+      const execFixa = gastoPorCategoriaFixa.get(c.id) ?? 0;
+      const execVariavel = gastoPorCategoriaVariavel.get(c.id) ?? 0;
+      const orcadoDividido = dividirOrcado(execFixa, execVariavel, orcadoPorCategoria.get(c.id) ?? 0);
+      return {
+        id: c.id,
+        nome: c.nome,
+        cor: c.cor,
+        icone: c.icone,
+        executado: execFixa,
+        orcado: orcadoDividido.fixa,
+        subcategorias: (subcategoriasPorCategoriaDetalhe.get(c.id) ?? []).map((s) => {
+          const sExecFixa = gastoPorSubcategoriaFixa.get(s.id) ?? 0;
+          const sExecVariavel = gastoPorSubcategoriaVariavel.get(s.id) ?? 0;
+          const sOrcadoDividido = dividirOrcado(sExecFixa, sExecVariavel, orcadoPorSubcategoria.get(s.id) ?? 0);
+          return {
+            id: s.id,
+            nome: s.nome,
+            executado: sExecFixa,
+            orcado: sOrcadoDividido.fixa,
+          };
+        }),
+      };
+    })
     .filter((c) => c.executado > 0 || c.orcado > 0);
 
   const categoriasVariaveisDetalhe: CategoriaExecutadoOrcado[] = categoriasDespesa
-    .map((c) => ({
-      id: c.id,
-      nome: c.nome,
-      cor: c.cor,
-      icone: c.icone,
-      executado: gastoPorCategoriaVariavel.get(c.id) ?? 0,
-      orcado: orcadoPorCategoria.get(c.id) ?? 0,
-      subcategorias: (subcategoriasPorCategoriaDetalhe.get(c.id) ?? []).map((s) => ({
-        id: s.id,
-        nome: s.nome,
-        executado: gastoPorSubcategoriaVariavel.get(s.id) ?? 0,
-        orcado: orcadoPorSubcategoria.get(s.id) ?? 0,
-      })),
-    }))
+    .map((c) => {
+      const execFixa = gastoPorCategoriaFixa.get(c.id) ?? 0;
+      const execVariavel = gastoPorCategoriaVariavel.get(c.id) ?? 0;
+      const orcadoDividido = dividirOrcado(execFixa, execVariavel, orcadoPorCategoria.get(c.id) ?? 0);
+      return {
+        id: c.id,
+        nome: c.nome,
+        cor: c.cor,
+        icone: c.icone,
+        executado: execVariavel,
+        orcado: orcadoDividido.variavel,
+        subcategorias: (subcategoriasPorCategoriaDetalhe.get(c.id) ?? []).map((s) => {
+          const sExecFixa = gastoPorSubcategoriaFixa.get(s.id) ?? 0;
+          const sExecVariavel = gastoPorSubcategoriaVariavel.get(s.id) ?? 0;
+          const sOrcadoDividido = dividirOrcado(sExecFixa, sExecVariavel, orcadoPorSubcategoria.get(s.id) ?? 0);
+          return {
+            id: s.id,
+            nome: s.nome,
+            executado: sExecVariavel,
+            orcado: sOrcadoDividido.variavel,
+          };
+        }),
+      };
+    })
     .filter((c) => c.executado > 0 || c.orcado > 0);
 
   const orcadoFixasTotal = categoriasFixasDetalhe.reduce((a, c) => a + c.orcado, 0);
