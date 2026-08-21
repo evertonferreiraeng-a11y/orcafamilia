@@ -128,7 +128,35 @@ export async function criarTransacao(_prevState: TransacaoFormState, formData: F
     tipo_despesa: tipoDespesa,
   }));
 
-  const { error } = await supabase.from('transacoes').insert(linhas);
+  // Duplicação avulsa: cópias deste lançamento em meses específicos escolhidos pelo usuário
+  // (independente do parcelamento/recorrência mensal acima, que já cobre meses sequenciais).
+  const mesesDuplicar = String(formData.get('duplicar_meses') || '')
+    .split(',')
+    .map((s) => Number(s.trim()))
+    .filter((n) => Number.isInteger(n) && n > 0 && n <= 24);
+
+  const linhasDuplicadas = mesesDuplicar.map((offset) => ({
+    user_id: user.id,
+    tipo: aba,
+    descricao,
+    valor,
+    data: adicionarMeses(dataBase, offset),
+    data_registro: dataRegistro,
+    data_vencimento: adicionarMeses(dataVencimento, offset),
+    categoria_id: categoriaId,
+    subcategoria_id: subcategoriaId,
+    conta_id: contaId,
+    cartao_id: cartaoId,
+    pago: false,
+    recorrente: false,
+    frequencia: null,
+    grupo_parcelamento: null,
+    parcela_atual: null,
+    parcela_total: null,
+    tipo_despesa: tipoDespesa,
+  }));
+
+  const { error } = await supabase.from('transacoes').insert([...linhas, ...linhasDuplicadas]);
   if (error) return { error: error.message };
 
   revalidatePath('/transacoes');
