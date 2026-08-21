@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { IconPlus, IconSearch } from '@/components/icons';
+import { IconPlus, IconSearch, IconMetas } from '@/components/icons';
 import { MetaForm } from '@/components/metas/MetaForm';
 import { MetaCard } from '@/components/metas/MetaCard';
 import { criarMeta, atualizarMeta } from '@/app/(dashboard)/metas/actions';
@@ -41,9 +41,14 @@ export function MetasClient({ metas }: { metas: Meta[] }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Vision Board - Metas</h1>
-          <p className="mt-1 text-sm text-gray-500">Visualize e acompanhe suas metas financeiras</p>
+        <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+            <IconMetas className="h-5 w-5" />
+          </span>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Vision Board - Metas</h1>
+            <p className="mt-1 text-sm text-gray-500">Visualize e acompanhe suas metas financeiras</p>
+          </div>
         </div>
         <button type="button" onClick={abrirNova} className="btn-primary">
           <IconPlus className="h-4 w-4" />
