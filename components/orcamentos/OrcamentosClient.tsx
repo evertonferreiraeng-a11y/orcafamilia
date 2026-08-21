@@ -38,6 +38,10 @@ function formatPercentAtingido(executado: number, orcado: number): string {
   return formatPercent0((executado / orcado) * 100);
 }
 
+function percentualEstourado(executado: number, orcado: number): boolean {
+  return orcado > 0 && executado > orcado;
+}
+
 function CelulaOrcamento({
   valor,
   label,
@@ -303,7 +307,12 @@ function TabelaSecao({
                         />
                       </td>
                     )}
-                    <td className="px-2 py-1 text-right text-xs tabular-nums text-gray-400">
+                    <td
+                      className={cn(
+                        'px-2 py-1 text-right text-xs tabular-nums',
+                        percentualEstourado(executado, orcado) ? 'font-semibold text-negative' : 'text-gray-400'
+                      )}
+                    >
                       {formatPercentAtingido(executado, orcado)}
                     </td>
                   </Fragment>
@@ -315,7 +324,12 @@ function TabelaSecao({
               <td className="px-2 py-1.5 text-right text-xs font-medium text-gray-500">
                 {totalOrcadoCategoria > 0 ? formatCurrency(totalOrcadoCategoria) : '—'}
               </td>
-              <td className="px-2 py-1.5 text-right text-xs font-medium text-gray-500">
+              <td
+                className={cn(
+                  'px-2 py-1.5 text-right text-xs font-medium',
+                  percentualEstourado(totalExecutadoCategoria, totalOrcadoCategoria) ? 'text-negative' : 'text-gray-500'
+                )}
+              >
                 {formatPercentAtingido(totalExecutadoCategoria, totalOrcadoCategoria)}
               </td>
             </tr>
@@ -343,7 +357,12 @@ function TabelaSecao({
                               onSalvar={(v, meses) => onEditar(c.id, s.id, i, v, meses)}
                             />
                           </td>
-                          <td className="px-2 py-1 text-right text-xs tabular-nums text-gray-400">
+                          <td
+                            className={cn(
+                              'px-2 py-1 text-right text-xs tabular-nums',
+                              percentualEstourado(executado, s.valoresPorMes[i] ?? 0) ? 'font-semibold text-negative' : 'text-gray-400'
+                            )}
+                          >
                             {formatPercentAtingido(executado, s.valoresPorMes[i] ?? 0)}
                           </td>
                         </Fragment>
@@ -355,7 +374,12 @@ function TabelaSecao({
                     <td className="px-2 py-1 text-right text-xs font-medium text-gray-500">
                       {totalOrcadoSub > 0 ? formatCurrency(totalOrcadoSub) : '—'}
                     </td>
-                    <td className="px-2 py-1 text-right text-xs font-medium text-gray-500">
+                    <td
+                      className={cn(
+                        'px-2 py-1 text-right text-xs font-medium',
+                        percentualEstourado(totalExecutadoSub, totalOrcadoSub) ? 'text-negative' : 'text-gray-500'
+                      )}
+                    >
                       {formatPercentAtingido(totalExecutadoSub, totalOrcadoSub)}
                     </td>
                   </tr>
@@ -374,7 +398,9 @@ function TabelaSecao({
                 {formatCurrency(executado)}
               </td>
               <td className={cn('px-2 py-2 text-right text-xs', classes.total)}>{formatCurrency(v)}</td>
-              <td className={cn('px-2 py-2 text-right text-xs', classes.total)}>{formatPercentAtingido(executado, v)}</td>
+              <td className={cn('px-2 py-2 text-right text-xs', percentualEstourado(executado, v) ? 'text-negative' : classes.total)}>
+                {formatPercentAtingido(executado, v)}
+              </td>
             </Fragment>
           );
         })}
@@ -382,7 +408,12 @@ function TabelaSecao({
           {formatCurrency(totalExecutadoAno)}
         </td>
         <td className={cn('px-2 py-2 text-right text-xs', classes.total)}>{formatCurrency(totalOrcadoAno)}</td>
-        <td className={cn('px-2 py-2 text-right text-xs', classes.total)}>
+        <td
+          className={cn(
+            'px-2 py-2 text-right text-xs',
+            percentualEstourado(totalExecutadoAno, totalOrcadoAno) ? 'text-negative' : classes.total
+          )}
+        >
           {formatPercentAtingido(totalExecutadoAno, totalOrcadoAno)}
         </td>
       </tr>
