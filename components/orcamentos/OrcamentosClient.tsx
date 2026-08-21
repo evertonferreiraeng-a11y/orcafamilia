@@ -310,7 +310,7 @@ function TabelaSecao({
                     <td
                       className={cn(
                         'px-2 py-1 text-right text-xs tabular-nums',
-                        percentualEstourado(executado, orcado) ? 'font-semibold text-negative' : 'text-gray-400'
+                        percentualEstourado(executado, orcado) ? cn('font-semibold', classes.total) : 'text-gray-400'
                       )}
                     >
                       {formatPercentAtingido(executado, orcado)}
@@ -327,7 +327,7 @@ function TabelaSecao({
               <td
                 className={cn(
                   'px-2 py-1.5 text-right text-xs font-medium',
-                  percentualEstourado(totalExecutadoCategoria, totalOrcadoCategoria) ? 'text-negative' : 'text-gray-500'
+                  percentualEstourado(totalExecutadoCategoria, totalOrcadoCategoria) ? classes.total : 'text-gray-500'
                 )}
               >
                 {formatPercentAtingido(totalExecutadoCategoria, totalOrcadoCategoria)}
@@ -360,7 +360,9 @@ function TabelaSecao({
                           <td
                             className={cn(
                               'px-2 py-1 text-right text-xs tabular-nums',
-                              percentualEstourado(executado, s.valoresPorMes[i] ?? 0) ? 'font-semibold text-negative' : 'text-gray-400'
+                              percentualEstourado(executado, s.valoresPorMes[i] ?? 0)
+                                ? cn('font-semibold', classes.total)
+                                : 'text-gray-400'
                             )}
                           >
                             {formatPercentAtingido(executado, s.valoresPorMes[i] ?? 0)}
@@ -377,7 +379,7 @@ function TabelaSecao({
                     <td
                       className={cn(
                         'px-2 py-1 text-right text-xs font-medium',
-                        percentualEstourado(totalExecutadoSub, totalOrcadoSub) ? 'text-negative' : 'text-gray-500'
+                        percentualEstourado(totalExecutadoSub, totalOrcadoSub) ? classes.total : 'text-gray-500'
                       )}
                     >
                       {formatPercentAtingido(totalExecutadoSub, totalOrcadoSub)}
@@ -398,7 +400,7 @@ function TabelaSecao({
                 {formatCurrency(executado)}
               </td>
               <td className={cn('px-2 py-2 text-right text-xs', classes.total)}>{formatCurrency(v)}</td>
-              <td className={cn('px-2 py-2 text-right text-xs', percentualEstourado(executado, v) ? 'text-negative' : classes.total)}>
+              <td className={cn('px-2 py-2 text-right text-xs', classes.total, percentualEstourado(executado, v) && 'font-bold')}>
                 {formatPercentAtingido(executado, v)}
               </td>
             </Fragment>
@@ -411,7 +413,8 @@ function TabelaSecao({
         <td
           className={cn(
             'px-2 py-2 text-right text-xs',
-            percentualEstourado(totalExecutadoAno, totalOrcadoAno) ? 'text-negative' : classes.total
+            classes.total,
+            percentualEstourado(totalExecutadoAno, totalOrcadoAno) && 'font-bold'
           )}
         >
           {formatPercentAtingido(totalExecutadoAno, totalOrcadoAno)}
