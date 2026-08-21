@@ -1,4 +1,4 @@
-import type { LucideIcon } from 'lucide-react';
+import type { SVGProps } from 'react';
 import { ValorMonetario } from '@/components/ui/ValorMonetario';
 import { cn } from '@/lib/utils';
 
@@ -35,7 +35,7 @@ export function DespesasPorTipoCard({
   className,
 }: {
   titulo: string;
-  icon: LucideIcon;
+  icon: (props: SVGProps<SVGSVGElement>) => React.ReactElement;
   tom: 'fixa' | 'variavel';
   categorias: CategoriaExecutadoOrcado[];
   totalExecutado: number;
