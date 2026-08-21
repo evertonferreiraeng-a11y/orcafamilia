@@ -143,7 +143,7 @@ export function BalancoMensalChart({
             Incluir pendentes
           </label>
         </div>
-        <div className="flex items-center gap-3 rounded-lg bg-gray-50 px-3 py-1.5 text-xs text-gray-500">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-gray-50 px-3 py-1.5 text-xs text-gray-500">
           <span>
             Total Receitas: <span className="font-semibold text-positive">{formatCurrency(totais.receita)}</span>
           </span>
