@@ -12,7 +12,7 @@ html {
 }
 
 body {
-  background-color: #f7f8fa;
+  background-color: #e9ecf1;
   color: #1a1f2b;
 }
 
@@ -159,7 +159,7 @@ body {
 
 @layer components {
   .card {
-    @apply bg-white rounded-md border border-gray-100 shadow-card;
+    @apply bg-white rounded-md border border-gray-200 shadow-card;
   }
 
   .btn-primary {
