@@ -2,6 +2,7 @@
 
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { PatrimonioLiquidoReport } from '@/components/indicadores/PatrimonioLiquidoReport';
+import { IconChart } from '@/components/icons';
 
 export interface PontoPatrimonio {
   label: string;
@@ -34,9 +35,14 @@ export function IndicadoresClient({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Patrimônio Líquido</h1>
-          <p className="mt-1 text-sm text-gray-500">Evolução do seu patrimônio líquido ao longo do ano</p>
+        <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+            <IconChart className="h-5 w-5" />
+          </span>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Patrimônio Líquido</h1>
+            <p className="mt-1 text-sm text-gray-500">Evolução do seu patrimônio líquido ao longo do ano</p>
+          </div>
         </div>
         <select value={ano} onChange={(e) => mudarAno(Number(e.target.value))} className="input-field w-auto">
           {anosDisponiveis
