@@ -201,17 +201,12 @@ export default async function DashboardPage({
   const despesaFixaMesAnterior = mesAnteriorTransacoes
     .filter((t) => t.tipo === 'despesa' && t.tipo_despesa === 'fixa')
     .reduce((a, t) => a + Number(t.valor), 0);
-  const despesaParceladaMes = periodo
-    .filter((t) => t.tipo === 'despesa' && t.tipo_despesa === 'parcelada')
-    .reduce((a, t) => a + Number(t.valor), 0);
 
-  const gastoFixoMes = despesaFixaMes + despesaParceladaMes;
+  const gastoFixoMes = despesaFixaMes;
   const gastoVariavelMes = totalGastoCategorias - gastoFixoMes;
 
   const parcelamentosTerminandoMes = periodo
-    .filter(
-      (t) => t.tipo === 'despesa' && t.tipo_despesa === 'parcelada' && t.parcela_total !== null && t.parcela_atual === t.parcela_total
-    )
+    .filter((t) => t.tipo === 'despesa' && t.parcela_total !== null && t.parcela_atual === t.parcela_total)
     .map((t) => ({ descricao: t.descricao, valorParcela: Number(t.valor) }));
 
   const dividasVencendo = (dividasProximas ?? []).map((d) => {
@@ -235,7 +230,6 @@ export default async function DashboardPage({
     despesaMes,
     despesaFixaMes,
     despesaFixaMesAnterior,
-    despesaParceladaMes,
     categoriasAcima: categoriasAcimaDetalhe,
     dividasVencendo,
     parcelamentosTerminandoMes,

@@ -29,7 +29,6 @@ export interface DadosGerente {
   despesaMes: number;
   despesaFixaMes: number;
   despesaFixaMesAnterior: number;
-  despesaParceladaMes: number;
   categoriasAcima: CategoriaAcima[];
   dividasVencendo: DividaVencendo[];
   parcelamentosTerminandoMes: ParcelamentoTerminando[];
@@ -90,11 +89,11 @@ export function gerarInsights(dados: DadosGerente): Insight[] {
     });
   }
 
-  if (dados.receitaMes > 0 && dados.despesaParceladaMes / dados.receitaMes > LIMITE_COMPROMETIMENTO_PARCELAS) {
-    const percentual = (dados.despesaParceladaMes / dados.receitaMes) * 100;
+  if (dados.receitaMes > 0 && dados.despesaFixaMes / dados.receitaMes > LIMITE_COMPROMETIMENTO_PARCELAS) {
+    const percentual = (dados.despesaFixaMes / dados.receitaMes) * 100;
     insights.push({
       severidade: 'aviso',
-      mensagem: `Suas parcelas já comprometem ${percentual.toFixed(0)}% da sua renda este mês. Evite novos parcelamentos por enquanto.`,
+      mensagem: `Suas despesas fixas e parceladas já comprometem ${percentual.toFixed(0)}% da sua renda este mês. Evite novos compromissos por enquanto.`,
     });
   }
 

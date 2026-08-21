@@ -317,7 +317,7 @@ export function TransacaoForm({
         <div>
           <label className="label-field">Tipo de Despesa</label>
           <input type="hidden" name="tipo_despesa" value={tipoDespesa} />
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => setTipoDespesa('variavel')}
@@ -340,34 +340,22 @@ export function TransacaoForm({
             >
               Fixa
             </button>
-            <button
-              type="button"
-              onClick={() => setTipoDespesa('parcelada')}
-              className={
-                tipoDespesa === 'parcelada'
-                  ? 'rounded-xl border-2 border-brand-500 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700'
-                  : 'rounded-xl border-2 border-transparent bg-gray-100 px-4 py-2 text-sm font-medium text-gray-600'
-              }
-            >
-              Parcelada
-            </button>
           </div>
         </div>
       )}
 
-      {aba === 'despesa' && tipoDespesa !== 'variavel' && !transacao && (
+      {aba === 'despesa' && tipoDespesa === 'fixa' && !transacao && (
         <div>
           <label className="label-field" htmlFor="meses_recorrencia">
-            {tipoDespesa === 'parcelada' ? 'Número de parcelas' : 'Gerar lançamentos para quantos meses?'}
+            Gerar lançamentos para quantos meses? (use para compras parceladas também)
           </label>
           <input
-            key={tipoDespesa}
             id="meses_recorrencia"
             name="meses_recorrencia"
             type="number"
             min="2"
             max="60"
-            defaultValue={tipoDespesa === 'parcelada' ? 2 : 12}
+            defaultValue={12}
             className="input-field"
           />
         </div>

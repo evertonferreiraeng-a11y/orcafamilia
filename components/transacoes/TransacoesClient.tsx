@@ -42,7 +42,6 @@ export interface TransacaoComRelacoes extends Transacao {
 const TIPO_DESPESA_LABEL: Record<TipoDespesa, string> = {
   fixa: 'Fixa',
   variavel: 'Variável',
-  parcelada: 'Parcelada',
 };
 
 type StatusFiltro = 'todas' | 'pago' | 'pendente';
@@ -534,8 +533,7 @@ export function TransacoesClient({
                         className={cn(
                           'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium',
                           t.tipo_despesa === 'fixa' && 'bg-indigo-100 text-indigo-700',
-                          t.tipo_despesa === 'variavel' && 'bg-amber-100 text-amber-700',
-                          t.tipo_despesa === 'parcelada' && 'bg-red-100 text-red-700'
+                          t.tipo_despesa === 'variavel' && 'bg-amber-100 text-amber-700'
                         )}
                       >
                         {TIPO_DESPESA_LABEL[t.tipo_despesa]}

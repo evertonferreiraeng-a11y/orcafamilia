@@ -1,6 +1,6 @@
 export type TipoConta = 'corrente' | 'poupanca' | 'investimento' | 'dinheiro';
 export type TipoLancamento = 'receita' | 'despesa';
-export type TipoDespesa = 'fixa' | 'variavel' | 'parcelada';
+export type TipoDespesa = 'fixa' | 'variavel';
 export type Frequencia = 'mensal' | 'semanal';
 export type StatusDivida = 'ativa' | 'quitada';
 export type TipoInvestimento = 'renda_fixa' | 'renda_variavel' | 'fundo' | 'outro';
