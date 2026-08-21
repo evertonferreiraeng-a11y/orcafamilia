@@ -52,6 +52,7 @@ export default async function DashboardPage({
     { data: transacoesMesAnterior },
     { data: orcamentosMes },
     { data: despesasPorCategoriaMes },
+    { data: receitasPorCategoriaMes },
     { data: categoriasTodas },
     { data: subcategoriasTodas },
     { data: transacoesMultiAno },
@@ -90,6 +91,14 @@ export default async function DashboardPage({
       .select('categoria_id, subcategoria_id, valor, pago, tipo_despesa')
       .eq('user_id', user.id)
       .eq('tipo', 'despesa')
+      .eq('eh_transferencia', false)
+      .gte('data', inicio)
+      .lte('data', fim),
+    supabase
+      .from('transacoes')
+      .select('categoria_id, subcategoria_id, valor, pago')
+      .eq('user_id', user.id)
+      .eq('tipo', 'receita')
       .eq('eh_transferencia', false)
       .gte('data', inicio)
       .lte('data', fim),
@@ -252,6 +261,47 @@ export default async function DashboardPage({
   const orcadoVariaveisTotal = categoriasVariaveisDetalhe.reduce((a, c) => a + c.orcado, 0);
 
   const totalGastoCategorias = (despesasPorCategoriaMes ?? []).reduce((a, t) => a + Number(t.valor), 0);
+
+  const gastoPorCategoriaReceita = new Map<string, number>();
+  const gastoPorSubcategoriaReceita = new Map<string, number>();
+  for (const t of receitasPorCategoriaMes ?? []) {
+    if (!t.categoria_id) continue;
+    gastoPorCategoriaReceita.set(t.categoria_id, (gastoPorCategoriaReceita.get(t.categoria_id) ?? 0) + Number(t.valor));
+    if (t.subcategoria_id) {
+      gastoPorSubcategoriaReceita.set(
+        t.subcategoria_id,
+        (gastoPorSubcategoriaReceita.get(t.subcategoria_id) ?? 0) + Number(t.valor)
+      );
+    }
+  }
+
+  const categoriasReceitaTodas = (categoriasTodas ?? []).filter((c) => c.tipo === 'receita');
+  const orcadoPorCategoriaReceita = new Map(
+    categoriasReceitaTodas.map((c) => [
+      c.id,
+      orcadoEfetivoCategoria(orcamentosMes ?? [], subcategoriaIdsPorCategoria, c.id, inicio),
+    ])
+  );
+
+  const categoriasReceitaDetalhe: CategoriaExecutadoOrcado[] = categoriasReceitaTodas
+    .map((c) => ({
+      id: c.id,
+      nome: c.nome,
+      cor: c.cor,
+      icone: c.icone,
+      executado: gastoPorCategoriaReceita.get(c.id) ?? 0,
+      orcado: orcadoPorCategoriaReceita.get(c.id) ?? 0,
+      subcategorias: (subcategoriasPorCategoriaDetalhe.get(c.id) ?? []).map((s) => ({
+        id: s.id,
+        nome: s.nome,
+        executado: gastoPorSubcategoriaReceita.get(s.id) ?? 0,
+        orcado: orcadoPorSubcategoria.get(s.id) ?? 0,
+      })),
+    }))
+    .filter((c) => c.executado > 0 || c.orcado > 0);
+
+  const orcadoReceitaTotal = categoriasReceitaDetalhe.reduce((a, c) => a + c.orcado, 0);
+  const totalReceitaCategorias = (receitasPorCategoriaMes ?? []).reduce((a, t) => a + Number(t.valor), 0);
 
   const despesaFixaMes = periodo
     .filter((t) => t.tipo === 'despesa' && t.tipo_despesa === 'fixa')
@@ -450,7 +500,18 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <DespesasPorTipoCard
+          titulo="Receitas"
+          icon={IconTrendUp}
+          tom="receita"
+          categorias={categoriasReceitaDetalhe}
+          totalExecutado={totalReceitaCategorias}
+          totalOrcado={orcadoReceitaTotal}
+          totalGeral={totalReceitaCategorias}
+          mostrarPercentualTitulo={false}
+          mensagemVazio="Nenhuma receita registrada neste mês."
+        />
         <DespesasPorTipoCard
           titulo="Despesas Fixas"
           icon={IconRecorrente}
