@@ -28,25 +28,25 @@ function LinhaValores({
     <>
       <span
         className={cn(
-          'w-24 shrink-0 text-right text-sm',
+          'w-16 shrink-0 text-right text-sm sm:w-24',
           destaque ? 'font-semibold' : 'font-medium',
           acimaDoOrcado ? 'text-negative' : destaque ? 'text-gray-900' : 'text-gray-700'
         )}
       >
         <ValorMonetario valor={executado} />
       </span>
-      <span className="w-24 shrink-0 text-right text-sm text-gray-500">
+      <span className="w-16 shrink-0 text-right text-sm text-gray-500 sm:w-24">
         {orcado > 0 ? <ValorMonetario valor={orcado} /> : '—'}
       </span>
       <span
         className={cn(
-          'w-16 shrink-0 text-center text-xs font-semibold',
+          'w-12 shrink-0 text-center text-xs font-semibold sm:w-16',
           percentualOrcado === null ? 'text-gray-400' : acimaDoOrcado ? 'text-negative' : 'text-gray-500'
         )}
       >
         {percentualOrcado !== null ? formatPercent0(percentualOrcado) : '—'}
       </span>
-      <span className="w-16 shrink-0 text-center text-xs font-medium text-gray-400">
+      <span className="hidden w-16 shrink-0 text-center text-xs font-medium text-gray-400 sm:block">
         {percentualGeral !== null ? formatPercent0(percentualGeral) : '—'}
       </span>
     </>
@@ -71,7 +71,7 @@ export function LinhaCategoriaExpansivel({
         type="button"
         onClick={() => temSubcategorias && setAberta((v) => !v)}
         className={cn(
-          'flex w-full items-center gap-3 rounded-lg px-1 py-2.5 text-left transition-colors',
+          'flex w-full items-center gap-2 rounded-lg px-1 py-2.5 text-left transition-colors sm:gap-3',
           temSubcategorias && 'cursor-pointer hover:bg-gray-200'
         )}
       >
@@ -100,7 +100,7 @@ export function LinhaCategoriaExpansivel({
           {subcategoriasOrdenadas.map((s) => (
             <div
               key={s.id}
-              className="flex items-center gap-3 rounded-lg px-1 py-2 transition-colors hover:bg-gray-200"
+              className="flex items-center gap-2 rounded-lg px-1 py-2 transition-colors hover:bg-gray-200 sm:gap-3"
             >
               <span className="w-4 shrink-0" />
               <span className="min-w-0 flex-1 truncate text-sm text-gray-600">{s.nome}</span>
