@@ -214,35 +214,39 @@ export default async function DashboardPage({
 
   const categoriasDespesa = (categoriasTodas ?? []).filter((c) => c.tipo === 'despesa');
 
-  const categoriasFixasDetalhe: CategoriaExecutadoOrcado[] = categoriasDespesa.map((c) => ({
-    id: c.id,
-    nome: c.nome,
-    cor: c.cor,
-    icone: c.icone,
-    executado: gastoPorCategoriaFixa.get(c.id) ?? 0,
-    orcado: orcadoPorCategoria.get(c.id) ?? 0,
-    subcategorias: (subcategoriasPorCategoriaDetalhe.get(c.id) ?? []).map((s) => ({
-      id: s.id,
-      nome: s.nome,
-      executado: gastoPorSubcategoriaFixa.get(s.id) ?? 0,
-      orcado: orcadoPorSubcategoria.get(s.id) ?? 0,
-    })),
-  }));
+  const categoriasFixasDetalhe: CategoriaExecutadoOrcado[] = categoriasDespesa
+    .map((c) => ({
+      id: c.id,
+      nome: c.nome,
+      cor: c.cor,
+      icone: c.icone,
+      executado: gastoPorCategoriaFixa.get(c.id) ?? 0,
+      orcado: orcadoPorCategoria.get(c.id) ?? 0,
+      subcategorias: (subcategoriasPorCategoriaDetalhe.get(c.id) ?? []).map((s) => ({
+        id: s.id,
+        nome: s.nome,
+        executado: gastoPorSubcategoriaFixa.get(s.id) ?? 0,
+        orcado: orcadoPorSubcategoria.get(s.id) ?? 0,
+      })),
+    }))
+    .filter((c) => c.executado > 0 || c.orcado > 0);
 
-  const categoriasVariaveisDetalhe: CategoriaExecutadoOrcado[] = categoriasDespesa.map((c) => ({
-    id: c.id,
-    nome: c.nome,
-    cor: c.cor,
-    icone: c.icone,
-    executado: gastoPorCategoriaVariavel.get(c.id) ?? 0,
-    orcado: orcadoPorCategoria.get(c.id) ?? 0,
-    subcategorias: (subcategoriasPorCategoriaDetalhe.get(c.id) ?? []).map((s) => ({
-      id: s.id,
-      nome: s.nome,
-      executado: gastoPorSubcategoriaVariavel.get(s.id) ?? 0,
-      orcado: orcadoPorSubcategoria.get(s.id) ?? 0,
-    })),
-  }));
+  const categoriasVariaveisDetalhe: CategoriaExecutadoOrcado[] = categoriasDespesa
+    .map((c) => ({
+      id: c.id,
+      nome: c.nome,
+      cor: c.cor,
+      icone: c.icone,
+      executado: gastoPorCategoriaVariavel.get(c.id) ?? 0,
+      orcado: orcadoPorCategoria.get(c.id) ?? 0,
+      subcategorias: (subcategoriasPorCategoriaDetalhe.get(c.id) ?? []).map((s) => ({
+        id: s.id,
+        nome: s.nome,
+        executado: gastoPorSubcategoriaVariavel.get(s.id) ?? 0,
+        orcado: orcadoPorSubcategoria.get(s.id) ?? 0,
+      })),
+    }))
+    .filter((c) => c.executado > 0 || c.orcado > 0);
 
   const orcadoFixasTotal = categoriasFixasDetalhe.reduce((a, c) => a + c.orcado, 0);
   const orcadoVariaveisTotal = categoriasVariaveisDetalhe.reduce((a, c) => a + c.orcado, 0);
