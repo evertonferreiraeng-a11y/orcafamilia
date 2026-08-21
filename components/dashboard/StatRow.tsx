@@ -42,7 +42,7 @@ export function StatRow({
   const classes = TOM_CLASSES[tom];
 
   return (
-    <div className={cn('rounded-2xl p-4', classes.fundo, className)}>
+    <div className={cn('rounded-2xl p-4 transition-shadow hover:shadow-card', classes.fundo, className)}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-3">
           {Icon && (
