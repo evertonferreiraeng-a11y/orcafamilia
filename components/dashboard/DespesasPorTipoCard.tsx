@@ -32,6 +32,7 @@ export function DespesasPorTipoCard({
   categorias,
   totalExecutado,
   totalOrcado,
+  totalGeral,
   className,
 }: {
   titulo: string;
@@ -40,6 +41,7 @@ export function DespesasPorTipoCard({
   categorias: CategoriaExecutadoOrcado[];
   totalExecutado: number;
   totalOrcado: number;
+  totalGeral: number;
   className?: string;
 }) {
   const classes = TOM_CLASSES[tom];
@@ -66,13 +68,15 @@ export function DespesasPorTipoCard({
             <span className="flex-1">Categoria</span>
             <span className="w-24 shrink-0 text-right">Executado</span>
             <span className="w-24 shrink-0 text-right">Orçado</span>
-            <span className="w-14 shrink-0 text-right">%</span>
+            <span className="w-14 shrink-0 text-right">% Orç.</span>
+            <span className="w-14 shrink-0 text-right">% Geral</span>
           </div>
           <div className="divide-y divide-gray-50">
             {ordenadas.map((c) => {
               const cor = c.cor ?? CINZA_PADRAO;
               const acimaDoOrcado = c.orcado > 0 && c.executado > c.orcado + TOLERANCIA;
               const percentualOrcado = c.orcado > 0 ? (c.executado / c.orcado) * 100 : null;
+              const percentualGeral = totalGeral > 0 ? (c.executado / totalGeral) * 100 : null;
               return (
                 <div key={c.id} className="flex items-center gap-3 py-2.5">
                   <span
@@ -101,6 +105,9 @@ export function DespesasPorTipoCard({
                   >
                     {percentualOrcado !== null ? formatPercent0(percentualOrcado) : '—'}
                   </span>
+                  <span className="w-14 shrink-0 text-right text-xs font-medium text-gray-400">
+                    {percentualGeral !== null ? formatPercent0(percentualGeral) : '—'}
+                  </span>
                 </div>
               );
             })}
@@ -120,6 +127,9 @@ export function DespesasPorTipoCard({
         </span>
         <span className="w-14 shrink-0 text-right text-xs opacity-70">
           {totalOrcado > 0 ? formatPercent0((totalExecutado / totalOrcado) * 100) : '—'}
+        </span>
+        <span className="w-14 shrink-0 text-right text-xs opacity-70">
+          {totalGeral > 0 ? formatPercent0((totalExecutado / totalGeral) * 100) : '—'}
         </span>
       </div>
     </div>
