@@ -45,7 +45,7 @@ export function MinhasContasCarousel({ contas }: { contas: ContaResumo[] }) {
             return (
               <div
                 key={conta.id}
-                className="relative overflow-hidden rounded-md p-2.5 text-white shadow-elevated"
+                className="relative overflow-hidden rounded-md p-2.5 text-white shadow-elevated transition-transform hover:-translate-y-0.5"
                 style={{ background: `linear-gradient(135deg, ${cor}, ${cor}cc)` }}
               >
                 <div className="pointer-events-none absolute -right-4 -top-4 h-14 w-14 rounded-full bg-white/10" aria-hidden />
