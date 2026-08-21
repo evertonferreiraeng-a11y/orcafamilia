@@ -3,6 +3,7 @@ import { PerfilForm } from '@/components/ajustes/PerfilForm';
 import { AlertasForm } from '@/components/ajustes/AlertasForm';
 import { CodigoFamilia } from '@/components/ajustes/CodigoFamilia';
 import { TemaSwitcher } from '@/components/ajustes/TemaSwitcher';
+import { IconAjustes } from '@/components/icons';
 
 export default async function AjustesPage() {
   const supabase = createServerSupabase();
@@ -25,13 +26,25 @@ export default async function AjustesPage() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <div className="space-y-4">
-        <PerfilForm perfil={perfil} email={user.email ?? ''} />
-        {perfil.familia_id && <CodigoFamilia codigo={perfil.familia_id} />}
-        <TemaSwitcher />
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+          <IconAjustes className="h-5 w-5" />
+        </span>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Ajustes</h1>
+          <p className="mt-1 text-sm text-gray-500">Gerencie seu perfil, família e preferências</p>
+        </div>
       </div>
-      <AlertasForm config={alertas} />
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="space-y-4">
+          <PerfilForm perfil={perfil} email={user.email ?? ''} />
+          {perfil.familia_id && <CodigoFamilia codigo={perfil.familia_id} />}
+          <TemaSwitcher />
+        </div>
+        <AlertasForm config={alertas} />
+      </div>
     </div>
   );
 }
