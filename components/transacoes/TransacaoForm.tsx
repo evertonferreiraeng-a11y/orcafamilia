@@ -81,11 +81,21 @@ export function TransacaoForm({
   );
   const [duplicarAtivo, setDuplicarAtivo] = useState(false);
   const [mesesDuplicar, setMesesDuplicar] = useState<Set<number>>(new Set());
+  const [mesesFixaSelecionados, setMesesFixaSelecionados] = useState<Set<number>>(new Set());
 
   const ehParteDeParcelamento = Boolean(temProximasParcelas);
 
   function alternarMesDuplicar(offset: number) {
     setMesesDuplicar((atual) => {
+      const proximo = new Set(atual);
+      if (proximo.has(offset)) proximo.delete(offset);
+      else proximo.add(offset);
+      return proximo;
+    });
+  }
+
+  function alternarMesFixa(offset: number) {
+    setMesesFixaSelecionados((atual) => {
       const proximo = new Set(atual);
       if (proximo.has(offset)) proximo.delete(offset);
       else proximo.add(offset);
@@ -372,6 +382,9 @@ export function TransacaoForm({
               onClick={() => {
                 setTipoDespesa('fixa');
                 setParcelado(false);
+                setMesesFixaSelecionados((atual) =>
+                  atual.size === 0 ? new Set(Array.from({ length: 11 }, (_, i) => i + 1)) : atual
+                );
               }}
               className={
                 tipoDespesa === 'fixa'
@@ -391,7 +404,10 @@ export function TransacaoForm({
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
-              onClick={() => setParcelado(false)}
+              onClick={() => {
+                setParcelado(false);
+                setMesesFixaSelecionados(new Set());
+              }}
               className={
                 !parcelado
                   ? 'rounded-xl border-2 border-brand-500 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700'
@@ -402,7 +418,10 @@ export function TransacaoForm({
             </button>
             <button
               type="button"
-              onClick={() => setParcelado(true)}
+              onClick={() => {
+                setParcelado(true);
+                setMesesFixaSelecionados((atual) => (atual.size === 0 ? new Set([1]) : atual));
+              }}
               className={
                 parcelado
                   ? 'rounded-xl border-2 border-brand-500 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700'
@@ -417,20 +436,55 @@ export function TransacaoForm({
 
       {aba === 'despesa' && !transacao && (tipoDespesa === 'fixa' || parcelado) && (
         <div>
-          <input type="hidden" name="gerar_multiplos" value="true" />
-          <label className="label-field" htmlFor="meses_recorrencia">
-            {tipoDespesa === 'fixa' ? 'Gerar lançamentos para quantos meses?' : 'Número de parcelas'}
-          </label>
           <input
-            key={tipoDespesa === 'fixa' ? 'meses' : 'parcelas'}
-            id="meses_recorrencia"
-            name="meses_recorrencia"
-            type="number"
-            min="2"
-            max="60"
-            defaultValue={tipoDespesa === 'fixa' ? 12 : 2}
-            className="input-field"
+            type="hidden"
+            name="meses_fixa_selecionados"
+            value={Array.from(mesesFixaSelecionados).sort((a, b) => a - b).join(',')}
           />
+          <div className="flex items-center justify-between">
+            <label className="label-field mb-0">
+              {tipoDespesa === 'fixa' ? 'Em quais meses este lançamento deve se repetir?' : 'Meses das próximas parcelas'}
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setMesesFixaSelecionados(new Set(Array.from({ length: 24 }, (_, i) => i + 1)))}
+                className="text-xs font-medium text-brand-600 hover:underline"
+              >
+                Marcar todos
+              </button>
+              <button
+                type="button"
+                onClick={() => setMesesFixaSelecionados(new Set())}
+                className="text-xs font-medium text-gray-400 hover:underline"
+              >
+                Limpar
+              </button>
+            </div>
+          </div>
+          <p className="mb-2 mt-1 text-xs text-gray-400">Este mês ({nomeMesComOffset(dataVencimento, 0)}) já está incluído.</p>
+          <div className="grid max-h-56 grid-cols-2 gap-2 overflow-y-auto rounded-xl border border-gray-100 p-2 sm:grid-cols-3">
+            {Array.from({ length: 24 }, (_, i) => i + 1).map((offset) => {
+              const selecionado = mesesFixaSelecionados.has(offset);
+              return (
+                <button
+                  key={offset}
+                  type="button"
+                  onClick={() => alternarMesFixa(offset)}
+                  className={
+                    selecionado
+                      ? 'rounded-xl border-2 border-brand-500 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700'
+                      : 'rounded-xl border-2 border-transparent bg-gray-100 px-3 py-2 text-sm font-medium text-gray-600'
+                  }
+                >
+                  {nomeMesComOffset(dataVencimento, offset)}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-xs text-gray-400">
+            {mesesFixaSelecionados.size + 1} {mesesFixaSelecionados.size === 0 ? 'lançamento será criado' : 'lançamentos serão criados'} no total.
+          </p>
         </div>
       )}
 
