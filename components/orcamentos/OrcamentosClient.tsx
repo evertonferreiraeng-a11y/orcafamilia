@@ -291,7 +291,7 @@ function TabelaSecao({
                 const orcado = valoresEfetivos[i];
                 return (
                   <Fragment key={i}>
-                    <td className="border-l border-gray-50 px-2 py-1 text-right text-xs tabular-nums text-gray-600">
+                    <td className="border-l border-gray-300 px-2 py-1 text-right text-xs tabular-nums text-gray-600">
                       {executado > 0 ? formatCurrency(executado) : '—'}
                     </td>
                     {temSub ? (
@@ -318,7 +318,7 @@ function TabelaSecao({
                   </Fragment>
                 );
               })}
-              <td className="border-l border-gray-100 px-2 py-1.5 text-right text-xs font-semibold text-gray-900">
+              <td className="border-l border-gray-300 px-2 py-1.5 text-right text-xs font-semibold text-gray-900">
                 {formatCurrency(totalExecutadoCategoria)}
               </td>
               <td className="px-2 py-1.5 text-right text-xs font-medium text-gray-500">
@@ -347,7 +347,7 @@ function TabelaSecao({
                       const executado = s.valoresExecutadosPorMes[i] ?? 0;
                       return (
                         <Fragment key={i}>
-                          <td className="border-l border-gray-50 px-2 py-1 text-right text-xs tabular-nums text-gray-500">
+                          <td className="border-l border-gray-300 px-2 py-1 text-right text-xs tabular-nums text-gray-500">
                             {executado > 0 ? formatCurrency(executado) : '—'}
                           </td>
                           <td className="px-1 py-1">
@@ -368,7 +368,7 @@ function TabelaSecao({
                         </Fragment>
                       );
                     })}
-                    <td className="border-l border-gray-100 px-2 py-1 text-right text-xs font-medium text-gray-500">
+                    <td className="border-l border-gray-300 px-2 py-1 text-right text-xs font-medium text-gray-500">
                       {formatCurrency(totalExecutadoSub)}
                     </td>
                     <td className="px-2 py-1 text-right text-xs font-medium text-gray-500">
@@ -394,7 +394,7 @@ function TabelaSecao({
           const executado = totaisExecutadosPorMes[i];
           return (
             <Fragment key={i}>
-              <td className={cn('border-l border-gray-100 px-2 py-2 text-right text-xs', classes.total)}>
+              <td className={cn('border-l border-gray-300 px-2 py-2 text-right text-xs', classes.total)}>
                 {formatCurrency(executado)}
               </td>
               <td className={cn('px-2 py-2 text-right text-xs', classes.total)}>{formatCurrency(v)}</td>
@@ -404,7 +404,7 @@ function TabelaSecao({
             </Fragment>
           );
         })}
-        <td className={cn('border-l border-gray-100 px-2 py-2 text-right text-xs', classes.total)}>
+        <td className={cn('border-l border-gray-300 px-2 py-2 text-right text-xs', classes.total)}>
           {formatCurrency(totalExecutadoAno)}
         </td>
         <td className={cn('px-2 py-2 text-right text-xs', classes.total)}>{formatCurrency(totalOrcadoAno)}</td>
@@ -613,26 +613,26 @@ export function OrcamentosClient({
                 <th
                   key={label}
                   colSpan={3}
-                  className="border-l border-gray-100 px-1 py-1.5 text-center text-xs font-semibold uppercase tracking-wide text-gray-500"
+                  className="border-l border-gray-300 px-1 py-1.5 text-center text-xs font-semibold uppercase tracking-wide text-gray-500"
                 >
                   {label}
                 </th>
               ))}
-              <th colSpan={3} className="border-l border-gray-100 px-1 py-1.5 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <th colSpan={3} className="border-l border-gray-300 px-1 py-1.5 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Total
               </th>
             </tr>
             <tr className="border-b border-gray-100">
               {MESES_ABREV.map((label) => (
                 <Fragment key={label}>
-                  <th className="min-w-[68px] border-l border-gray-100 px-2 py-1.5 text-right text-[10px] font-medium uppercase text-gray-400">
+                  <th className="min-w-[68px] border-l border-gray-300 px-2 py-1.5 text-right text-[10px] font-medium uppercase text-gray-400">
                     Exec.
                   </th>
                   <th className="min-w-[68px] px-1 py-1.5 text-right text-[10px] font-medium uppercase text-gray-400">Orç.</th>
                   <th className="min-w-[44px] px-2 py-1.5 text-right text-[10px] font-medium uppercase text-gray-400">%</th>
                 </Fragment>
               ))}
-              <th className="min-w-[68px] border-l border-gray-100 px-2 py-1.5 text-right text-[10px] font-medium uppercase text-gray-400">
+              <th className="min-w-[68px] border-l border-gray-300 px-2 py-1.5 text-right text-[10px] font-medium uppercase text-gray-400">
                 Exec.
               </th>
               <th className="min-w-[68px] px-2 py-1.5 text-right text-[10px] font-medium uppercase text-gray-400">Orç.</th>
