@@ -35,6 +35,8 @@ import {
   ArrowUpDown,
   Filter,
   Check,
+  Repeat,
+  ShoppingBag,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -81,3 +83,5 @@ export const IconRelogio = withDefaultStroke(Clock);
 export const IconOrdenar = withDefaultStroke(ArrowUpDown);
 export const IconFiltro = withDefaultStroke(Filter);
 export const IconCheck = withDefaultStroke(Check);
+export const IconRecorrente = withDefaultStroke(Repeat);
+export const IconCompras = withDefaultStroke(ShoppingBag);

@@ -17,7 +17,8 @@ import { PlanejadoGaugeCard } from '@/components/dashboard/PlanejadoGaugeCard';
 import { BalancoMensalChart, type PontoBalanco } from '@/components/dashboard/BalancoMensalChart';
 import { GerenteFinanceiroCard } from '@/components/dashboard/GerenteFinanceiroCard';
 import { GastosPorCategoriaCard, type CategoriaGasto } from '@/components/dashboard/GastosPorCategoriaCard';
-import { IconTrendUp, IconTrendDown, IconWallet } from '@/components/icons';
+import { DespesasPorTipoCard, type CategoriaExecutadoOrcado } from '@/components/dashboard/DespesasPorTipoCard';
+import { IconTrendUp, IconTrendDown, IconWallet, IconRecorrente, IconCompras } from '@/components/icons';
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -86,7 +87,7 @@ export default async function DashboardPage({
       .eq('mes_referencia', inicio),
     supabase
       .from('transacoes')
-      .select('categoria_id, valor, pago')
+      .select('categoria_id, valor, pago, tipo_despesa')
       .eq('user_id', user.id)
       .eq('tipo', 'despesa')
       .eq('eh_transferencia', false)
@@ -155,9 +156,16 @@ export default async function DashboardPage({
   const variacaoDespesa = calcularVariacaoPercentual(despesaMes, despesaMesAnterior);
 
   const gastoPorCategoria = new Map<string, number>();
+  const gastoPorCategoriaFixa = new Map<string, number>();
+  const gastoPorCategoriaVariavel = new Map<string, number>();
   for (const t of despesasPorCategoriaMes ?? []) {
     if (!t.categoria_id) continue;
     gastoPorCategoria.set(t.categoria_id, (gastoPorCategoria.get(t.categoria_id) ?? 0) + Number(t.valor));
+    if (t.tipo_despesa === 'fixa') {
+      gastoPorCategoriaFixa.set(t.categoria_id, (gastoPorCategoriaFixa.get(t.categoria_id) ?? 0) + Number(t.valor));
+    } else if (t.tipo_despesa === 'variavel') {
+      gastoPorCategoriaVariavel.set(t.categoria_id, (gastoPorCategoriaVariavel.get(t.categoria_id) ?? 0) + Number(t.valor));
+    }
   }
   const planejado = orcamentosEfetivosMes.reduce((a, o) => a + o.valor_limite, 0);
   const gastoOrcamento = despesaMes;
@@ -179,6 +187,33 @@ export default async function DashboardPage({
     });
 
   const orcadoPorCategoria = new Map(orcamentosEfetivosMes.map((o) => [o.categoria_id, o.valor_limite]));
+
+  const categoriasDespesa = (categoriasTodas ?? []).filter((c) => c.tipo === 'despesa');
+
+  const categoriasFixasDetalhe: CategoriaExecutadoOrcado[] = categoriasDespesa
+    .map((c) => ({
+      id: c.id,
+      nome: c.nome,
+      cor: c.cor,
+      icone: c.icone,
+      executado: gastoPorCategoriaFixa.get(c.id) ?? 0,
+      orcado: orcadoPorCategoria.get(c.id) ?? 0,
+    }))
+    .filter((c) => c.executado > 0);
+
+  const categoriasVariaveisDetalhe: CategoriaExecutadoOrcado[] = categoriasDespesa
+    .map((c) => ({
+      id: c.id,
+      nome: c.nome,
+      cor: c.cor,
+      icone: c.icone,
+      executado: gastoPorCategoriaVariavel.get(c.id) ?? 0,
+      orcado: orcadoPorCategoria.get(c.id) ?? 0,
+    }))
+    .filter((c) => c.executado > 0);
+
+  const orcadoFixasTotal = categoriasFixasDetalhe.reduce((a, c) => a + c.orcado, 0);
+  const orcadoVariaveisTotal = categoriasVariaveisDetalhe.reduce((a, c) => a + c.orcado, 0);
 
   const categoriasGastoDetalhe: CategoriaGasto[] = (categoriasTodas ?? [])
     .filter((c) => c.tipo === 'despesa')
@@ -378,6 +413,25 @@ export default async function DashboardPage({
         fixoValor={gastoFixoMes}
         variavelValor={gastoVariavelMes}
       />
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <DespesasPorTipoCard
+          titulo="Despesas Fixas"
+          icon={IconRecorrente}
+          tom="fixa"
+          categorias={categoriasFixasDetalhe}
+          totalExecutado={despesaFixaMes}
+          totalOrcado={orcadoFixasTotal}
+        />
+        <DespesasPorTipoCard
+          titulo="Despesas Variáveis"
+          icon={IconCompras}
+          tom="variavel"
+          categorias={categoriasVariaveisDetalhe}
+          totalExecutado={gastoVariavelMes}
+          totalOrcado={orcadoVariaveisTotal}
+        />
+      </div>
     </div>
   );
 }
