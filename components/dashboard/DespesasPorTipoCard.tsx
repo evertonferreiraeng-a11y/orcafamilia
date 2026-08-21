@@ -1,6 +1,6 @@
 import type { SVGProps } from 'react';
 import { ValorMonetario } from '@/components/ui/ValorMonetario';
-import { cn } from '@/lib/utils';
+import { cn, formatPercent0 } from '@/lib/utils';
 
 export interface CategoriaExecutadoOrcado {
   id: string;
@@ -65,11 +65,13 @@ export function DespesasPorTipoCard({
             <span className="flex-1">Categoria</span>
             <span className="w-24 text-right">Executado</span>
             <span className="w-24 text-right">Orçado</span>
+            <span className="w-14 text-right">%</span>
           </div>
           <div className="divide-y divide-gray-50">
             {ordenadas.map((c) => {
               const cor = c.cor ?? CINZA_PADRAO;
               const acimaDoOrcado = c.orcado > 0 && c.executado > c.orcado + TOLERANCIA;
+              const percentualOrcado = c.orcado > 0 ? (c.executado / c.orcado) * 100 : null;
               return (
                 <div key={c.id} className="flex items-center gap-3 py-2.5">
                   <span
@@ -90,6 +92,14 @@ export function DespesasPorTipoCard({
                   <span className="w-24 shrink-0 text-right text-sm text-gray-500">
                     {c.orcado > 0 ? <ValorMonetario valor={c.orcado} /> : '—'}
                   </span>
+                  <span
+                    className={cn(
+                      'w-14 shrink-0 text-right text-xs font-semibold',
+                      percentualOrcado === null ? 'text-gray-400' : acimaDoOrcado ? 'text-negative' : 'text-gray-500'
+                    )}
+                  >
+                    {percentualOrcado !== null ? formatPercent0(percentualOrcado) : '—'}
+                  </span>
                 </div>
               );
             })}
@@ -101,9 +111,12 @@ export function DespesasPorTipoCard({
 
       <div className={cn('mt-3 flex items-center justify-between rounded-xl px-3 py-2 text-sm font-semibold', classes.totalFundo)}>
         <span>Total</span>
-        <span className="flex gap-4">
+        <span className="flex items-center gap-4">
           <ValorMonetario valor={totalExecutado} />
           <span className="opacity-70">{totalOrcado > 0 ? <ValorMonetario valor={totalOrcado} /> : '—'}</span>
+          <span className="w-14 shrink-0 text-right text-xs opacity-70">
+            {totalOrcado > 0 ? formatPercent0((totalExecutado / totalOrcado) * 100) : '—'}
+          </span>
         </span>
       </div>
     </div>
