@@ -17,7 +17,6 @@ import { MinhasContasCarousel } from '@/components/dashboard/MinhasContasCarouse
 import { PlanejadoGaugeCard } from '@/components/dashboard/PlanejadoGaugeCard';
 import { BalancoMensalChart, type PontoBalanco } from '@/components/dashboard/BalancoMensalChart';
 import { GerenteFinanceiroCard } from '@/components/dashboard/GerenteFinanceiroCard';
-import { GastosPorCategoriaCard, type CategoriaGasto } from '@/components/dashboard/GastosPorCategoriaCard';
 import { DespesasPorTipoCard, type CategoriaExecutadoOrcado } from '@/components/dashboard/DespesasPorTipoCard';
 import { IconTrendUp, IconTrendDown, IconWallet, IconRecorrente, IconCompras } from '@/components/icons';
 
@@ -216,19 +215,6 @@ export default async function DashboardPage({
   const orcadoFixasTotal = categoriasFixasDetalhe.reduce((a, c) => a + c.orcado, 0);
   const orcadoVariaveisTotal = categoriasVariaveisDetalhe.reduce((a, c) => a + c.orcado, 0);
 
-  const categoriasGastoDetalhe: CategoriaGasto[] = (categoriasTodas ?? [])
-    .filter((c) => c.tipo === 'despesa')
-    .map((c) => ({
-      id: c.id,
-      nome: c.nome,
-      cor: c.cor,
-      icone: c.icone,
-      gasto: gastoPorCategoria.get(c.id) ?? 0,
-      orcado: orcadoPorCategoria.get(c.id) ?? 0,
-    }))
-    .filter((c) => c.gasto > 0)
-    .sort((a, b) => b.gasto - a.gasto);
-
   const totalGastoCategorias = (despesasPorCategoriaMes ?? []).reduce((a, t) => a + Number(t.valor), 0);
 
   const despesaFixaMes = periodo
@@ -410,13 +396,6 @@ export default async function DashboardPage({
           />
         </div>
       </div>
-
-      <GastosPorCategoriaCard
-        categorias={categoriasGastoDetalhe}
-        totalGasto={totalGastoCategorias}
-        fixoValor={gastoFixoMes}
-        variavelValor={gastoVariavelMes}
-      />
 
       <div className="card flex flex-wrap items-center justify-between gap-3 p-4">
         <div>
