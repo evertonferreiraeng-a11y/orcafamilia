@@ -49,7 +49,7 @@ const NAV_ITEMS_FLAT = NAV_GROUPS.flatMap((grupo) => grupo.items);
 function Logo() {
   return (
     <div className="mb-8 flex items-center gap-2 px-2">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white shadow-soft">
         <IconWallet className="h-5 w-5" />
       </span>
       <span className="text-base font-bold text-gray-900">OrçaFamília</span>
@@ -60,7 +60,7 @@ function Logo() {
 function LogoCompacto() {
   return (
     <div className="mb-8 flex items-center justify-center">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white shadow-soft">
         <IconWallet className="h-5 w-5" />
       </span>
     </div>
@@ -163,7 +163,7 @@ export function Sidebar({
             <button
               type="button"
               onClick={onClose}
-              className="absolute right-4 top-4 rounded-full p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              className="absolute right-4 top-4 rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
               aria-label="Fechar menu"
             >
               <IconClose className="h-5 w-5" />
