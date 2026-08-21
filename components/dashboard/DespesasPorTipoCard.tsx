@@ -22,16 +22,19 @@ export interface CategoriaExecutadoOrcado {
 
 const TOM_CLASSES = {
   fixa: {
-    iconeFundo: 'bg-indigo-50 text-indigo-600',
-    totalFundo: 'bg-indigo-50 text-indigo-700',
+    header: 'bg-indigo-600',
+    iconeFundo: 'bg-white/15 text-white',
+    totalFundo: 'bg-indigo-600',
   },
   variavel: {
-    iconeFundo: 'bg-amber-50 text-amber-600',
-    totalFundo: 'bg-amber-50 text-amber-700',
+    header: 'bg-amber-500',
+    iconeFundo: 'bg-white/15 text-white',
+    totalFundo: 'bg-amber-500',
   },
   receita: {
-    iconeFundo: 'bg-emerald-50 text-emerald-600',
-    totalFundo: 'bg-emerald-50 text-emerald-700',
+    header: 'bg-emerald-600',
+    iconeFundo: 'bg-white/15 text-white',
+    totalFundo: 'bg-emerald-600',
   },
 } as const;
 
@@ -63,56 +66,60 @@ export function DespesasPorTipoCard({
   const percentualDoGeral = mostrarPercentualTitulo && totalGeral > 0 ? (totalExecutado / totalGeral) * 100 : null;
 
   return (
-    <div className={cn('card flex flex-col p-4', className)}>
-      <div className="flex items-center gap-3">
+    <div className={cn('card flex flex-col overflow-hidden p-0', className)}>
+      <div className={cn('flex items-center gap-3 px-4 py-4', classes.header)}>
         <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', classes.iconeFundo)}>
           <Icon className="h-5 w-5" />
         </span>
         <div>
-          <p className="text-sm font-medium text-gray-500">
+          <p className="text-sm font-semibold uppercase tracking-wide text-white/90">
             {titulo}
             {percentualDoGeral !== null && (
-              <span className="ml-1.5 font-normal text-gray-400">· {formatPercent0(percentualDoGeral)} do total</span>
+              <span className="ml-1.5 font-normal normal-case text-white/70">
+                · {formatPercent0(percentualDoGeral)} do total
+              </span>
             )}
           </p>
-          <p className="text-xl font-bold text-gray-900">
+          <p className="text-xl font-bold text-white">
             <ValorMonetario valor={totalExecutado} />
           </p>
         </div>
       </div>
 
-      {ordenadas.length > 0 ? (
-        <div className="mt-4 flex flex-col">
-          <div className="flex items-center gap-3 px-1 pb-2 text-xs font-medium uppercase text-gray-400">
-            <span className="w-8 shrink-0" />
-            <span className="flex-1">Categoria</span>
-            <span className="w-24 shrink-0 text-right">Executado</span>
-            <span className="w-24 shrink-0 text-right">Orçado</span>
-            <span className="w-16 shrink-0 whitespace-nowrap text-center">% Orç.</span>
-            <span className="w-16 shrink-0 whitespace-nowrap text-center">% Geral</span>
+      <div className="flex flex-col p-4">
+        {ordenadas.length > 0 ? (
+          <div className="flex flex-col">
+            <div className="flex items-center gap-3 px-1 pb-2 text-xs font-medium uppercase text-gray-400">
+              <span className="w-8 shrink-0" />
+              <span className="flex-1">Categoria</span>
+              <span className="w-24 shrink-0 text-right">Executado</span>
+              <span className="w-24 shrink-0 text-right">Orçado</span>
+              <span className="w-16 shrink-0 whitespace-nowrap text-center">% Orç.</span>
+              <span className="w-16 shrink-0 whitespace-nowrap text-center">% Geral</span>
+            </div>
+            <div className="divide-y divide-gray-50">
+              {ordenadas.map((c) => (
+                <LinhaCategoriaExpansivel key={c.id} categoria={c} totalGeral={totalGeral} />
+              ))}
+            </div>
           </div>
-          <div className="divide-y divide-gray-50">
-            {ordenadas.map((c) => (
-              <LinhaCategoriaExpansivel key={c.id} categoria={c} totalGeral={totalGeral} />
-            ))}
-          </div>
-        </div>
-      ) : (
-        <p className="mt-4 text-center text-sm text-gray-400">{mensagemVazio}</p>
-      )}
+        ) : (
+          <p className="py-2 text-center text-sm text-gray-400">{mensagemVazio}</p>
+        )}
+      </div>
 
-      <div className={cn('mt-3 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold', classes.totalFundo)}>
-        <span className="flex-1">Total</span>
+      <div className={cn('flex items-center gap-3 px-4 py-3 text-sm font-semibold text-white', classes.totalFundo)}>
+        <span className="flex-1 uppercase tracking-wide">Total</span>
         <span className="w-24 shrink-0 text-right">
           <ValorMonetario valor={totalExecutado} />
         </span>
-        <span className="w-24 shrink-0 text-right opacity-70">
+        <span className="w-24 shrink-0 text-right text-white/80">
           {totalOrcado > 0 ? <ValorMonetario valor={totalOrcado} /> : '—'}
         </span>
-        <span className="w-16 shrink-0 text-center text-xs opacity-70">
+        <span className="w-16 shrink-0 text-center text-xs text-white/80">
           {totalOrcado > 0 ? formatPercent0((totalExecutado / totalOrcado) * 100) : '—'}
         </span>
-        <span className="w-16 shrink-0 text-center text-xs opacity-70">
+        <span className="w-16 shrink-0 text-center text-xs text-white/80">
           {totalGeral > 0 ? formatPercent0((totalExecutado / totalGeral) * 100) : '—'}
         </span>
       </div>
