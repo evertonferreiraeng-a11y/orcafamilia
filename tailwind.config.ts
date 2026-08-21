@@ -22,7 +22,7 @@ const config: Config = {
         },
         positive: '#16a34a',
         negative: '#dc2626',
-        surface: '#e9ecf1',
+        surface: '#f7f8fa',
       },
       borderRadius: {
         xl: '1rem',
@@ -33,7 +33,7 @@ const config: Config = {
       },
       boxShadow: {
         soft: '0 1px 2px 0 rgb(16 24 40 / 0.05)',
-        card: '0 1px 3px 0 rgb(16 24 40 / 0.1), 0 1px 2px -1px rgb(16 24 40 / 0.08)',
+        card: '0 1px 3px 0 rgb(16 24 40 / 0.06), 0 1px 2px -1px rgb(16 24 40 / 0.06)',
         elevated: '0 4px 6px -2px rgb(16 24 40 / 0.05), 0 12px 16px -4px rgb(16 24 40 / 0.08)',
       },
     },
