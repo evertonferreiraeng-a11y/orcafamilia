@@ -422,6 +422,7 @@ export default async function DashboardPage({
           categorias={categoriasFixasDetalhe}
           totalExecutado={despesaFixaMes}
           totalOrcado={orcadoFixasTotal}
+          totalGeral={totalGastoCategorias}
         />
         <DespesasPorTipoCard
           titulo="Despesas Variáveis"
@@ -430,6 +431,7 @@ export default async function DashboardPage({
           categorias={categoriasVariaveisDetalhe}
           totalExecutado={gastoVariavelMes}
           totalOrcado={orcadoVariaveisTotal}
+          totalGeral={totalGastoCategorias}
         />
       </div>
     </div>
