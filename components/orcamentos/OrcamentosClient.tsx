@@ -51,7 +51,7 @@ function CelulaOrcamento({
   label: string;
   onSalvar: (novoValor: number | null, mesesAFrente: number) => Promise<string | undefined>;
 }) {
-  const valorTexto = valor != null ? String(valor) : '';
+  const valorTexto = valor != null && valor !== 0 ? String(valor) : '';
   const [texto, setTexto] = useState(valorTexto);
   const [salvo, setSalvo] = useState(valorTexto);
   const [salvando, setSalvando] = useState(false);
