@@ -13,7 +13,6 @@ import { gerarInsights, type DadosGerente } from '@/lib/gerente';
 import { StatRow } from '@/components/dashboard/StatRow';
 import { ValorMonetario } from '@/components/ui/ValorMonetario';
 import { MinhasContasCarousel } from '@/components/dashboard/MinhasContasCarousel';
-import { PlanejadoGaugeCard } from '@/components/dashboard/PlanejadoGaugeCard';
 import { BalancoMensalChart, type PontoBalanco } from '@/components/dashboard/BalancoMensalChart';
 import { GerenteFinanceiroCard } from '@/components/dashboard/GerenteFinanceiroCard';
 import { DespesasPorTipoCard, type CategoriaExecutadoOrcado } from '@/components/dashboard/DespesasPorTipoCard';
@@ -186,14 +185,6 @@ export default async function DashboardPage({
       }
     }
   }
-  const planejado = orcamentosEfetivosMes.reduce((a, o) => a + o.valor_limite, 0);
-  const gastoOrcamento = despesaMes;
-  const restanteOrcamento = planejado - gastoOrcamento;
-  const percentualOrcamento = planejado > 0 ? (gastoOrcamento / planejado) * 100 : 0;
-  const categoriasAcima = orcamentosEfetivosMes.filter(
-    (o) => (gastoPorCategoria.get(o.categoria_id) ?? 0) > o.valor_limite
-  ).length;
-
   const nomePorCategoria = new Map((categoriasTodas ?? []).map((c) => [c.id, c.nome]));
   const categoriasAcimaDetalhe = orcamentosEfetivosMes
     .filter((o) => (gastoPorCategoria.get(o.categoria_id) ?? 0) > o.valor_limite)
@@ -500,14 +491,6 @@ export default async function DashboardPage({
               saldo: saldoPorConta.get(conta.id) ?? 0,
               cor: conta.cor,
             }))}
-          />
-          <PlanejadoGaugeCard
-            className="flex-1"
-            planejado={planejado}
-            gastoOrcamento={gastoOrcamento}
-            restanteOrcamento={restanteOrcamento}
-            percentualOrcamento={percentualOrcamento}
-            categoriasAcima={categoriasAcima}
           />
         </div>
       </div>
