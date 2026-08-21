@@ -408,78 +408,76 @@ export default async function DashboardPage({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <StatRow
+          titulo="Saldo (Este mês)"
+          valor={saldoMes}
+          valorLabel="Pago"
+          tom={saldoMes >= 0 ? 'positivo' : 'negativo'}
+          icon={IconWallet}
+          badge={
+            variacaoSaldo === null
+              ? undefined
+              : { texto: formatPercent(variacaoSaldo), tom: variacaoSaldo >= 0 ? 'positivo' : 'negativo' }
+          }
+          footer={
+            <span className="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-600">
+              Saldo acumulado (todas as contas): <ValorMonetario valor={saldoTotalContas} />
+            </span>
+          }
+        />
+        <StatRow
+          titulo="Receitas"
+          valor={receitaMes}
+          valorLabel="Pago"
+          tom="positivo"
+          icon={IconTrendUp}
+          badge={
+            variacaoReceita === null
+              ? undefined
+              : { texto: formatPercent(variacaoReceita), tom: variacaoReceita >= 0 ? 'positivo' : 'negativo' }
+          }
+          footer={
+            <div className="space-y-1.5">
+              <span className="inline-flex items-center rounded-full bg-positive/10 px-2.5 py-1 text-xs font-medium text-positive">
+                Pendente: <ValorMonetario valor={pendenteReceita} />
+              </span>
+              <p className="text-xs text-gray-400">
+                Total lançado: <ValorMonetario valor={receitaMes + pendenteReceita} />
+              </p>
+            </div>
+          }
+        />
+        <StatRow
+          titulo="Despesas"
+          valor={despesaMes}
+          valorLabel="Pago"
+          tom="negativo"
+          icon={IconTrendDown}
+          badge={
+            variacaoDespesa === null
+              ? undefined
+              : { texto: formatPercent(variacaoDespesa), tom: variacaoDespesa <= 0 ? 'positivo' : 'negativo' }
+          }
+          footer={
+            <div className="space-y-1.5">
+              <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+                Pendente: <ValorMonetario valor={pendenteDespesa} />
+              </span>
+              <p className="text-xs text-gray-400">
+                Total lançado: <ValorMonetario valor={despesaMes + pendenteDespesa} />
+              </p>
+            </div>
+          }
+        />
+      </div>
+
       <GerenteFinanceiroCard insights={insights} />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4 lg:min-h-[calc(100vh-190px)]">
-        <div className="card flex flex-col p-4 lg:col-span-3">
-          <div className="grid grid-cols-1 gap-3 pb-4 sm:grid-cols-3">
-            <StatRow
-              titulo="Saldo (Este mês)"
-              valor={saldoMes}
-              valorLabel="Pago"
-              tom={saldoMes >= 0 ? 'positivo' : 'negativo'}
-              icon={IconWallet}
-              badge={
-                variacaoSaldo === null
-                  ? undefined
-                  : { texto: formatPercent(variacaoSaldo), tom: variacaoSaldo >= 0 ? 'positivo' : 'negativo' }
-              }
-              footer={
-                <span className="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-600">
-                  Saldo acumulado (todas as contas): <ValorMonetario valor={saldoTotalContas} />
-                </span>
-              }
-            />
-            <StatRow
-              titulo="Receitas"
-              valor={receitaMes}
-              valorLabel="Pago"
-              tom="positivo"
-              icon={IconTrendUp}
-              badge={
-                variacaoReceita === null
-                  ? undefined
-                  : { texto: formatPercent(variacaoReceita), tom: variacaoReceita >= 0 ? 'positivo' : 'negativo' }
-              }
-              footer={
-                <div className="space-y-1.5">
-                  <span className="inline-flex items-center rounded-full bg-positive/10 px-2.5 py-1 text-xs font-medium text-positive">
-                    Pendente: <ValorMonetario valor={pendenteReceita} />
-                  </span>
-                  <p className="text-xs text-gray-400">
-                    Total lançado: <ValorMonetario valor={receitaMes + pendenteReceita} />
-                  </p>
-                </div>
-              }
-            />
-            <StatRow
-              titulo="Despesas"
-              valor={despesaMes}
-              valorLabel="Pago"
-              tom="negativo"
-              icon={IconTrendDown}
-              badge={
-                variacaoDespesa === null
-                  ? undefined
-                  : { texto: formatPercent(variacaoDespesa), tom: variacaoDespesa <= 0 ? 'positivo' : 'negativo' }
-              }
-              footer={
-                <div className="space-y-1.5">
-                  <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
-                    Pendente: <ValorMonetario valor={pendenteDespesa} />
-                  </span>
-                  <p className="text-xs text-gray-400">
-                    Total lançado: <ValorMonetario valor={despesaMes + pendenteDespesa} />
-                  </p>
-                </div>
-              }
-            />
-          </div>
-
-          <div className="mt-4 min-h-0 flex-1">
-            <BalancoMensalChart diario={fluxo} mensal={balancoAnual} />
-          </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+        <div className="card flex flex-col p-4 lg:col-span-3 lg:min-h-[440px]">
+          <BalancoMensalChart diario={fluxo} mensal={balancoAnual} />
         </div>
 
         <div className="flex flex-col gap-4">
