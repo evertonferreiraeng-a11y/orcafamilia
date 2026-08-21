@@ -46,7 +46,7 @@ const TIPO_DESPESA_LABEL: Record<TipoDespesa, string> = {
 };
 
 type StatusFiltro = 'todas' | 'pago' | 'pendente';
-type SortKey = 'registro' | 'vencimento' | 'pagamento' | 'valor';
+type SortKey = 'vencimento' | 'pagamento' | 'valor';
 type SortDir = 'asc' | 'desc';
 
 const OPCOES_PERIODO = [
@@ -272,9 +272,7 @@ export function TransacoesClient({
 
     lista = [...lista].sort((a, b) => {
       let comparacao = 0;
-      if (sortKey === 'registro') {
-        comparacao = (a.data_registro ?? a.criado_em).localeCompare(b.data_registro ?? b.criado_em);
-      } else if (sortKey === 'vencimento') {
+      if (sortKey === 'vencimento') {
         comparacao = (a.data_vencimento ?? a.data).localeCompare(b.data_vencimento ?? b.data);
       } else if (sortKey === 'pagamento') {
         comparacao = a.data.localeCompare(b.data);
@@ -473,11 +471,6 @@ export function TransacoesClient({
                     aria-label="Selecionar todas as transações"
                   />
                 </th>
-                <th className="px-3 py-3 font-medium">
-                  <button type="button" onClick={() => ordenarPor('registro')} className="flex items-center gap-1 hover:text-gray-600">
-                    Registro <IconOrdenar className="h-3 w-3" />
-                  </button>
-                </th>
                 <th className="px-3 py-3 font-medium">Descrição</th>
                 <th className="px-3 py-3 font-medium">Categoria</th>
                 <th className="px-3 py-3 font-medium">Tipo</th>
@@ -514,7 +507,6 @@ export function TransacoesClient({
                       aria-label={`Selecionar transação ${t.descricao}`}
                     />
                   </td>
-                  <td className="px-3 py-3 text-gray-500">{formatDate(t.data_registro ?? t.criado_em)}</td>
                   <td className="px-3 py-3 text-gray-800">
                     <p>{t.descricao}</p>
                     {t.parcela_total ? (
