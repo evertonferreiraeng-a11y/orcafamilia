@@ -7,7 +7,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     <div className="flex min-h-screen bg-surface">
       <div className="hidden w-1/2 flex-col justify-between bg-brand-600 p-12 text-white lg:flex">
         <div className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 shadow-soft">
             <IconWallet className="h-5 w-5" />
           </span>
           <span className="text-base font-bold">OrçaFamília</span>
@@ -27,7 +27,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="w-full max-w-md">
           <div className="mb-8 text-center lg:hidden">
             <div className="mb-3 inline-flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500 text-white">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500 text-white shadow-soft">
                 <IconWallet className="h-5 w-5" />
               </span>
               <span className="text-lg font-bold text-gray-900">OrçaFamília</span>
