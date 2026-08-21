@@ -71,8 +71,8 @@ export function LinhaCategoriaExpansivel({
         type="button"
         onClick={() => temSubcategorias && setAberta((v) => !v)}
         className={cn(
-          'flex w-full items-center gap-3 py-2.5 text-left',
-          temSubcategorias && 'cursor-pointer hover:bg-gray-50'
+          'flex w-full items-center gap-3 rounded-lg px-1 py-2.5 text-left transition-colors',
+          temSubcategorias && 'cursor-pointer hover:bg-gray-200'
         )}
       >
         <span className="flex h-8 w-8 shrink-0 items-center justify-center">
@@ -98,7 +98,10 @@ export function LinhaCategoriaExpansivel({
       {temSubcategorias && aberta && (
         <div className="ml-8 border-l border-gray-100 pl-3">
           {subcategoriasOrdenadas.map((s) => (
-            <div key={s.id} className="flex items-center gap-3 py-2">
+            <div
+              key={s.id}
+              className="flex items-center gap-3 rounded-lg px-1 py-2 transition-colors hover:bg-gray-200"
+            >
               <span className="w-4 shrink-0" />
               <span className="min-w-0 flex-1 truncate text-sm text-gray-600">{s.nome}</span>
               <LinhaValores executado={s.executado} orcado={s.orcado} totalGeral={totalGeral} />
