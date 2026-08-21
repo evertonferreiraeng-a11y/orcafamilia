@@ -32,7 +32,9 @@ export default function LoginPage() {
         <input id="senha" name="senha" type="password" required className="input-field" placeholder="••••••••" />
       </div>
 
-      {state.error && <p className="text-sm text-negative">{state.error}</p>}
+      {state.error && (
+        <p className="rounded-xl bg-negative/10 px-3 py-2 text-sm font-medium text-negative">{state.error}</p>
+      )}
 
       <BotaoEntrar />
 
