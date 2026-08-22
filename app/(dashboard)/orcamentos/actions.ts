@@ -95,6 +95,47 @@ export async function salvarOrcamento(
   return {};
 }
 
+export async function copiarOrcamentoAno(
+  anoOrigem: number,
+  anoDestino: number
+): Promise<{ error?: string; copiados?: number }> {
+  const supabase = createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Sessão expirada.' };
+
+  const { data: linhasOrigem, error: erroBusca } = await supabase
+    .from('orcamentos')
+    .select('categoria_id, subcategoria_id, mes_referencia, valor_limite')
+    .eq('user_id', user.id)
+    .gte('mes_referencia', `${anoOrigem}-01-01`)
+    .lte('mes_referencia', `${anoOrigem}-12-01`);
+
+  if (erroBusca) return { error: erroBusca.message };
+  if (!linhasOrigem || linhasOrigem.length === 0) {
+    return { error: `Não encontrei orçamentos lançados em ${anoOrigem} para copiar.` };
+  }
+
+  for (const linha of linhasOrigem) {
+    const mesDestino = `${anoDestino}${linha.mes_referencia.slice(4)}`;
+    const resultado = await salvarOrcamentoMes(
+      supabase,
+      user.id,
+      linha.categoria_id,
+      linha.subcategoria_id,
+      mesDestino,
+      Number(linha.valor_limite)
+    );
+    if (resultado.error) return resultado;
+  }
+
+  revalidatePath('/orcamentos');
+  revalidatePath('/dashboard');
+  revalidatePath('/indicadores');
+  return { copiados: linhasOrigem.length };
+}
+
 export async function limparOrcamentos(ano: number, mesIndex: number | null): Promise<{ error?: string }> {
   const supabase = createServerSupabase();
   const {

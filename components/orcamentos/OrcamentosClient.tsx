@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { salvarOrcamento, limparOrcamentos } from '@/app/(dashboard)/orcamentos/actions';
+import { salvarOrcamento, limparOrcamentos, copiarOrcamentoAno } from '@/app/(dashboard)/orcamentos/actions';
 import { Modal } from '@/components/ui/Modal';
 import { SummaryCard } from '@/components/ui/SummaryCard';
 import { IconChevronDown, IconChevronRight, IconCheck, IconOrcamentos, IconTrendUp, IconTrendDown, IconWallet } from '@/components/icons';
@@ -524,6 +524,39 @@ export function OrcamentosClient({
     });
   }
 
+  const [copiando, startCopia] = useTransition();
+  const [mensagemCopia, setMensagemCopia] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);
+  const [modalCopiarAberto, setModalCopiarAberto] = useState(false);
+  const [anoOrigemCopia, setAnoOrigemCopia] = useState(ano);
+  const [anoDestinoCopia, setAnoDestinoCopia] = useState(ano + 1);
+
+  function confirmarCopia() {
+    if (anoOrigemCopia === anoDestinoCopia) {
+      setMensagemCopia({ tipo: 'erro', texto: 'Escolha anos diferentes para origem e destino.' });
+      return;
+    }
+    if (
+      !window.confirm(
+        `Copiar o orçamento de ${anoOrigemCopia} para todos os meses de ${anoDestinoCopia}? Valores já lançados em ${anoDestinoCopia} para as mesmas categorias/meses serão sobrescritos.`
+      )
+    )
+      return;
+    setModalCopiarAberto(false);
+    setMensagemCopia(null);
+    startCopia(async () => {
+      const resultado = await copiarOrcamentoAno(anoOrigemCopia, anoDestinoCopia);
+      if (resultado.error) {
+        setMensagemCopia({ tipo: 'erro', texto: resultado.error });
+        return;
+      }
+      setMensagemCopia({
+        tipo: 'sucesso',
+        texto: `${resultado.copiados} orçamento(s) copiado(s) de ${anoOrigemCopia} para ${anoDestinoCopia}. Recarregando...`,
+      });
+      window.location.reload();
+    });
+  }
+
   function mudarAno(novoAno: number) {
     const params = new URLSearchParams(searchParams.toString());
     params.set('ano', String(novoAno));
@@ -621,6 +654,9 @@ export function OrcamentosClient({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => setModalCopiarAberto(true)} disabled={copiando} className="btn-secondary">
+            {copiando ? 'Copiando...' : 'Copiar orçamento de outro ano'}
+          </button>
           <button type="button" onClick={() => setModalLimparAberto(true)} disabled={limpando} className="btn-danger">
             {limpando ? 'Limpando...' : 'Limpar orçamentos'}
           </button>
@@ -641,6 +677,57 @@ export function OrcamentosClient({
           {mensagemLimpeza.texto}
         </p>
       )}
+
+      {mensagemCopia && (
+        <p className={cn('text-sm', mensagemCopia.tipo === 'erro' ? 'text-negative' : 'text-positive')}>
+          {mensagemCopia.texto}
+        </p>
+      )}
+
+      <Modal open={modalCopiarAberto} onClose={() => setModalCopiarAberto(false)} title="Copiar orçamento entre anos">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Copia os valores de orçamento de um ano inteiro (receitas e gastos) para os meses correspondentes de outro
+            ano.
+          </p>
+
+          <div className="flex items-end gap-3">
+            <div className="flex-1">
+              <label className="label-field" htmlFor="ano_origem_copia">
+                De
+              </label>
+              <input
+                id="ano_origem_copia"
+                type="number"
+                value={anoOrigemCopia}
+                onChange={(e) => setAnoOrigemCopia(Number(e.target.value))}
+                className="input-field"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="label-field" htmlFor="ano_destino_copia">
+                Para
+              </label>
+              <input
+                id="ano_destino_copia"
+                type="number"
+                value={anoDestinoCopia}
+                onChange={(e) => setAnoDestinoCopia(Number(e.target.value))}
+                className="input-field"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={() => setModalCopiarAberto(false)} className="btn-secondary">
+              Cancelar
+            </button>
+            <button type="button" onClick={confirmarCopia} className="btn-primary">
+              Copiar
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal open={modalLimparAberto} onClose={() => setModalLimparAberto(false)} title="Limpar orçamentos">
         <div className="space-y-4">
