@@ -73,9 +73,8 @@ async function sincronizarTotalCategoria(
 export async function salvarOrcamento(
   categoriaId: string,
   subcategoriaId: string | null,
-  mesReferencia: string,
-  valorLimite: number | null,
-  mesesAFrente: number = 1
+  mesesReferencia: string[],
+  valorLimite: number | null
 ): Promise<{ error?: string }> {
   const supabase = createServerSupabase();
   const {
@@ -83,11 +82,7 @@ export async function salvarOrcamento(
   } = await supabase.auth.getUser();
   if (!user) return { error: 'Sessão expirada.' };
 
-  const mesBase = new Date(`${mesReferencia}T00:00:00`);
-  const total = Math.max(1, Math.min(36, mesesAFrente));
-
-  for (let i = 0; i < total; i++) {
-    const mesAlvo = primeiroDiaMes(addMeses(mesBase, i));
+  for (const mesAlvo of mesesReferencia) {
     const resultado = await salvarOrcamentoMes(supabase, user.id, categoriaId, subcategoriaId, mesAlvo, valorLimite);
     if (resultado.error) return resultado;
     if (subcategoriaId) {

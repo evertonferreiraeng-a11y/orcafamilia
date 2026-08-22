@@ -10,6 +10,20 @@ import { cn, formatCurrency, formatPercent0 } from '@/lib/utils';
 import { resolverValorEfetivo } from '@/lib/orcamentos';
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+const MESES_COMPLETOS = [
+  'Janeiro',
+  'Fevereiro',
+  'Março',
+  'Abril',
+  'Maio',
+  'Junho',
+  'Julho',
+  'Agosto',
+  'Setembro',
+  'Outubro',
+  'Novembro',
+  'Dezembro',
+];
 
 export interface SubcategoriaAnual {
   id: string;
@@ -45,11 +59,13 @@ function percentualEstourado(executado: number, orcado: number): boolean {
 function CelulaOrcamento({
   valor,
   label,
+  mesIndex,
   onSalvar,
 }: {
   valor: number | null;
   label: string;
-  onSalvar: (novoValor: number | null, mesesAFrente: number) => Promise<string | undefined>;
+  mesIndex: number;
+  onSalvar: (novoValor: number | null, mesesAlvo: number[]) => Promise<string | undefined>;
 }) {
   const valorTexto = valor != null && valor !== 0 ? String(valor) : '';
   const [texto, setTexto] = useState(valorTexto);
@@ -58,7 +74,11 @@ function CelulaOrcamento({
   const [erro, setErro] = useState<string | null>(null);
   const [modalAberto, setModalAberto] = useState(false);
   const [escopo, setEscopo] = useState<'mes' | 'futuro'>('mes');
-  const [quantidadeMeses, setQuantidadeMeses] = useState(12);
+  const mesesFuturosDisponiveis = useMemo(
+    () => Array.from({ length: 11 - mesIndex }, (_, k) => mesIndex + 1 + k),
+    [mesIndex]
+  );
+  const [mesesExtras, setMesesExtras] = useState<Set<number>>(new Set(mesesFuturosDisponiveis));
 
   // O valor pode mudar "por fora" (ex: aplicando o valor para os próximos
   // meses a partir de outra célula) — resincroniza o texto exibido quando
@@ -79,6 +99,16 @@ function CelulaOrcamento({
     setTexto(salvo);
     setModalAberto(false);
     setEscopo('mes');
+    setMesesExtras(new Set(mesesFuturosDisponiveis));
+  }
+
+  function alternarMesExtra(idx: number) {
+    setMesesExtras((prev) => {
+      const novo = new Set(prev);
+      if (novo.has(idx)) novo.delete(idx);
+      else novo.add(idx);
+      return novo;
+    });
   }
 
   async function confirmar() {
@@ -86,10 +116,12 @@ function CelulaOrcamento({
     setSalvando(true);
     setErro(null);
     const numero = texto.trim() === '' ? null : Number(texto);
-    const meses = escopo === 'futuro' ? Math.max(2, Math.min(36, quantidadeMeses)) : 1;
-    const erroMsg = await onSalvar(numero, meses);
+    const mesesAlvo =
+      escopo === 'futuro' ? [mesIndex, ...Array.from(mesesExtras)].sort((a, b) => a - b) : [mesIndex];
+    const erroMsg = await onSalvar(numero, mesesAlvo);
     setSalvando(false);
     setEscopo('mes');
+    setMesesExtras(new Set(mesesFuturosDisponiveis));
     if (erroMsg) {
       setErro(erroMsg);
       return;
@@ -153,32 +185,58 @@ function CelulaOrcamento({
               />
               Somente este mês
             </label>
-            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 p-3 text-sm has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+            <label
+              className={cn(
+                'flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 p-3 text-sm has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50',
+                mesesFuturosDisponiveis.length === 0 && 'cursor-not-allowed opacity-50'
+              )}
+            >
               <input
                 type="radio"
                 name="escopo"
                 checked={escopo === 'futuro'}
                 onChange={() => setEscopo('futuro')}
+                disabled={mesesFuturosDisponiveis.length === 0}
                 className="h-4 w-4 text-brand-600 focus:ring-brand-500"
               />
-              Este mês e os próximos
+              Este mês e outros meses
             </label>
           </div>
 
           {escopo === 'futuro' && (
             <div>
-              <label className="label-field" htmlFor="quantidade_meses">
-                Por quantos meses (incluindo este)?
-              </label>
-              <input
-                id="quantidade_meses"
-                type="number"
-                min={2}
-                max={36}
-                value={quantidadeMeses}
-                onChange={(e) => setQuantidadeMeses(Number(e.target.value))}
-                className="input-field"
-              />
+              <div className="mb-1.5 flex items-center justify-between">
+                <span className="label-field !mb-0">Para quais meses?</span>
+                <div className="flex gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setMesesExtras(new Set(mesesFuturosDisponiveis))}
+                    className="text-brand-600 hover:underline"
+                  >
+                    Marcar todos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMesesExtras(new Set())}
+                    className="text-brand-600 hover:underline"
+                  >
+                    Limpar
+                  </button>
+                </div>
+              </div>
+              <div className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto rounded-xl border border-gray-200 p-2.5">
+                {mesesFuturosDisponiveis.map((idx) => (
+                  <label key={idx} className="flex cursor-pointer items-center gap-1.5 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={mesesExtras.has(idx)}
+                      onChange={() => alternarMesExtra(idx)}
+                      className="h-3.5 w-3.5 rounded text-brand-600 focus:ring-brand-500"
+                    />
+                    {MESES_COMPLETOS[idx]}
+                  </label>
+                ))}
+              </div>
             </div>
           )}
 
@@ -217,9 +275,8 @@ function TabelaSecao({
   onEditar: (
     categoriaId: string,
     subcategoriaId: string | null,
-    mesIndex: number,
     novoValor: number | null,
-    mesesAFrente: number
+    mesesAlvo: number[]
   ) => Promise<string | undefined>;
   totaisPorMes: number[];
   totaisExecutadosPorMes: number[];
@@ -303,7 +360,8 @@ function TabelaSecao({
                         <CelulaOrcamento
                           valor={c.valoresPorMes[i]}
                           label={`${c.nome} · ${mes}`}
-                          onSalvar={(v, meses) => onEditar(c.id, null, i, v, meses)}
+                          mesIndex={i}
+                          onSalvar={(v, mesesAlvo) => onEditar(c.id, null, v, mesesAlvo)}
                         />
                       </td>
                     )}
@@ -354,7 +412,8 @@ function TabelaSecao({
                             <CelulaOrcamento
                               valor={s.valoresPorMes[i]}
                               label={`${c.nome} · ${s.nome} · ${mes}`}
-                              onSalvar={(v, meses) => onEditar(c.id, s.id, i, v, meses)}
+                              mesIndex={i}
+                              onSalvar={(v, mesesAlvo) => onEditar(c.id, s.id, v, mesesAlvo)}
                             />
                           </td>
                           <td
@@ -479,11 +538,9 @@ export function OrcamentosClient({
     setter: React.Dispatch<React.SetStateAction<CategoriaAnual[]>>,
     categoriaId: string,
     subcategoriaId: string | null,
-    mesIndex: number,
     novoValor: number | null,
-    mesesAFrente: number
+    mesesAlvo: number[]
   ) {
-    const mesFinal = Math.min(11, mesIndex + mesesAFrente - 1);
     setter((prev) =>
       prev.map((c) => {
         if (c.id !== categoriaId) return c;
@@ -492,12 +549,12 @@ export function OrcamentosClient({
             ...c,
             subcategorias: c.subcategorias.map((s) =>
               s.id === subcategoriaId
-                ? { ...s, valoresPorMes: s.valoresPorMes.map((v, i) => (i >= mesIndex && i <= mesFinal ? novoValor : v)) }
+                ? { ...s, valoresPorMes: s.valoresPorMes.map((v, i) => (mesesAlvo.includes(i) ? novoValor : v)) }
                 : s
             ),
           };
         }
-        return { ...c, valoresPorMes: c.valoresPorMes.map((v, i) => (i >= mesIndex && i <= mesFinal ? novoValor : v)) };
+        return { ...c, valoresPorMes: c.valoresPorMes.map((v, i) => (mesesAlvo.includes(i) ? novoValor : v)) };
       })
     );
   }
@@ -505,27 +562,25 @@ export function OrcamentosClient({
   async function editarReceita(
     categoriaId: string,
     subcategoriaId: string | null,
-    mesIndex: number,
     novoValor: number | null,
-    mesesAFrente: number
+    mesesAlvo: number[]
   ) {
-    const mesRef = `${ano}-${String(mesIndex + 1).padStart(2, '0')}-01`;
-    const resultado = await salvarOrcamento(categoriaId, subcategoriaId, mesRef, novoValor, mesesAFrente);
+    const mesesReferencia = mesesAlvo.map((i) => `${ano}-${String(i + 1).padStart(2, '0')}-01`);
+    const resultado = await salvarOrcamento(categoriaId, subcategoriaId, mesesReferencia, novoValor);
     if (resultado.error) return resultado.error;
-    atualizarLocal(setDadosReceita, categoriaId, subcategoriaId, mesIndex, novoValor, mesesAFrente);
+    atualizarLocal(setDadosReceita, categoriaId, subcategoriaId, novoValor, mesesAlvo);
   }
 
   async function editarDespesa(
     categoriaId: string,
     subcategoriaId: string | null,
-    mesIndex: number,
     novoValor: number | null,
-    mesesAFrente: number
+    mesesAlvo: number[]
   ) {
-    const mesRef = `${ano}-${String(mesIndex + 1).padStart(2, '0')}-01`;
-    const resultado = await salvarOrcamento(categoriaId, subcategoriaId, mesRef, novoValor, mesesAFrente);
+    const mesesReferencia = mesesAlvo.map((i) => `${ano}-${String(i + 1).padStart(2, '0')}-01`);
+    const resultado = await salvarOrcamento(categoriaId, subcategoriaId, mesesReferencia, novoValor);
     if (resultado.error) return resultado.error;
-    atualizarLocal(setDadosDespesa, categoriaId, subcategoriaId, mesIndex, novoValor, mesesAFrente);
+    atualizarLocal(setDadosDespesa, categoriaId, subcategoriaId, novoValor, mesesAlvo);
   }
 
   const totalReceitasPorMes = useMemo(
