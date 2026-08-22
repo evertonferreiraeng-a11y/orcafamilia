@@ -2,8 +2,6 @@
 
 import { revalidatePath } from 'next/cache';
 import { createServerSupabase } from '@/lib/supabase-server';
-import { addMeses, primeiroDiaMes } from '@/lib/utils';
-import { valorOrcamentoSugerido } from '@/lib/orcamentoSugestao';
 
 type SupabaseClient = ReturnType<typeof createServerSupabase>;
 
@@ -97,102 +95,26 @@ export async function salvarOrcamento(
   return {};
 }
 
-export interface SugestaoOrcamentoResultado {
-  error?: string;
-  preenchidos?: number;
-  rendaBase?: number;
-}
-
-const MESES_JANELA_RENDA = 3;
-
-/**
- * Preenche automaticamente as categorias/subcategorias de despesa que ainda
- * não têm orçamento definido em algum mês do ano informado, usando como base
- * a média das receitas pagas nos últimos 3 meses. Categorias com
- * subcategorias são sugeridas por subcategoria (única forma editável no
- * grid — o total da categoria é sempre a soma delas). Nunca sobrescreve
- * valores já definidos pelo usuário — só preenche o que está vazio.
- */
-export async function sugerirOrcamentosVazios(ano: number): Promise<SugestaoOrcamentoResultado> {
+export async function limparOrcamentos(ano: number, mesIndex: number | null): Promise<{ error?: string }> {
   const supabase = createServerSupabase();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: 'Sessão expirada.' };
 
-  const hoje = new Date();
-  const inicioJanela = primeiroDiaMes(addMeses(hoje, -(MESES_JANELA_RENDA - 1)));
-  const fimJanela = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
-
-  const { data: receitas } = await supabase
-    .from('transacoes')
-    .select('valor')
-    .eq('user_id', user.id)
-    .eq('tipo', 'receita')
-    .eq('pago', true)
-    .eq('eh_transferencia', false)
-    .gte('data', inicioJanela)
-    .lte('data', fimJanela);
-
-  const rendaBase = (receitas ?? []).reduce((a, t) => a + Number(t.valor), 0) / MESES_JANELA_RENDA;
-
-  if (rendaBase <= 0) {
-    return { error: 'Não encontrei receitas pagas nos últimos meses para calcular uma sugestão. Cadastre suas receitas primeiro.' };
+  let query = supabase.from('orcamentos').delete().eq('user_id', user.id);
+  if (mesIndex != null) {
+    const mesReferencia = `${ano}-${String(mesIndex + 1).padStart(2, '0')}-01`;
+    query = query.eq('mes_referencia', mesReferencia);
+  } else {
+    query = query.gte('mes_referencia', `${ano}-01-01`).lte('mes_referencia', `${ano}-12-01`);
   }
 
-  const [{ data: categoriasDespesa }, { data: subcategoriasTodas }, { data: orcamentosAno }] = await Promise.all([
-    supabase.from('categorias').select('id, nome').eq('user_id', user.id).eq('tipo', 'despesa'),
-    supabase.from('subcategorias').select('id, nome, categoria_id').eq('user_id', user.id),
-    supabase
-      .from('orcamentos')
-      .select('categoria_id, subcategoria_id, mes_referencia')
-      .eq('user_id', user.id)
-      .gte('mes_referencia', `${ano}-01-01`)
-      .lte('mes_referencia', `${ano}-12-01`),
-  ]);
-
-  const subcategoriasPorCategoria = new Map<string, { id: string; nome: string }[]>();
-  for (const s of subcategoriasTodas ?? []) {
-    const lista = subcategoriasPorCategoria.get(s.categoria_id) ?? [];
-    lista.push({ id: s.id, nome: s.nome });
-    subcategoriasPorCategoria.set(s.categoria_id, lista);
-  }
-
-  const jaDefinidos = new Set(
-    (orcamentosAno ?? []).map((o) => `${o.categoria_id}:${o.subcategoria_id ?? 'null'}:${o.mes_referencia}`)
-  );
-
-  // Categorias sem subcategoria são orçadas no próprio nível; categorias com
-  // subcategoria só são editáveis por subcategoria (o total da categoria é
-  // sempre a soma delas), então o alvo da sugestão precisa descer um nível.
-  const alvos = (categoriasDespesa ?? []).flatMap((categoria) => {
-    const subs = subcategoriasPorCategoria.get(categoria.id) ?? [];
-    if (subs.length === 0) {
-      return [{ categoriaId: categoria.id, subcategoriaId: null as string | null, nome: categoria.nome }];
-    }
-    return subs.map((s) => ({ categoriaId: categoria.id, subcategoriaId: s.id as string | null, nome: s.nome }));
-  });
-
-  const linhas = alvos.flatMap((alvo) => {
-    const valorSugerido = valorOrcamentoSugerido(alvo.nome, rendaBase);
-    return Array.from({ length: 12 }, (_, i) => `${ano}-${String(i + 1).padStart(2, '0')}-01`)
-      .filter((mesReferencia) => !jaDefinidos.has(`${alvo.categoriaId}:${alvo.subcategoriaId ?? 'null'}:${mesReferencia}`))
-      .map((mesReferencia) => ({
-        user_id: user.id,
-        categoria_id: alvo.categoriaId,
-        subcategoria_id: alvo.subcategoriaId,
-        mes_referencia: mesReferencia,
-        valor_limite: valorSugerido,
-      }));
-  });
-
-  if (linhas.length > 0) {
-    const { error } = await supabase.from('orcamentos').insert(linhas);
-    if (error) return { error: error.message };
-  }
+  const { error } = await query;
+  if (error) return { error: error.message };
 
   revalidatePath('/orcamentos');
   revalidatePath('/dashboard');
   revalidatePath('/indicadores');
-  return { preenchidos: linhas.length, rendaBase };
+  return {};
 }

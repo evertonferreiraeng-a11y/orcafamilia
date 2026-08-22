@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { salvarOrcamento, sugerirOrcamentosVazios } from '@/app/(dashboard)/orcamentos/actions';
+import { salvarOrcamento, limparOrcamentos } from '@/app/(dashboard)/orcamentos/actions';
 import { Modal } from '@/components/ui/Modal';
 import { SummaryCard } from '@/components/ui/SummaryCard';
 import { IconChevronDown, IconChevronRight, IconCheck, IconOrcamentos, IconTrendUp, IconTrendDown, IconWallet } from '@/components/icons';
@@ -499,31 +499,27 @@ export function OrcamentosClient({
   const [dadosReceita, setDadosReceita] = useState(categoriasReceita);
   const [dadosDespesa, setDadosDespesa] = useState(categoriasDespesa);
 
-  const [sugerindo, startSugestao] = useTransition();
-  const [mensagemSugestao, setMensagemSugestao] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);
+  const [limpando, startLimpeza] = useTransition();
+  const [mensagemLimpeza, setMensagemLimpeza] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);
+  const [modalLimparAberto, setModalLimparAberto] = useState(false);
+  const [escopoLimpar, setEscopoLimpar] = useState<'mes' | 'ano'>('mes');
+  const [mesLimpar, setMesLimpar] = useState(0);
 
-  function aplicarSugestoes() {
-    if (
-      !window.confirm(
-        `Preencher com valores sugeridos as categorias de despesa que ainda não têm orçamento definido em ${ano}? Categorias já preenchidas não serão alteradas.`
-      )
-    )
-      return;
-    setMensagemSugestao(null);
-    startSugestao(async () => {
-      const resultado = await sugerirOrcamentosVazios(ano);
+  function confirmarLimpeza() {
+    const confirmacao =
+      escopoLimpar === 'ano'
+        ? `Remover TODOS os orçamentos lançados em ${ano}, em receitas e gastos? Essa ação não pode ser desfeita.`
+        : `Remover os orçamentos lançados em ${MESES_COMPLETOS[mesLimpar]} de ${ano}, em receitas e gastos? Essa ação não pode ser desfeita.`;
+    if (!window.confirm(confirmacao)) return;
+    setModalLimparAberto(false);
+    setMensagemLimpeza(null);
+    startLimpeza(async () => {
+      const resultado = await limparOrcamentos(ano, escopoLimpar === 'ano' ? null : mesLimpar);
       if (resultado.error) {
-        setMensagemSugestao({ tipo: 'erro', texto: resultado.error });
+        setMensagemLimpeza({ tipo: 'erro', texto: resultado.error });
         return;
       }
-      if (!resultado.preenchidos) {
-        setMensagemSugestao({ tipo: 'sucesso', texto: 'Todas as categorias já tinham orçamento definido — nada para preencher.' });
-        return;
-      }
-      setMensagemSugestao({
-        tipo: 'sucesso',
-        texto: `${resultado.preenchidos} célula(s) preenchida(s) com base numa renda média de ${formatCurrency(resultado.rendaBase ?? 0)}/mês. Recarregando...`,
-      });
+      setMensagemLimpeza({ tipo: 'sucesso', texto: 'Orçamentos removidos. Recarregando...' });
       window.location.reload();
     });
   }
@@ -625,8 +621,8 @@ export function OrcamentosClient({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={aplicarSugestoes} disabled={sugerindo} className="btn-secondary">
-            {sugerindo ? 'Calculando sugestões...' : 'Sugerir orçamentos vazios'}
+          <button type="button" onClick={() => setModalLimparAberto(true)} disabled={limpando} className="btn-danger">
+            {limpando ? 'Limpando...' : 'Limpar orçamentos'}
           </button>
           <select value={ano} onChange={(e) => mudarAno(Number(e.target.value))} className="input-field w-auto">
             {anosDisponiveis
@@ -640,11 +636,64 @@ export function OrcamentosClient({
         </div>
       </div>
 
-      {mensagemSugestao && (
-        <p className={cn('text-sm', mensagemSugestao.tipo === 'erro' ? 'text-negative' : 'text-positive')}>
-          {mensagemSugestao.texto}
+      {mensagemLimpeza && (
+        <p className={cn('text-sm', mensagemLimpeza.tipo === 'erro' ? 'text-negative' : 'text-positive')}>
+          {mensagemLimpeza.texto}
         </p>
       )}
+
+      <Modal open={modalLimparAberto} onClose={() => setModalLimparAberto(false)} title="Limpar orçamentos">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Remove os valores de orçamento lançados (não afeta transações reais). Essa ação não pode ser desfeita.
+          </p>
+
+          <div className="space-y-2">
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 p-3 text-sm has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+              <input
+                type="radio"
+                name="escopoLimpar"
+                checked={escopoLimpar === 'mes'}
+                onChange={() => setEscopoLimpar('mes')}
+                className="h-4 w-4 text-brand-600 focus:ring-brand-500"
+              />
+              Um mês específico
+            </label>
+            {escopoLimpar === 'mes' && (
+              <select
+                value={mesLimpar}
+                onChange={(e) => setMesLimpar(Number(e.target.value))}
+                className="input-field ml-6 w-auto"
+              >
+                {MESES_COMPLETOS.map((nome, i) => (
+                  <option key={i} value={i}>
+                    {nome} de {ano}
+                  </option>
+                ))}
+              </select>
+            )}
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 p-3 text-sm has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+              <input
+                type="radio"
+                name="escopoLimpar"
+                checked={escopoLimpar === 'ano'}
+                onChange={() => setEscopoLimpar('ano')}
+                className="h-4 w-4 text-brand-600 focus:ring-brand-500"
+              />
+              O ano inteiro ({ano})
+            </label>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={() => setModalLimparAberto(false)} className="btn-secondary">
+              Cancelar
+            </button>
+            <button type="button" onClick={confirmarLimpeza} className="btn-danger">
+              Limpar
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <SummaryCard titulo="Total Receitas no ano" valor={totalAnoReceitas} tom="positivo" icon={IconTrendUp} />
