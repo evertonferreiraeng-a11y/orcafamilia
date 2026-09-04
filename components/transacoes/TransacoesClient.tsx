@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { DeleteButton } from '@/components/ui/DeleteButton';
-import { SummaryCard } from '@/components/ui/SummaryCard';
+import { StatCard } from '@/components/dashboard/StatCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { TransacaoForm } from '@/components/transacoes/TransacaoForm';
 import { FaturasView } from '@/components/transacoes/FaturasView';
@@ -359,42 +359,32 @@ export function TransacoesClient({
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <SummaryCard
+        <StatCard
           titulo="Saldo Executado"
           valor={resumo.saldoExecutado}
           tom={resumo.saldoExecutado >= 0 ? 'positivo' : 'negativo'}
           icon={IconWallet}
-          footer={
-            <span className="text-xs text-gray-400">
-              Projetado: {formatCurrency(resumo.saldoProjetado)}
-            </span>
-          }
+          extra={{ titulo: 'Saldo Projetado', valor: resumo.saldoProjetado }}
         />
-        <SummaryCard
+        <StatCard
           titulo="Receitas"
           valor={resumo.receitas}
           tom="positivo"
           icon={IconTrendUp}
-          footer={
-            resumo.receitasPendentes > 0 ? (
-              <span className="inline-flex items-center rounded-full bg-positive/10 px-2.5 py-1 text-xs font-medium text-positive">
-                +{formatCurrency(resumo.receitasPendentes)}
-              </span>
-            ) : undefined
-          }
+          detalhes={[
+            { label: 'Recebido', valor: resumo.receitas, tipo: 'ok' },
+            { label: 'A receber', valor: resumo.receitasPendentes, tipo: 'pendente' },
+          ]}
         />
-        <SummaryCard
+        <StatCard
           titulo="Despesas"
           valor={resumo.despesas}
           tom="negativo"
           icon={IconTrendDown}
-          footer={
-            resumo.despesasPendentes > 0 ? (
-              <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
-                +{formatCurrency(resumo.despesasPendentes)}
-              </span>
-            ) : undefined
-          }
+          detalhes={[
+            { label: 'Pago', valor: resumo.despesas, tipo: 'ok' },
+            { label: 'A pagar', valor: resumo.despesasPendentes, tipo: 'pendente' },
+          ]}
         />
       </div>
 
