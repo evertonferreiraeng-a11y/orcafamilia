@@ -70,8 +70,24 @@ export async function atualizarCofre(
   const dados = parseFormData(formData);
   if (!dados.nome) return { error: 'Preencha o nome do cofre.' };
 
+  const senhaAtual = String(formData.get('senha_atual') || '');
   const senha = String(formData.get('senha') || '');
   const removerSenha = formData.get('remover_senha') === 'on';
+
+  const { data: cofreAtual } = await supabase
+    .from('cofres')
+    .select('senha_hash')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single();
+  if (!cofreAtual) return { error: 'Cofre não encontrado.' };
+
+  const querAlterarSenha = removerSenha || !!senha;
+  if (cofreAtual.senha_hash && querAlterarSenha) {
+    if (!senhaAtual || !senhaConfere(senhaAtual, cofreAtual.senha_hash)) {
+      return { error: 'Senha atual incorreta.' };
+    }
+  }
 
   const atualizacao: typeof dados & { senha_hash?: string | null } = { ...dados };
   if (removerSenha) {

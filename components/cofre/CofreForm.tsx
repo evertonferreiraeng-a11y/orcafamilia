@@ -83,20 +83,35 @@ export function CofreForm({
         </div>
       </div>
 
-      <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-        <label className="label-field" htmlFor="senha">
-          {cofre?.protegido ? 'Nova senha' : 'Senha de acesso (opcional)'}
-        </label>
-        <input
-          id="senha"
-          name="senha"
-          type="password"
-          autoComplete="new-password"
-          className="input-field"
-          placeholder={cofre?.protegido ? 'Deixe em branco para manter a atual' : 'Proteja este cofre com uma senha'}
-        />
+      <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50 p-3">
         {cofre?.protegido && (
-          <label className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+          <div>
+            <label className="label-field" htmlFor="senha_atual">Senha atual</label>
+            <input
+              id="senha_atual"
+              name="senha_atual"
+              type="password"
+              autoComplete="current-password"
+              className="input-field"
+              placeholder="Necessária para trocar ou remover a senha"
+            />
+          </div>
+        )}
+        <div>
+          <label className="label-field" htmlFor="senha">
+            {cofre?.protegido ? 'Nova senha' : 'Senha de acesso (opcional)'}
+          </label>
+          <input
+            id="senha"
+            name="senha"
+            type="password"
+            autoComplete="new-password"
+            className="input-field"
+            placeholder={cofre?.protegido ? 'Deixe em branco para manter a atual' : 'Proteja este cofre com uma senha'}
+          />
+        </div>
+        {cofre?.protegido && (
+          <label className="flex items-center gap-2 text-sm text-gray-600">
             <input
               type="checkbox"
               name="remover_senha"

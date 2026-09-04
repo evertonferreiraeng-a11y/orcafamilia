@@ -6,6 +6,7 @@ import { SummaryCard } from '@/components/ui/SummaryCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { CofreForm } from '@/components/cofre/CofreForm';
 import { CofreCard } from '@/components/cofre/CofreCard';
+import { CofreDetalheModal } from '@/components/cofre/CofreDetalheModal';
 import { MovimentacaoCofreForm } from '@/components/cofre/MovimentacaoCofreForm';
 import { IconPlus, IconCofre, IconWallet, IconSearch } from '@/components/icons';
 import { criarCofre, atualizarCofre, registrarMovimentacaoCofre } from '@/app/(dashboard)/cofre/actions';
@@ -21,9 +22,15 @@ export function CofreClient({
 }) {
   const [modalForm, setModalForm] = useState(false);
   const [modalMovimentacao, setModalMovimentacao] = useState(false);
+  const [modalDetalhe, setModalDetalhe] = useState(false);
   const [tipoMovimentacao, setTipoMovimentacao] = useState<TipoMovimentacaoCofre>('deposito');
-  const [selecionado, setSelecionado] = useState<CofreSeguro | undefined>(undefined);
+  const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
+  const [desbloqueados, setDesbloqueados] = useState<Set<string>>(new Set());
   const [busca, setBusca] = useState('');
+
+  // Deriva sempre do array mais recente de `cofres` (em vez de guardar uma cópia),
+  // para não mostrar saldo/nome desatualizados depois de um depósito, retirada ou edição.
+  const selecionado = selecionadoId ? cofres.find((c) => c.id === selecionadoId) : undefined;
 
   const movimentacoesPorCofre = useMemo(() => {
     const mapa = new Map<string, CofreMovimentacao[]>();
@@ -46,19 +53,29 @@ export function CofreClient({
   }, [cofres, busca]);
 
   function abrirNovo() {
-    setSelecionado(undefined);
+    setSelecionadoId(null);
     setModalForm(true);
   }
 
   function abrirEdicao(c: CofreSeguro) {
-    setSelecionado(c);
+    setSelecionadoId(c.id);
+    setModalDetalhe(false);
     setModalForm(true);
   }
 
   function abrirMovimentacao(c: CofreSeguro, tipo: TipoMovimentacaoCofre) {
-    setSelecionado(c);
+    setSelecionadoId(c.id);
     setTipoMovimentacao(tipo);
     setModalMovimentacao(true);
+  }
+
+  function abrirDetalhe(c: CofreSeguro) {
+    setSelecionadoId(c.id);
+    setModalDetalhe(true);
+  }
+
+  function marcarDesbloqueado(id: string) {
+    setDesbloqueados((atual) => new Set(atual).add(id));
   }
 
   return (
@@ -113,13 +130,26 @@ export function CofreClient({
             <CofreCard
               key={c.id}
               cofre={c}
-              historico={movimentacoesPorCofre.get(c.id) ?? []}
-              onEditar={abrirEdicao}
-              onMovimentar={abrirMovimentacao}
+              desbloqueado={!c.protegido || desbloqueados.has(c.id)}
+              onDesbloquear={() => marcarDesbloqueado(c.id)}
+              onAbrir={() => abrirDetalhe(c)}
             />
           ))}
         </div>
       )}
+
+      <CofreDetalheModal
+        open={modalDetalhe}
+        cofre={selecionado}
+        historico={selecionado ? movimentacoesPorCofre.get(selecionado.id) ?? [] : []}
+        onClose={() => setModalDetalhe(false)}
+        onEditar={abrirEdicao}
+        onMovimentar={abrirMovimentacao}
+        onExcluido={() => {
+          setModalDetalhe(false);
+          setSelecionadoId(null);
+        }}
+      />
 
       <Modal open={modalForm} onClose={() => setModalForm(false)} title={selecionado ? 'Editar cofre' : 'Novo cofre'}>
         <CofreForm
