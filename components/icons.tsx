@@ -41,6 +41,7 @@ import {
   Vault,
   ArrowDownToLine,
   ArrowUpFromLine,
+  Lock,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -93,3 +94,4 @@ export const IconAtualizar = withDefaultStroke(RefreshCw);
 export const IconCofre = withDefaultStroke(Vault);
 export const IconDepositar = withDefaultStroke(ArrowDownToLine);
 export const IconRetirar = withDefaultStroke(ArrowUpFromLine);
+export const IconCadeado = withDefaultStroke(Lock);

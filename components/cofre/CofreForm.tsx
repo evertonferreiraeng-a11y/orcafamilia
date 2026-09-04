@@ -1,7 +1,7 @@
 'use client';
 
 import { useFormState, useFormStatus } from 'react-dom';
-import type { Cofre } from '@/types/database';
+import type { CofreSeguro } from '@/components/cofre/types';
 import type { CofreFormState } from '@/app/(dashboard)/cofre/actions';
 
 function BotaoSalvar({ label }: { label: string }) {
@@ -19,7 +19,7 @@ export function CofreForm({
   onSucesso,
 }: {
   action: (state: CofreFormState, formData: FormData) => Promise<CofreFormState>;
-  cofre?: Cofre;
+  cofre?: CofreSeguro;
   onSucesso: () => void;
 }) {
   const [state, formAction] = useFormState(async (state: CofreFormState, formData: FormData) => {
@@ -81,6 +81,30 @@ export function CofreForm({
             className="h-10 w-16 rounded-lg border border-gray-200"
           />
         </div>
+      </div>
+
+      <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+        <label className="label-field" htmlFor="senha">
+          {cofre?.protegido ? 'Nova senha' : 'Senha de acesso (opcional)'}
+        </label>
+        <input
+          id="senha"
+          name="senha"
+          type="password"
+          autoComplete="new-password"
+          className="input-field"
+          placeholder={cofre?.protegido ? 'Deixe em branco para manter a atual' : 'Proteja este cofre com uma senha'}
+        />
+        {cofre?.protegido && (
+          <label className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+            <input
+              type="checkbox"
+              name="remover_senha"
+              className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+            />
+            Remover proteção por senha
+          </label>
+        )}
       </div>
 
       {state.error && <p className="text-sm text-negative">{state.error}</p>}

@@ -1,5 +1,6 @@
 'use server';
 
+import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
 import { revalidatePath } from 'next/cache';
 import { createServerSupabase } from '@/lib/supabase-server';
 import type { TipoMovimentacaoCofre } from '@/types/database';
@@ -16,6 +17,20 @@ function parseFormData(formData: FormData) {
   };
 }
 
+function hashSenha(senha: string): string {
+  const salt = randomBytes(16).toString('hex');
+  const hash = scryptSync(senha, salt, 64).toString('hex');
+  return `${salt}:${hash}`;
+}
+
+function senhaConfere(senha: string, senhaHash: string): boolean {
+  const [salt, hash] = senhaHash.split(':');
+  if (!salt || !hash) return false;
+  const hashArmazenado = Buffer.from(hash, 'hex');
+  const hashInformado = scryptSync(senha, salt, 64);
+  return hashArmazenado.length === hashInformado.length && timingSafeEqual(hashArmazenado, hashInformado);
+}
+
 export async function criarCofre(_prevState: CofreFormState, formData: FormData): Promise<CofreFormState> {
   const supabase = createServerSupabase();
   const {
@@ -27,8 +42,14 @@ export async function criarCofre(_prevState: CofreFormState, formData: FormData)
   if (!dados.nome) return { error: 'Preencha o nome do cofre.' };
 
   const saldoInicial = Number(formData.get('saldo_inicial') || 0);
+  const senha = String(formData.get('senha') || '');
 
-  const { error } = await supabase.from('cofres').insert({ user_id: user.id, ...dados, saldo: saldoInicial });
+  const { error } = await supabase.from('cofres').insert({
+    user_id: user.id,
+    ...dados,
+    saldo: saldoInicial,
+    senha_hash: senha ? hashSenha(senha) : null,
+  });
   if (error) return { error: error.message };
 
   revalidatePath('/cofre');
@@ -49,11 +70,40 @@ export async function atualizarCofre(
   const dados = parseFormData(formData);
   if (!dados.nome) return { error: 'Preencha o nome do cofre.' };
 
-  const { error } = await supabase.from('cofres').update(dados).eq('id', id).eq('user_id', user.id);
+  const senha = String(formData.get('senha') || '');
+  const removerSenha = formData.get('remover_senha') === 'on';
+
+  const atualizacao: typeof dados & { senha_hash?: string | null } = { ...dados };
+  if (removerSenha) {
+    atualizacao.senha_hash = null;
+  } else if (senha) {
+    atualizacao.senha_hash = hashSenha(senha);
+  }
+
+  const { error } = await supabase.from('cofres').update(atualizacao).eq('id', id).eq('user_id', user.id);
   if (error) return { error: error.message };
 
   revalidatePath('/cofre');
   return {};
+}
+
+export async function verificarSenhaCofre(id: string, senha: string): Promise<{ ok: boolean }> {
+  const supabase = createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false };
+
+  const { data: cofre } = await supabase
+    .from('cofres')
+    .select('senha_hash')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single();
+  if (!cofre) return { ok: false };
+  if (!cofre.senha_hash) return { ok: true };
+
+  return { ok: senhaConfere(senha, cofre.senha_hash) };
 }
 
 export async function registrarMovimentacaoCofre(
