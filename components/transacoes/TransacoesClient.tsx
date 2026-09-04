@@ -56,6 +56,7 @@ const OPCOES_PERIODO = [
   { value: 'ultimos-30', label: 'Últimos 30 dias' },
   { value: 'ultimos-90', label: 'Últimos 90 dias' },
   { value: 'este-ano', label: 'Este ano' },
+  { value: 'personalizado', label: 'Personalizado' },
 ];
 
 function paraISO(data: Date): string {
@@ -157,6 +158,8 @@ export function TransacoesClient({
   const [filtroStatus, setFiltroStatus] = useState<StatusFiltro>('todas');
 
   const [filtroPeriodo, setFiltroPeriodo] = useState('');
+  const [filtroPersonalizadoInicio, setFiltroPersonalizadoInicio] = useState('');
+  const [filtroPersonalizadoFim, setFiltroPersonalizadoFim] = useState('');
   const [filtroCategorias, setFiltroCategorias] = useState<string[]>([]);
   const [filtroSubcategorias, setFiltroSubcategorias] = useState<string[]>([]);
   const [filtroContas, setFiltroContas] = useState<string[]>([]);
@@ -175,6 +178,8 @@ export function TransacoesClient({
 
   function limparFiltrosAvancados() {
     setFiltroPeriodo('');
+    setFiltroPersonalizadoInicio('');
+    setFiltroPersonalizadoFim('');
     setFiltroCategorias([]);
     setFiltroSubcategorias([]);
     setFiltroContas([]);
@@ -218,7 +223,16 @@ export function TransacoesClient({
     }
   }
 
-  const periodoIntervalo = useMemo(() => calcularIntervaloPeriodo(filtroPeriodo), [filtroPeriodo]);
+  const periodoIntervalo = useMemo(() => {
+    if (filtroPeriodo === 'personalizado') {
+      if (!filtroPersonalizadoInicio && !filtroPersonalizadoFim) return null;
+      return {
+        inicio: filtroPersonalizadoInicio || '0001-01-01',
+        fim: filtroPersonalizadoFim || '9999-12-31',
+      };
+    }
+    return calcularIntervaloPeriodo(filtroPeriodo);
+  }, [filtroPeriodo, filtroPersonalizadoInicio, filtroPersonalizadoFim]);
 
   const resumo = useMemo(() => {
     const relevantes = transacoes.filter((t) => {
@@ -593,6 +607,29 @@ export function TransacoesClient({
                 ))}
               </select>
             </div>
+
+            {filtroPeriodo === 'personalizado' && (
+              <>
+                <div>
+                  <label className="label-field">De</label>
+                  <input
+                    type="date"
+                    value={filtroPersonalizadoInicio}
+                    onChange={(e) => setFiltroPersonalizadoInicio(e.target.value)}
+                    className="input-field"
+                  />
+                </div>
+                <div>
+                  <label className="label-field">Até</label>
+                  <input
+                    type="date"
+                    value={filtroPersonalizadoFim}
+                    onChange={(e) => setFiltroPersonalizadoFim(e.target.value)}
+                    className="input-field"
+                  />
+                </div>
+              </>
+            )}
 
             <MultiSelectFiltro
               label="Categoria"
