@@ -6,6 +6,7 @@ export type StatusDivida = 'ativa' | 'quitada';
 export type TipoInvestimento = 'renda_fixa' | 'renda_variavel' | 'fundo' | 'outro';
 export type TipoNotificacao = 'saldo' | 'divida' | 'orcamento';
 export type StatusNotificacao = 'enviado' | 'erro';
+export type TipoMovimentacaoCofre = 'deposito' | 'retirada';
 
 export type Familia = {
   id: string;
@@ -140,6 +141,27 @@ export type Meta = {
   valor_alvo: number;
   valor_atual: number;
   data_alvo: string | null;
+  criado_em: string;
+};
+
+export type Cofre = {
+  id: string;
+  user_id: string;
+  nome: string;
+  descricao: string | null;
+  cor: string | null;
+  saldo: number;
+  criado_em: string;
+};
+
+export type CofreMovimentacao = {
+  id: string;
+  cofre_id: string;
+  user_id: string;
+  tipo: TipoMovimentacaoCofre;
+  valor: number;
+  descricao: string | null;
+  data: string;
   criado_em: string;
 };
 
@@ -345,6 +367,19 @@ export interface Database {
         ]
       >;
       metas: TableDef<Meta>;
+      cofres: TableDef<Cofre>;
+      cofre_movimentacoes: TableDef<
+        CofreMovimentacao,
+        [
+          {
+            foreignKeyName: 'cofre_movimentacoes_cofre_id_fkey';
+            columns: ['cofre_id'];
+            isOneToOne: false;
+            referencedRelation: 'cofres';
+            referencedColumns: ['id'];
+          },
+        ]
+      >;
       investimentos: TableDef<Investimento>;
       alertas_config: TableDef<AlertasConfig>;
       notificacoes_log: TableDef<NotificacaoLog>;

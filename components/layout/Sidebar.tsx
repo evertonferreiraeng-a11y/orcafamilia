@@ -9,6 +9,7 @@ import {
   IconOrcamentos,
   IconDividas,
   IconMetas,
+  IconCofre,
   IconFamilia,
   IconCadastro,
   IconAjustes,
@@ -32,6 +33,7 @@ const NAV_GROUPS = [
     items: [
       { href: '/dividas', label: 'Dívidas', icon: IconDividas },
       { href: '/metas', label: 'Metas', icon: IconMetas },
+      { href: '/cofre', label: 'Cofre', icon: IconCofre },
     ],
   },
   {

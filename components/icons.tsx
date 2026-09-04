@@ -38,6 +38,9 @@ import {
   Repeat,
   ShoppingBag,
   RefreshCw,
+  Vault,
+  ArrowDownToLine,
+  ArrowUpFromLine,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -87,3 +90,6 @@ export const IconCheck = withDefaultStroke(Check);
 export const IconRecorrente = withDefaultStroke(Repeat);
 export const IconCompras = withDefaultStroke(ShoppingBag);
 export const IconAtualizar = withDefaultStroke(RefreshCw);
+export const IconCofre = withDefaultStroke(Vault);
+export const IconDepositar = withDefaultStroke(ArrowDownToLine);
+export const IconRetirar = withDefaultStroke(ArrowUpFromLine);
