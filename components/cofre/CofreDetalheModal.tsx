@@ -78,7 +78,7 @@ export function CofreDetalheModal({
             <p className="whitespace-pre-wrap rounded-xl bg-gray-50 p-3 text-sm text-gray-700">{cofre.notas}</p>
           ) : (
             <p className="rounded-xl border border-dashed border-gray-200 p-3 text-sm text-gray-400">
-              Nenhuma anotação ainda. Use "Editar" para adicionar.
+              Nenhuma anotação ainda. Use &quot;Editar&quot; para adicionar.
             </p>
           )}
         </div>
