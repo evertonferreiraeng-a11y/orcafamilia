@@ -13,6 +13,7 @@ function parseFormData(formData: FormData) {
   return {
     nome: String(formData.get('nome') || '').trim(),
     descricao: String(formData.get('descricao') || '').trim() || null,
+    notas: String(formData.get('notas') || '').trim() || null,
     cor: String(formData.get('cor') || '') || null,
   };
 }

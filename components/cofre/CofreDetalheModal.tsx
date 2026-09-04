@@ -73,6 +73,17 @@ export function CofreDetalheModal({
         </div>
 
         <div>
+          <h4 className="mb-2 text-sm font-semibold text-gray-700">Anotações</h4>
+          {cofre.notas ? (
+            <p className="whitespace-pre-wrap rounded-xl bg-gray-50 p-3 text-sm text-gray-700">{cofre.notas}</p>
+          ) : (
+            <p className="rounded-xl border border-dashed border-gray-200 p-3 text-sm text-gray-400">
+              Nenhuma anotação ainda. Use "Editar" para adicionar.
+            </p>
+          )}
+        </div>
+
+        <div>
           <h4 className="mb-2 text-sm font-semibold text-gray-700">Histórico de movimentações</h4>
           {historico.length === 0 ? (
             <EmptyState mensagem="Nenhuma movimentação registrada ainda." />

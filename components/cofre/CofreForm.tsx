@@ -55,6 +55,18 @@ export function CofreForm({
         />
       </div>
 
+      <div>
+        <label className="label-field" htmlFor="notas">Anotações</label>
+        <textarea
+          id="notas"
+          name="notas"
+          rows={4}
+          defaultValue={cofre?.notas ?? ''}
+          className="input-field"
+          placeholder="Anote o que quiser sobre este cofre (opcional)"
+        />
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         {!cofre && (
           <div>

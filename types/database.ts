@@ -149,6 +149,7 @@ export type Cofre = {
   user_id: string;
   nome: string;
   descricao: string | null;
+  notas: string | null;
   cor: string | null;
   saldo: number;
   senha_hash: string | null;
