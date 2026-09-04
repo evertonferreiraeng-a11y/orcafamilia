@@ -378,7 +378,7 @@ export function TransacoesClient({
           valor={resumo.saldoExecutado}
           tom={resumo.saldoExecutado >= 0 ? 'positivo' : 'negativo'}
           icon={IconWallet}
-          extra={{ titulo: 'Saldo Projetado', valor: resumo.saldoProjetado }}
+          extras={[{ titulo: 'Saldo Projetado', valor: resumo.saldoProjetado }]}
         />
         <StatCard
           titulo="Receitas"

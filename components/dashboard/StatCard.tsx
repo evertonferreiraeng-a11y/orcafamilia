@@ -25,6 +25,8 @@ const TOM_CLASSES = {
   },
 } as const;
 
+export type StatCardExtra = { titulo: string; valor: number; subtitulo?: string };
+
 export function StatCard({
   titulo,
   valor,
@@ -32,7 +34,7 @@ export function StatCard({
   tom = 'neutro',
   icon: Icon,
   detalhes,
-  extra,
+  extras,
   className,
 }: {
   titulo: string;
@@ -41,7 +43,7 @@ export function StatCard({
   tom?: 'positivo' | 'negativo' | 'neutro';
   icon: IconComponent;
   detalhes?: StatCardDetalhe[];
-  extra?: { titulo: string; valor: number; subtitulo?: string };
+  extras?: StatCardExtra[];
   className?: string;
 }) {
   const classes = TOM_CLASSES[tom];
@@ -62,15 +64,15 @@ export function StatCard({
 
       {detalhes && detalhes.length > 0 && <StatCardDetalhes detalhes={detalhes} />}
 
-      {extra && (
-        <div className="mt-3 border-t border-black/5 pt-3">
+      {extras?.map((extra) => (
+        <div key={extra.titulo} className="mt-3 border-t border-black/5 pt-3">
           <p className="text-xs font-semibold text-gray-600">{extra.titulo}</p>
           <p className={cn('mt-1 text-lg font-bold', classes.valor)}>
             <ValorMonetario valor={extra.valor} />
           </p>
           {extra.subtitulo && <p className="mt-0.5 text-xs text-gray-400">{extra.subtitulo}</p>}
         </div>
-      )}
+      ))}
     </div>
   );
 }

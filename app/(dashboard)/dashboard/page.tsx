@@ -159,11 +159,16 @@ export default async function DashboardPage({
   const mesAnteriorTransacoes = transacoesMesAnterior ?? [];
 
   const saldoInicioMes = saldoTotalContas - saldoMes;
-  const saldoPrevisto = saldoTotalContas + pendenteReceita - pendenteDespesa;
+  // Acumulado: saldo bancário atual + tudo que ainda falta receber/pagar neste mês.
+  const saldoPrevistoAcumulado = saldoTotalContas + pendenteReceita - pendenteDespesa;
+  // Isolado ao mês: só a receita e despesa (pagas + pendentes) deste mês, sem somar o saldo trazido de antes.
+  const previsaoSaldoMes = receitaMes + pendenteReceita - (despesaMes + pendenteDespesa);
 
   const subtituloSaldoAnterior = `Até ${formatDataExtenso(fimAnterior)} (Receita - Despesa + Saldo Bancário)`;
   const subtituloPeriodo = `${formatDataExtenso(inicio)} - ${formatDataExtenso(fim)}`;
   const subtituloSaldoAtual = `Até ${formatDataExtenso(fim)} (Receita - Despesa + Saldo Bancário)`;
+  const subtituloSaldoPrevistoAcumulado = `Até ${formatDataExtenso(fim)} (Receita total - Despesa total + Saldo anterior)`;
+  const subtituloPrevisaoSaldoMes = `${formatDataExtenso(inicio)} - ${formatDataExtenso(fim)} (sem somar o saldo anterior)`;
 
   const gastoPorCategoria = new Map<string, number>();
   const gastoPorCategoriaFixa = new Map<string, number>();
@@ -447,16 +452,23 @@ export default async function DashboardPage({
           ]}
         />
         <StatCard
-          titulo="Saldo Disponível"
+          titulo="Saldo Disponível (Bancário Atual)"
           valor={saldoTotalContas}
           subtitulo={subtituloSaldoAtual}
           tom={saldoTotalContas >= 0 ? 'positivo' : 'negativo'}
           icon={IconWallet}
-          extra={{
-            titulo: 'Saldo Previsto',
-            valor: saldoPrevisto,
-            subtitulo: subtituloSaldoAtual,
-          }}
+          extras={[
+            {
+              titulo: 'Saldo Previsto (Acumulado)',
+              valor: saldoPrevistoAcumulado,
+              subtitulo: subtituloSaldoPrevistoAcumulado,
+            },
+            {
+              titulo: 'Previsão do Mês (sem saldo anterior)',
+              valor: previsaoSaldoMes,
+              subtitulo: subtituloPrevisaoSaldoMes,
+            },
+          ]}
         />
       </div>
 
