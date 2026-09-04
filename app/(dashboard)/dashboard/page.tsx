@@ -161,14 +161,17 @@ export default async function DashboardPage({
   const saldoInicioMes = saldoTotalContas - saldoMes;
   // Acumulado: saldo bancário atual + tudo que ainda falta receber/pagar neste mês.
   const saldoPrevistoAcumulado = saldoTotalContas + pendenteReceita - pendenteDespesa;
-  // Isolado ao mês: só a receita e despesa (pagas + pendentes) deste mês, sem somar o saldo trazido de antes.
-  const previsaoSaldoMes = receitaMes + pendenteReceita - (despesaMes + pendenteDespesa);
+  // Isolado ao mês, só o que já foi pago: receita paga - despesa paga (sem saldo anterior). É o mesmo que saldoMes.
+  const saldoMesExecutado = saldoMes;
+  // Isolado ao mês, com tudo: receita total (paga + a receber) - despesa total (paga + a pagar), sem saldo anterior.
+  const previsaoSaldoMesTotal = receitaMes + pendenteReceita - (despesaMes + pendenteDespesa);
 
   const subtituloSaldoAnterior = `Até ${formatDataExtenso(fimAnterior)} (Receita - Despesa + Saldo Bancário)`;
   const subtituloPeriodo = `${formatDataExtenso(inicio)} - ${formatDataExtenso(fim)}`;
   const subtituloSaldoAtual = `Até ${formatDataExtenso(fim)} (Receita - Despesa + Saldo Bancário)`;
   const subtituloSaldoPrevistoAcumulado = `Até ${formatDataExtenso(fim)} (Receita total - Despesa total + Saldo anterior)`;
-  const subtituloPrevisaoSaldoMes = `${formatDataExtenso(inicio)} - ${formatDataExtenso(fim)} (sem somar o saldo anterior)`;
+  const subtituloSaldoMesExecutado = `${formatDataExtenso(inicio)} - ${formatDataExtenso(fim)} (Receita paga - Despesa paga, sem saldo anterior)`;
+  const subtituloPrevisaoSaldoMesTotal = `${formatDataExtenso(inicio)} - ${formatDataExtenso(fim)} (Receita total - Despesa total, sem saldo anterior)`;
 
   const gastoPorCategoria = new Map<string, number>();
   const gastoPorCategoriaFixa = new Map<string, number>();
@@ -464,9 +467,14 @@ export default async function DashboardPage({
               subtitulo: subtituloSaldoPrevistoAcumulado,
             },
             {
-              titulo: 'Previsão do Mês (sem saldo anterior)',
-              valor: previsaoSaldoMes,
-              subtitulo: subtituloPrevisaoSaldoMes,
+              titulo: 'Saldo do Mês (Executado)',
+              valor: saldoMesExecutado,
+              subtitulo: subtituloSaldoMesExecutado,
+            },
+            {
+              titulo: 'Previsão do Mês (Total)',
+              valor: previsaoSaldoMesTotal,
+              subtitulo: subtituloPrevisaoSaldoMesTotal,
             },
           ]}
         />
