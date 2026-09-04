@@ -1,10 +1,9 @@
-'use client';
-
-import { useState } from 'react';
 import type { SVGProps } from 'react';
 import { cn } from '@/lib/utils';
 import { ValorMonetario } from '@/components/ui/ValorMonetario';
-import { IconChevronDown, IconCheck, IconRelogio } from '@/components/icons';
+import { StatCardDetalhes, type StatCardDetalhe } from '@/components/dashboard/StatCardDetalhes';
+
+export type { StatCardDetalhe };
 
 type IconComponent = (props: SVGProps<SVGSVGElement>) => React.ReactElement;
 
@@ -26,8 +25,6 @@ const TOM_CLASSES = {
   },
 } as const;
 
-export type StatCardDetalhe = { label: string; valor: number; tipo?: 'ok' | 'pendente' };
-
 export function StatCard({
   titulo,
   valor,
@@ -47,7 +44,6 @@ export function StatCard({
   extra?: { titulo: string; valor: number; subtitulo: string };
   className?: string;
 }) {
-  const [aberto, setAberto] = useState(true);
   const classes = TOM_CLASSES[tom];
 
   return (
@@ -64,37 +60,7 @@ export function StatCard({
       </p>
       <p className="mt-0.5 text-xs text-gray-400">{subtitulo}</p>
 
-      {detalhes && detalhes.length > 0 && (
-        <div className="mt-3 border-t border-black/5 pt-3">
-          <button
-            type="button"
-            onClick={() => setAberto((atual) => !atual)}
-            className="flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-700"
-          >
-            {aberto ? 'Ocultar detalhes' : 'Mostrar detalhes'}
-            <IconChevronDown className={cn('h-3.5 w-3.5 transition-transform', aberto && 'rotate-180')} />
-          </button>
-
-          {aberto && (
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              {detalhes.map((d) => {
-                const DetalheIcon = d.tipo === 'pendente' ? IconRelogio : IconCheck;
-                return (
-                  <div key={d.label} className="flex items-start gap-1.5">
-                    <DetalheIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-400" />
-                    <div>
-                      <p className="text-[11px] leading-tight text-gray-400">{d.label}</p>
-                      <p className="text-sm font-semibold text-gray-700">
-                        <ValorMonetario valor={d.valor} />
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+      {detalhes && detalhes.length > 0 && <StatCardDetalhes detalhes={detalhes} />}
 
       {extra && (
         <div className="mt-3 border-t border-black/5 pt-3">
