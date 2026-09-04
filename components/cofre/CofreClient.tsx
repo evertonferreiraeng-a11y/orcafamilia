@@ -2,13 +2,12 @@
 
 import { useMemo, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
-import { SummaryCard } from '@/components/ui/SummaryCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { CofreForm } from '@/components/cofre/CofreForm';
 import { CofreCard } from '@/components/cofre/CofreCard';
 import { CofreDetalheModal } from '@/components/cofre/CofreDetalheModal';
 import { MovimentacaoCofreForm } from '@/components/cofre/MovimentacaoCofreForm';
-import { IconPlus, IconCofre, IconWallet, IconSearch } from '@/components/icons';
+import { IconPlus, IconCofre, IconSearch } from '@/components/icons';
 import { criarCofre, atualizarCofre, registrarMovimentacaoCofre } from '@/app/(dashboard)/cofre/actions';
 import type { CofreSeguro } from '@/components/cofre/types';
 import type { CofreMovimentacao, TipoMovimentacaoCofre } from '@/types/database';
@@ -41,8 +40,6 @@ export function CofreClient({
     }
     return mapa;
   }, [movimentacoes]);
-
-  const totalGuardado = cofres.reduce((a, c) => a + Number(c.saldo), 0);
 
   const cofresFiltrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -94,19 +91,6 @@ export function CofreClient({
           <IconPlus className="h-4 w-4" />
           Novo cofre
         </button>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <SummaryCard titulo="Total Guardado" valor={totalGuardado} tom="positivo" icon={IconWallet} />
-        <div className="rounded-2xl bg-brand-50 p-4 transition-shadow hover:shadow-card">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-600">
-              <IconCofre className="h-5 w-5" />
-            </span>
-            <p className="text-sm font-semibold text-gray-600">Cofres Ativos</p>
-          </div>
-          <p className="mt-4 text-xl font-bold text-gray-900">{cofres.length}</p>
-        </div>
       </div>
 
       {cofres.length > 0 && (
