@@ -1,17 +1,15 @@
 import { eachDayOfInterval, format, addDays, differenceInCalendarDays } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { createServerSupabase } from '@/lib/supabase-server';
 import {
   parseMesParam,
   primeiroDiaMes,
   ultimoDiaMes,
   addMeses,
-  calcularVariacaoPercentual,
-  formatPercent,
 } from '@/lib/utils';
 import { indexarSubcategoriasPorCategoria, orcadoEfetivoCategoria } from '@/lib/orcamentos';
 import { gerarInsights, type DadosGerente } from '@/lib/gerente';
-import { StatRow } from '@/components/dashboard/StatRow';
-import { ValorMonetario } from '@/components/ui/ValorMonetario';
+import { StatCard } from '@/components/dashboard/StatCard';
 import { MinhasContasCarousel } from '@/components/dashboard/MinhasContasCarousel';
 import { BalancoMensalChart, type PontoBalanco } from '@/components/dashboard/BalancoMensalChart';
 import { GerenteFinanceiroCard } from '@/components/dashboard/GerenteFinanceiroCard';
@@ -20,6 +18,10 @@ import { SaldoDoMesCard } from '@/components/dashboard/SaldoDoMesCard';
 import { IconTrendUp, IconTrendDown, IconWallet, IconRecorrente, IconCompras } from '@/components/icons';
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+function formatDataExtenso(data: string): string {
+  return format(new Date(`${data}T00:00:00`), "d 'de' MMMM", { locale: ptBR });
+}
 
 export default async function DashboardPage({
   searchParams,
@@ -155,13 +157,13 @@ export default async function DashboardPage({
   const pendenteDespesa = pendente.filter((t) => t.tipo === 'despesa').reduce((a, t) => a + Number(t.valor), 0);
 
   const mesAnteriorTransacoes = transacoesMesAnterior ?? [];
-  const receitaMesAnterior = mesAnteriorTransacoes.filter((t) => t.tipo === 'receita').reduce((a, t) => a + Number(t.valor), 0);
-  const despesaMesAnterior = mesAnteriorTransacoes.filter((t) => t.tipo === 'despesa').reduce((a, t) => a + Number(t.valor), 0);
-  const saldoMesAnterior = receitaMesAnterior - despesaMesAnterior;
 
-  const variacaoSaldo = calcularVariacaoPercentual(saldoMes, saldoMesAnterior);
-  const variacaoReceita = calcularVariacaoPercentual(receitaMes, receitaMesAnterior);
-  const variacaoDespesa = calcularVariacaoPercentual(despesaMes, despesaMesAnterior);
+  const saldoInicioMes = saldoTotalContas - saldoMes;
+  const saldoPrevisto = saldoTotalContas + pendenteReceita - pendenteDespesa;
+
+  const subtituloSaldoAnterior = `Até ${formatDataExtenso(fimAnterior)} (Receita - Despesa + Saldo Bancário)`;
+  const subtituloPeriodo = `${formatDataExtenso(inicio)} - ${formatDataExtenso(fim)}`;
+  const subtituloSaldoAtual = `Até ${formatDataExtenso(fim)} (Receita - Despesa + Saldo Bancário)`;
 
   const gastoPorCategoria = new Map<string, number>();
   const gastoPorCategoriaFixa = new Map<string, number>();
@@ -410,67 +412,51 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <StatRow
-          titulo="Saldo (Este mês)"
-          valor={saldoMes}
-          valorLabel="Pago"
-          tom={saldoMes >= 0 ? 'positivo' : 'negativo'}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          titulo="Saldo do Período Anterior"
+          valor={saldoInicioMes}
+          subtitulo={subtituloSaldoAnterior}
+          tom={saldoInicioMes >= 0 ? 'positivo' : 'negativo'}
           icon={IconWallet}
-          badge={
-            variacaoSaldo === null
-              ? undefined
-              : { texto: formatPercent(variacaoSaldo), tom: variacaoSaldo >= 0 ? 'positivo' : 'negativo' }
-          }
-          footer={
-            <span className="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-600">
-              Saldo acumulado (todas as contas): <ValorMonetario valor={saldoTotalContas} />
-            </span>
-          }
+          detalhes={[
+            { label: 'Pendências', valor: saldoInicioMes, tipo: 'pendente' },
+            { label: 'Disponível', valor: saldoInicioMes, tipo: 'ok' },
+          ]}
         />
-        <StatRow
+        <StatCard
           titulo="Receitas"
           valor={receitaMes}
-          valorLabel="Pago"
+          subtitulo={subtituloPeriodo}
           tom="positivo"
           icon={IconTrendUp}
-          badge={
-            variacaoReceita === null
-              ? undefined
-              : { texto: formatPercent(variacaoReceita), tom: variacaoReceita >= 0 ? 'positivo' : 'negativo' }
-          }
-          footer={
-            <div className="space-y-1.5">
-              <span className="inline-flex items-center rounded-full bg-positive/10 px-2.5 py-1 text-xs font-medium text-positive">
-                Pendente: <ValorMonetario valor={pendenteReceita} />
-              </span>
-              <p className="text-xs text-gray-400">
-                Total lançado: <ValorMonetario valor={receitaMes + pendenteReceita} />
-              </p>
-            </div>
-          }
+          detalhes={[
+            { label: 'Recebido', valor: receitaMes, tipo: 'ok' },
+            { label: 'A receber', valor: pendenteReceita, tipo: 'pendente' },
+          ]}
         />
-        <StatRow
+        <StatCard
           titulo="Despesas"
           valor={despesaMes}
-          valorLabel="Pago"
+          subtitulo={subtituloPeriodo}
           tom="negativo"
           icon={IconTrendDown}
-          badge={
-            variacaoDespesa === null
-              ? undefined
-              : { texto: formatPercent(variacaoDespesa), tom: variacaoDespesa <= 0 ? 'positivo' : 'negativo' }
-          }
-          footer={
-            <div className="space-y-1.5">
-              <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
-                Pendente: <ValorMonetario valor={pendenteDespesa} />
-              </span>
-              <p className="text-xs text-gray-400">
-                Total lançado: <ValorMonetario valor={despesaMes + pendenteDespesa} />
-              </p>
-            </div>
-          }
+          detalhes={[
+            { label: 'Pago', valor: despesaMes, tipo: 'ok' },
+            { label: 'A pagar', valor: pendenteDespesa, tipo: 'pendente' },
+          ]}
+        />
+        <StatCard
+          titulo="Saldo Disponível"
+          valor={saldoTotalContas}
+          subtitulo={subtituloSaldoAtual}
+          tom={saldoTotalContas >= 0 ? 'positivo' : 'negativo'}
+          icon={IconWallet}
+          extra={{
+            titulo: 'Saldo Previsto',
+            valor: saldoPrevisto,
+            subtitulo: subtituloSaldoAtual,
+          }}
         />
       </div>
 

@@ -37,6 +37,7 @@ import {
   Check,
   Repeat,
   ShoppingBag,
+  RefreshCw,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -85,3 +86,4 @@ export const IconFiltro = withDefaultStroke(Filter);
 export const IconCheck = withDefaultStroke(Check);
 export const IconRecorrente = withDefaultStroke(Repeat);
 export const IconCompras = withDefaultStroke(ShoppingBag);
+export const IconAtualizar = withDefaultStroke(RefreshCw);
