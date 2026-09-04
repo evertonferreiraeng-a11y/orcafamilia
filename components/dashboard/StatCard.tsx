@@ -67,7 +67,7 @@ export function StatCard({
       {extras?.map((extra) => (
         <div key={extra.titulo} className="mt-3 border-t border-black/5 pt-3">
           <p className="text-xs font-semibold text-gray-600">{extra.titulo}</p>
-          <p className={cn('mt-1 text-lg font-bold', classes.valor)}>
+          <p className={cn('mt-1 text-lg font-bold', extra.valor >= 0 ? 'text-positive' : 'text-negative')}>
             <ValorMonetario valor={extra.valor} />
           </p>
           {extra.subtitulo && <p className="mt-0.5 text-xs text-gray-400">{extra.subtitulo}</p>}
