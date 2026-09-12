@@ -379,7 +379,7 @@ async function reverterPagamentoDivida(supabase: SupabaseClient, userId: string,
   let parcelasPagas = divida.parcelas_pagas ?? 0;
   let dataVencimento = divida.data_vencimento;
 
-  if (divida.parcelas_total) {
+  if (divida.parcelas_total && dataVencimento) {
     const valorParcela = Number(divida.valor_total) / divida.parcelas_total;
     const novasParcelasPagas = Math.max(0, Math.min(divida.parcelas_total, Math.floor((novoValorPago + 0.01) / valorParcela)));
     const parcelasPerdidas = parcelasPagas - novasParcelasPagas;

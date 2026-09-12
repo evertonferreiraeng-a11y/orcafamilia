@@ -30,7 +30,7 @@ export function PagamentoForm({
   parcelaAtual: number | null;
   parcelasTotal: number | null;
   valorParcela: number | null;
-  dataVencimento: string;
+  dataVencimento: string | null;
   contas: Conta[];
   onSucesso: () => void;
   onCancelar: () => void;
@@ -49,7 +49,7 @@ export function PagamentoForm({
             Parcela {parcelaAtual} de {parcelasTotal}
           </p>
           <p className="mt-0.5 text-xs text-brand-600">
-            Vencimento: {formatDate(dataVencimento)}
+            {dataVencimento && `Vencimento: ${formatDate(dataVencimento)}`}
             {valorParcela && ` · Valor da parcela: ${formatCurrency(valorParcela)}`}
           </p>
         </div>

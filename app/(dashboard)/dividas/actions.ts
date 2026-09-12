@@ -8,6 +8,8 @@ export interface DividaFormState {
 }
 
 function parseFormData(formData: FormData) {
+  const semVencimento = formData.get('sem_vencimento') === 'on';
+  const situacao: 'ativa' | 'standby' = String(formData.get('situacao') || 'ativa') === 'standby' ? 'standby' : 'ativa';
   return {
     descricao: String(formData.get('descricao') || '').trim(),
     credor: String(formData.get('credor') || '').trim() || null,
@@ -15,7 +17,10 @@ function parseFormData(formData: FormData) {
     subcategoria_id: String(formData.get('subcategoria_id') || '') || null,
     valor_total: Number(formData.get('valor_total') || 0),
     parcelas_total: formData.get('parcelas_total') ? Number(formData.get('parcelas_total')) : null,
-    data_vencimento: String(formData.get('data_vencimento') || ''),
+    sem_vencimento: semVencimento,
+    data_vencimento: semVencimento ? null : String(formData.get('data_vencimento') || ''),
+    situacao,
+    observacoes: String(formData.get('observacoes') || '').trim() || null,
   };
 }
 
@@ -33,12 +38,18 @@ export async function criarDivida(_prevState: DividaFormState, formData: FormDat
   if (!user) return { error: 'Sessão expirada.' };
 
   const dados = parseFormData(formData);
-  if (!dados.descricao || !dados.valor_total || !dados.data_vencimento) {
-    return { error: 'Preencha descrição, valor total e vencimento.' };
+  if (!dados.descricao || !dados.valor_total) {
+    return { error: 'Preencha descrição e valor total.' };
+  }
+  if (!dados.sem_vencimento && !dados.data_vencimento) {
+    return { error: 'Preencha o vencimento ou marque "Sem vencimento definido".' };
   }
 
   const gerarParcelas = formData.get('gerar_parcelas') === 'on';
   const contaParcelasId = String(formData.get('conta_parcelas_id') || '') || null;
+  if (gerarParcelas && dados.sem_vencimento) {
+    return { error: 'Não é possível gerar parcelas para uma dívida sem vencimento.' };
+  }
   if (gerarParcelas && !contaParcelasId) {
     return { error: 'Selecione a conta para gerar as parcelas em Transações.' };
   }
@@ -50,14 +61,15 @@ export async function criarDivida(_prevState: DividaFormState, formData: FormDat
     .single();
   if (error || !dividaCriada) return { error: error?.message ?? 'Não foi possível criar a dívida.' };
 
-  if (gerarParcelas) {
+  if (gerarParcelas && dados.data_vencimento) {
+    const dataVencimentoBase = dados.data_vencimento;
     const parcelasTotal = dados.parcelas_total ?? 1;
     const valorParcela = dados.valor_total / parcelasTotal;
     const grupoParcelamento = parcelasTotal > 1 ? crypto.randomUUID() : null;
     const hoje = new Date().toISOString().slice(0, 10);
 
     const linhas = Array.from({ length: parcelasTotal }, (_, i) => {
-      const vencimento = adicionarMeses(dados.data_vencimento, i);
+      const vencimento = adicionarMeses(dataVencimentoBase, i);
       return {
         user_id: user.id,
         tipo: 'despesa' as const,
@@ -101,8 +113,11 @@ export async function atualizarDivida(
   if (!user) return { error: 'Sessão expirada.' };
 
   const dados = parseFormData(formData);
-  if (!dados.descricao || !dados.valor_total || !dados.data_vencimento) {
-    return { error: 'Preencha descrição, valor total e vencimento.' };
+  if (!dados.descricao || !dados.valor_total) {
+    return { error: 'Preencha descrição e valor total.' };
+  }
+  if (!dados.sem_vencimento && !dados.data_vencimento) {
+    return { error: 'Preencha o vencimento ou marque "Sem vencimento definido".' };
   }
 
   const { error } = await supabase.from('dividas').update(dados).eq('id', id).eq('user_id', user.id);
@@ -154,7 +169,7 @@ export async function registrarPagamentoDivida(
   let parcelasPagas = divida.parcelas_pagas ?? 0;
   let dataVencimento = divida.data_vencimento;
 
-  if (divida.parcelas_total) {
+  if (divida.parcelas_total && dataVencimento) {
     const valorParcela = Number(divida.valor_total) / divida.parcelas_total;
     // pequena tolerância (1 centavo) pra evitar erro de arredondamento de ponto flutuante
     const novasParcelasPagas = Math.min(divida.parcelas_total, Math.floor((novoValorPago + 0.01) / valorParcela));

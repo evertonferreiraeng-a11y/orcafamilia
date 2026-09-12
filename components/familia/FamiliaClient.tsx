@@ -20,7 +20,7 @@ export interface DividaResumo {
   id: string;
   descricao: string;
   saldoDevedor: number;
-  dataVencimento: string;
+  dataVencimento: string | null;
   status: string;
 }
 
@@ -123,7 +123,9 @@ export function FamiliaClient({
                 <div key={d.id} className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-gray-50/60">
                   <div>
                     <p className="text-sm font-medium text-gray-800">{d.descricao}</p>
-                    <p className="text-xs text-gray-400">Vence em {formatDate(d.dataVencimento)}</p>
+                    <p className="text-xs text-gray-400">
+                      {d.dataVencimento ? `Vence em ${formatDate(d.dataVencimento)}` : 'Sem vencimento definido'}
+                    </p>
                   </div>
                   <p className="text-sm font-semibold text-negative">{formatCurrency(d.saldoDevedor)}</p>
                 </div>

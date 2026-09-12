@@ -37,6 +37,7 @@ export function DividaForm({
 
   const [categoriaId, setCategoriaId] = useState(divida?.categoria_id ?? '');
   const [gerarParcelas, setGerarParcelas] = useState(false);
+  const [semVencimento, setSemVencimento] = useState(divida?.sem_vencimento ?? false);
   const subcategoriasFiltradas = subcategorias.filter((s) => s.categoria_id === categoriaId);
 
   return (
@@ -137,19 +138,62 @@ export function DividaForm({
         Usadas para categorizar automaticamente as transações geradas ao registrar pagamentos.
       </p>
 
-      <div>
-        <label className="label-field" htmlFor="data_vencimento">Próximo vencimento</label>
+      <div className="flex items-center gap-2">
         <input
-          id="data_vencimento"
-          name="data_vencimento"
-          type="date"
-          required
-          defaultValue={divida?.data_vencimento}
+          id="sem_vencimento"
+          name="sem_vencimento"
+          type="checkbox"
+          checked={semVencimento}
+          onChange={(e) => setSemVencimento(e.target.checked)}
+          className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+        />
+        <label htmlFor="sem_vencimento" className="text-sm text-gray-700">
+          Sem vencimento definido (só para ficar no radar)
+        </label>
+      </div>
+
+      {!semVencimento && (
+        <div>
+          <label className="label-field" htmlFor="data_vencimento">Próximo vencimento</label>
+          <input
+            id="data_vencimento"
+            name="data_vencimento"
+            type="date"
+            required
+            defaultValue={divida?.data_vencimento ?? undefined}
+            className="input-field"
+          />
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="label-field" htmlFor="situacao">Situação</label>
+          <select
+            id="situacao"
+            name="situacao"
+            defaultValue={divida?.situacao ?? 'ativa'}
+            className="input-field"
+          >
+            <option value="ativa">Ativa</option>
+            <option value="standby">Em standby</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label className="label-field" htmlFor="observacoes">Observações</label>
+        <textarea
+          id="observacoes"
+          name="observacoes"
+          rows={3}
+          defaultValue={divida?.observacoes ?? ''}
           className="input-field"
+          placeholder="Observações sobre esta dívida (opcional)"
         />
       </div>
 
-      {!divida && (
+      {!divida && !semVencimento && (
         <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
           <div className="flex items-center gap-2">
             <input

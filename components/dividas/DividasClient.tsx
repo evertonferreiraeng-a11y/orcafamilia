@@ -47,10 +47,15 @@ const STATUS_ESTILO: Record<StatusChave, string> = {
 
 function statusDivida(d: Divida, hoje: string): StatusChave {
   if (d.status === 'quitada') return 'quitada';
-  if (d.data_vencimento < hoje) return 'vencida';
+  if (d.data_vencimento && d.data_vencimento < hoje) return 'vencida';
   if (Number(d.valor_pago) > 0) return 'parcial';
   return 'pendente';
 }
+
+const SITUACAO_LABEL: Record<'ativa' | 'standby', string> = {
+  ativa: 'Ativa',
+  standby: 'Em standby',
+};
 
 export function DividasClient({
   dividas,
@@ -89,7 +94,7 @@ export function DividasClient({
   const ativas = dividas.filter((d) => d.status === 'ativa');
   const totalDividas = ativas.reduce((a, d) => a + Number(d.valor_total), 0);
   const restanteAPagar = ativas.reduce((a, d) => a + (Number(d.valor_total) - Number(d.valor_pago)), 0);
-  const dividasVencidas = ativas.filter((d) => d.data_vencimento < hoje).length;
+  const dividasVencidas = ativas.filter((d) => d.data_vencimento && d.data_vencimento < hoje).length;
   const pagamentosMensais = ativas.reduce((a, d) => {
     if (!d.parcelas_total) return a;
     return a + Number(d.valor_total) / d.parcelas_total;
@@ -208,9 +213,16 @@ export function DividasClient({
                     <p className="font-semibold text-gray-900">{d.descricao}</p>
                     {d.credor && <p className="text-xs text-gray-400">{d.credor}</p>}
                   </div>
-                  <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-xs font-medium', STATUS_ESTILO[status])}>
-                    {STATUS_LABEL[status]}
-                  </span>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <span className={cn('rounded-full px-2.5 py-1 text-xs font-medium', STATUS_ESTILO[status])}>
+                      {STATUS_LABEL[status]}
+                    </span>
+                    {d.situacao === 'standby' && (
+                      <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500">
+                        {SITUACAO_LABEL.standby}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {d.parcelas_total && (
@@ -245,8 +257,14 @@ export function DividasClient({
                   )}
                 >
                   <IconCalendario className="h-3.5 w-3.5" />
-                  Vencimento: {formatDate(d.data_vencimento)}
+                  {d.sem_vencimento || !d.data_vencimento
+                    ? 'Sem vencimento definido'
+                    : `Vencimento: ${formatDate(d.data_vencimento)}`}
                 </p>
+
+                {d.observacoes && (
+                  <p className="mt-2 line-clamp-2 text-xs italic text-gray-400">{d.observacoes}</p>
+                )}
 
                 <div className="mt-4 flex gap-2">
                   {!quitada && (
