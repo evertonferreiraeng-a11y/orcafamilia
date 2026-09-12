@@ -14,13 +14,16 @@ function LinhaValores({
   orcado,
   totalGeral,
   destaque = false,
+  isReceita = false,
 }: {
   executado: number;
   orcado: number;
   totalGeral: number;
   destaque?: boolean;
+  isReceita?: boolean;
 }) {
   const acimaDoOrcado = orcado > 0 && executado > orcado + TOLERANCIA;
+  const corDestaque = isReceita ? 'text-positive' : 'text-negative';
   const percentualOrcado = orcado > 0 ? (executado / orcado) * 100 : null;
   const percentualGeral = totalGeral > 0 ? (executado / totalGeral) * 100 : null;
 
@@ -30,7 +33,7 @@ function LinhaValores({
         className={cn(
           'w-16 shrink-0 text-right text-sm sm:w-24',
           destaque ? 'font-semibold' : 'font-medium',
-          acimaDoOrcado ? 'text-negative' : destaque ? 'text-gray-900' : 'text-gray-700'
+          acimaDoOrcado ? corDestaque : destaque ? 'text-gray-900' : 'text-gray-700'
         )}
       >
         <ValorMonetario valor={executado} />
@@ -41,7 +44,7 @@ function LinhaValores({
       <span
         className={cn(
           'w-12 shrink-0 text-center text-xs font-semibold sm:w-16',
-          percentualOrcado === null ? 'text-gray-400' : acimaDoOrcado ? 'text-negative' : 'text-gray-500'
+          percentualOrcado === null ? 'text-gray-400' : acimaDoOrcado ? corDestaque : 'text-gray-500'
         )}
       >
         {percentualOrcado !== null ? formatPercent0(percentualOrcado) : '—'}
@@ -56,9 +59,11 @@ function LinhaValores({
 export function LinhaCategoriaExpansivel({
   categoria,
   totalGeral,
+  isReceita = false,
 }: {
   categoria: CategoriaExecutadoOrcado;
   totalGeral: number;
+  isReceita?: boolean;
 }) {
   const [aberta, setAberta] = useState(false);
   const cor = categoria.cor ?? CINZA_PADRAO;
@@ -92,7 +97,13 @@ export function LinhaCategoriaExpansivel({
           )}
         </span>
         <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-900">{categoria.nome}</span>
-        <LinhaValores executado={categoria.executado} orcado={categoria.orcado} totalGeral={totalGeral} destaque />
+        <LinhaValores
+          executado={categoria.executado}
+          orcado={categoria.orcado}
+          totalGeral={totalGeral}
+          destaque
+          isReceita={isReceita}
+        />
       </button>
 
       {temSubcategorias && aberta && (
@@ -104,7 +115,7 @@ export function LinhaCategoriaExpansivel({
             >
               <span className="w-4 shrink-0" />
               <span className="min-w-0 flex-1 truncate text-sm text-gray-600">{s.nome}</span>
-              <LinhaValores executado={s.executado} orcado={s.orcado} totalGeral={totalGeral} />
+              <LinhaValores executado={s.executado} orcado={s.orcado} totalGeral={totalGeral} isReceita={isReceita} />
             </div>
           ))}
         </div>

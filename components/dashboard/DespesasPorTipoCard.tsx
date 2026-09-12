@@ -102,7 +102,12 @@ export function DespesasPorTipoCard({
             </div>
             <div className="divide-y divide-gray-50">
               {ordenadas.map((c) => (
-                <LinhaCategoriaExpansivel key={c.id} categoria={c} totalGeral={totalGeral} />
+                <LinhaCategoriaExpansivel
+                  key={c.id}
+                  categoria={c}
+                  totalGeral={totalGeral}
+                  isReceita={tom === 'receita'}
+                />
               ))}
             </div>
           </div>
