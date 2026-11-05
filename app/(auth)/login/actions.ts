@@ -22,5 +22,5 @@ export async function signIn(_prevState: AuthState, formData: FormData): Promise
     return { error: 'E-mail ou senha inválidos.' };
   }
 
-  redirect('/dashboard');
+  redirect('/inicio');
 }

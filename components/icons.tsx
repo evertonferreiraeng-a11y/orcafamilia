@@ -42,6 +42,21 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   Lock,
+  Package,
+  Droplets,
+  Baby,
+  MapPin,
+  FileText,
+  ShoppingCart,
+  CalendarClock,
+  LayoutGrid,
+  Undo2,
+  Download,
+  Upload,
+  Printer,
+  FileSpreadsheet,
+  Minus,
+  WifiOff,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -95,3 +110,20 @@ export const IconCofre = withDefaultStroke(Vault);
 export const IconDepositar = withDefaultStroke(ArrowDownToLine);
 export const IconRetirar = withDefaultStroke(ArrowUpFromLine);
 export const IconCadeado = withDefaultStroke(Lock);
+
+// Estoque familiar / portal de apps
+export const IconEstoque = withDefaultStroke(Package);
+export const IconAgua = withDefaultStroke(Droplets);
+export const IconBebe = withDefaultStroke(Baby);
+export const IconLocal = withDefaultStroke(MapPin);
+export const IconRelatorio = withDefaultStroke(FileText);
+export const IconCarrinho = withDefaultStroke(ShoppingCart);
+export const IconValidade = withDefaultStroke(CalendarClock);
+export const IconApps = withDefaultStroke(LayoutGrid);
+export const IconDesfazer = withDefaultStroke(Undo2);
+export const IconBaixar = withDefaultStroke(Download);
+export const IconEnviar = withDefaultStroke(Upload);
+export const IconImprimir = withDefaultStroke(Printer);
+export const IconPlanilha = withDefaultStroke(FileSpreadsheet);
+export const IconMenos = withDefaultStroke(Minus);
+export const IconOffline = withDefaultStroke(WifiOff);

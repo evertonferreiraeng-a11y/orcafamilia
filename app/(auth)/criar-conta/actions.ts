@@ -66,5 +66,5 @@ export async function signUp(_prevState: CadastroState, formData: FormData): Pro
     return { error: resultado.error };
   }
 
-  redirect('/dashboard');
+  redirect('/inicio');
 }

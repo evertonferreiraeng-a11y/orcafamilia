@@ -2,10 +2,10 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'OrçaFamília — Controle financeiro do casal',
+    name: 'OrçaFamília — Apps da família',
     short_name: 'OrçaFamília',
-    description: 'Painel de controle financeiro para o casal: contas, cartões, orçamentos e metas em um só lugar.',
-    start_url: '/dashboard',
+    description: 'Apps da família em um só lugar: orçamento familiar e gestão do estoque de emergência de alimentos e água.',
+    start_url: '/inicio',
     display: 'standalone',
     background_color: '#ffffff',
     theme_color: '#2a78d6',

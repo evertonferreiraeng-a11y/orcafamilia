@@ -203,6 +203,86 @@ export type NotificacaoLog = {
   status: StatusNotificacao;
 };
 
+// ============================================
+// ESTOQUE FAMILIAR (Reserva 180 dias)
+// ============================================
+export type TipoProdutoEstoque = 'alimento' | 'agua' | 'bebe';
+export type TipoMovEstoque = 'entrada' | 'reposicao' | 'consumo' | 'perda' | 'danificado' | 'descarte' | 'ajuste';
+export type TipoSaidaEstoque = 'consumo' | 'perda' | 'danificado' | 'descarte';
+
+export type EstoqueConfig = {
+  familia_id: string;
+  orc_min: number;
+  orc_max: number;
+  composicao: string | null;
+  atualizado_em: string;
+};
+
+export type EstoqueLocal = {
+  id: string;
+  familia_id: string;
+  nome: string;
+  umidade: string;
+  temperatura: string;
+  sol: string;
+  embalagem: string;
+  inspecao: string | null;
+  obs: string | null;
+  criado_em: string;
+};
+
+export type EstoqueProduto = {
+  id: string;
+  familia_id: string;
+  nome: string;
+  categoria: string;
+  tipo: TipoProdutoEstoque;
+  unidade: string;
+  meta: number;
+  minimo: number;
+  preco_ref: number;
+  cap: number | null;
+  local_id: string | null;
+  obs: string | null;
+  criado_em: string;
+};
+
+export type EstoqueLote = {
+  id: string;
+  familia_id: string;
+  produto_id: string;
+  qtd_inicial: number;
+  qtd_atual: number;
+  data_compra: string;
+  data_fab: string | null;
+  validade: string | null;
+  num_lote: string | null;
+  valor: number;
+  fornecedor: string | null;
+  local_id: string | null;
+  cap: number | null;
+  obs: string | null;
+  saldo_negativo: boolean;
+  criado_em: string;
+};
+
+export type EstoqueMov = {
+  id: string;
+  familia_id: string;
+  grupo: string;
+  data: string;
+  tipo: TipoMovEstoque;
+  produto_id: string;
+  lote_id: string | null;
+  qtd: number;
+  valor: number;
+  obs: string | null;
+  estornado: boolean;
+  estornado_em: string | null;
+  user_id: string | null;
+  criado_em: string;
+};
+
 type Relationship = {
   foreignKeyName: string;
   columns: string[];
@@ -389,9 +469,62 @@ export interface Database {
       investimentos: TableDef<Investimento>;
       alertas_config: TableDef<AlertasConfig>;
       notificacoes_log: TableDef<NotificacaoLog>;
+      estoque_config: TableDef<EstoqueConfig>;
+      estoque_locais: TableDef<EstoqueLocal>;
+      estoque_produtos: TableDef<EstoqueProduto>;
+      estoque_lotes: TableDef<EstoqueLote>;
+      estoque_movs: TableDef<EstoqueMov>;
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      estoque_inicializar: { Args: Record<string, never>; Returns: boolean };
+      estoque_entrada: {
+        Args: {
+          p_produto: string;
+          p_qtd: number;
+          p_data_compra: string;
+          p_validade?: string | null;
+          p_data_fab?: string | null;
+          p_num_lote?: string | null;
+          p_valor?: number;
+          p_fornecedor?: string | null;
+          p_local?: string | null;
+          p_cap?: number | null;
+          p_obs?: string | null;
+          p_tipo?: 'entrada' | 'reposicao';
+        };
+        Returns: string;
+      };
+      estoque_saida: {
+        Args: {
+          p_produto: string;
+          p_qtd: number;
+          p_tipo: TipoSaidaEstoque;
+          p_data?: string;
+          p_obs?: string | null;
+          p_lote?: string | null;
+          p_permitir_negativo?: boolean;
+        };
+        Returns: { grupo: string; falta: number };
+      };
+      estoque_estornar: { Args: { p_mov: string }; Returns: undefined };
+      estoque_atualizar_lote: {
+        Args: {
+          p_lote: string;
+          p_contagem: number;
+          p_data_compra: string;
+          p_validade?: string | null;
+          p_data_fab?: string | null;
+          p_num_lote?: string | null;
+          p_valor?: number;
+          p_fornecedor?: string | null;
+          p_local?: string | null;
+          p_obs?: string | null;
+        };
+        Returns: undefined;
+      };
+      estoque_importar_backup: { Args: { p_dados: unknown }; Returns: { produtos: number; lotes: number; movs: number } };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

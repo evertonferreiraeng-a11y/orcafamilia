@@ -4,6 +4,7 @@ import { createServerSupabase } from '@/lib/supabase-server';
 import { provisionarPerfil } from '@/lib/auth-provisioning';
 import { DashboardShell } from '@/components/layout/DashboardShell';
 import { MonthPicker } from '@/components/MonthPicker';
+import { SomenteOrcamento } from '@/components/layout/SomenteOrcamento';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = createServerSupabase();
@@ -47,9 +48,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
       email={user.email ?? ''}
       notificacoes={notificacoes ?? []}
       topbarSlot={
-        <Suspense fallback={null}>
-          <MonthPicker />
-        </Suspense>
+        <SomenteOrcamento>
+          <Suspense fallback={null}>
+            <MonthPicker />
+          </Suspense>
+        </SomenteOrcamento>
       }
     >
       {children}
