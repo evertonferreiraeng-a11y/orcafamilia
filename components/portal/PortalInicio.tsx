@@ -306,7 +306,7 @@ export function PortalInicio({ resumo }: { resumo: ResumoPortal }) {
         : `${alertas.length} ${alertas.length === 1 ? 'lembrete' : 'lembretes'} para quando der.`;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto w-full max-w-[1800px] space-y-6">
       {/* Boas-vindas */}
       <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-700 via-brand-600 to-brand-500 px-6 py-7 text-white shadow-elevated sm:px-8">
         <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/10" />
@@ -342,7 +342,7 @@ export function PortalInicio({ resumo }: { resumo: ResumoPortal }) {
       {alertas.length > 0 && (
         <section>
           <h2 className="mb-3 text-sm font-semibold text-gray-900">Pede atenção</h2>
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {alertas.slice(0, 6).map((a, i) => {
               const t = TEMA[a.app];
               const n = NIVEL[a.nivel];
