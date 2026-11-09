@@ -1,21 +1,33 @@
-import Link from 'next/link';
 import { createServerSupabase } from '@/lib/supabase-server';
 import { carregarEstoque } from '@/lib/estoque/carregar';
 import { carregarCasa } from '@/lib/casa/carregar';
-import { statusTarefa, ordemTarefas, nomeTarefa, type DadosCasa } from '@/lib/casa/calc';
-import { fmtData, alertaLote, estoqueAtual, fmtPct, fmtQtd, itensParaComprar, percentualReserva, soma, type DadosEstoque } from '@/lib/estoque/calc';
-import { IconEstoque, IconWallet, IconChevronRight, IconCasa } from '@/components/icons';
+import { nomeTarefa, ordemTarefas, statusTarefa, textoPrazoTarefa } from '@/lib/casa/calc';
+import { alertaLote, estoqueAtual, fmtMoeda, itensParaComprar, percentualReserva, soma } from '@/lib/estoque/calc';
+import { PortalInicio, type AlertaPortal, type ResumoPortal } from '@/components/portal/PortalInicio';
 
 export const metadata = { title: 'Início – Apps da família' };
 export const dynamic = 'force-dynamic';
 
-function Atalho({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Link href={href} className="rounded-lg bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-brand-50 hover:text-brand-700">
-      {children}
-    </Link>
+const FUSO = 'America/Sao_Paulo';
+const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+/** Data/hora de agora no fuso do Brasil (o servidor da Vercel roda em UTC). */
+function agoraBrasil() {
+  const partes = Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA', { timeZone: FUSO, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' })
+      .formatToParts(new Date())
+      .map((p) => [p.type, p.value])
   );
+  const hoje = `${partes.year}-${partes.month}-${partes.day}`;
+  const dataExtenso = new Intl.DateTimeFormat('pt-BR', { timeZone: FUSO, weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
+  return { hoje, hora: Number(partes.hour), dataExtenso };
 }
+function somarDias(iso: string, dias: number) {
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 
 export default async function InicioPage() {
   const supabase = createServerSupabase();
@@ -24,157 +36,119 @@ export default async function InicioPage() {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: perfil } = await supabase.from('perfis').select('nome').eq('id', user.id).maybeSingle();
-  let estoque: DadosEstoque | null = null;
-  try {
-    estoque = await carregarEstoque(supabase);
-  } catch {
-    estoque = null; // migração ainda não aplicada: o card mostra só o atalho
+  const { hoje, hora, dataExtenso } = agoraBrasil();
+  const mes = hoje.slice(0, 7);
+  const inicioMes = `${mes}-01`;
+  const fimMes = new Date(Date.UTC(Number(hoje.slice(0, 4)), Number(hoje.slice(5, 7)), 0)).toISOString().slice(0, 10);
+  const em7 = somarDias(hoje, 7);
+  const ha90 = somarDias(hoje, -90);
+
+  const [{ data: perfil }, estoque, casa, mesTx, pendentes] = await Promise.all([
+    supabase.from('perfis').select('nome').eq('id', user.id).maybeSingle(),
+    carregarEstoque(supabase).catch(() => null), // migração 0019 ainda não aplicada
+    carregarCasa(supabase).catch(() => null), // migração 0020 ainda não aplicada
+    supabase.from('transacoes').select('tipo, valor').eq('user_id', user.id).eq('eh_transferencia', false).gte('data', inicioMes).lte('data', fimMes),
+    supabase
+      .from('transacoes')
+      .select('valor, data, data_vencimento')
+      .eq('user_id', user.id)
+      .eq('eh_transferencia', false)
+      .eq('tipo', 'despesa')
+      .eq('pago', false)
+      .gte('data', ha90),
+  ]);
+
+  const alertas: AlertaPortal[] = [];
+
+  /* Orçamento */
+  let orcamento: ResumoPortal['orcamento'] = null;
+  if (!mesTx.error) {
+    const tx = mesTx.data ?? [];
+    const receitas = soma(tx.filter((t) => t.tipo === 'receita'), (t) => Number(t.valor));
+    const despesas = soma(tx.filter((t) => t.tipo === 'despesa'), (t) => Number(t.valor));
+    // vencimento = data_vencimento (quando houver) ou a data do lançamento
+    const pend = (pendentes.error ? [] : pendentes.data ?? []).map((t) => ({ valor: Number(t.valor), venc: (t.data_vencimento || t.data).slice(0, 10) }));
+    const atrasadas = pend.filter((t) => t.venc < hoje);
+    const aVencer = pend.filter((t) => t.venc >= hoje && t.venc <= em7);
+    orcamento = {
+      receitas,
+      despesas,
+      saldo: receitas - despesas,
+      atrasadas: atrasadas.length,
+      atrasadasValor: soma(atrasadas, (t) => t.valor),
+      aPagar: aVencer.length,
+      aPagarValor: soma(aVencer, (t) => t.valor),
+    };
+    if (orcamento.atrasadas)
+      alertas.push({ app: 'orcamento', nivel: 'urgente', texto: `${plural(orcamento.atrasadas, 'conta', 'contas')} em atraso`, detalhe: fmtMoeda(orcamento.atrasadasValor), href: '/transacoes' });
+    if (orcamento.aPagar)
+      alertas.push({ app: 'orcamento', nivel: 'atencao', texto: `${plural(orcamento.aPagar, 'conta vence', 'contas vencem')} em 7 dias`, detalhe: fmtMoeda(orcamento.aPagarValor), href: '/transacoes' });
   }
 
-  let casa: DadosCasa | null = null;
-  try {
-    casa = await carregarCasa(supabase);
-  } catch {
-    casa = null; // migração 0020 ainda não aplicada
+  /* Estoque */
+  let resumoEstoque: ResumoPortal['estoque'] = null;
+  if (estoque) {
+    const ativos = estoque.lotes.filter((l) => l.qtd_atual > 0);
+    const vencidos = ativos.filter((l) => alertaLote(l) === 'venc');
+    const d30 = ativos.filter((l) => alertaLote(l) === 'd30');
+    const aguas = estoque.produtos.filter((p) => p.tipo === 'agua');
+    const comprar = itensParaComprar(estoque);
+    const nomes = (ls: typeof ativos) => [...new Set(ls.map((l) => estoque.produtos.find((p) => p.id === l.produto_id)?.nome).filter(Boolean))].slice(0, 3).join(', ');
+    resumoEstoque = {
+      reserva: percentualReserva(estoque, ['alimento', 'agua']),
+      litros: soma(aguas, (p) => estoqueAtual(estoque, p)),
+      litrosMeta: soma(aguas, (p) => p.meta),
+      vencendo: vencidos.length + d30.length,
+      comprar: comprar.length,
+      custoCompletar: soma(comprar, (i) => i.comprar * i.precoUnit),
+    };
+    if (vencidos.length) alertas.push({ app: 'estoque', nivel: 'urgente', texto: `${plural(vencidos.length, 'lote vencido', 'lotes vencidos')} no estoque`, detalhe: nomes(vencidos), href: '/estoque/lotes' });
+    if (d30.length) alertas.push({ app: 'estoque', nivel: 'atencao', texto: `${plural(d30.length, 'lote vence', 'lotes vencem')} em até 30 dias`, detalhe: nomes(d30), href: '/estoque/lotes' });
+    if (comprar.length)
+      alertas.push({
+        app: 'estoque',
+        nivel: 'info',
+        texto: `${plural(comprar.length, 'produto abaixo', 'produtos abaixo')} da meta`,
+        detalhe: resumoEstoque.custoCompletar > 0 ? `≈ ${fmtMoeda(resumoEstoque.custoCompletar)}` : undefined,
+        href: '/estoque/compras',
+      });
   }
-  const resumoCasa = casa
-    ? {
-        vencidas: casa.tarefas.filter((t) => statusTarefa(t) === 'vencida').length,
-        breve: casa.tarefas.filter((t) => statusTarefa(t) === 'breve').length,
-        semData: casa.tarefas.filter((t) => statusTarefa(t) === 'semdata').length,
-        proxima: casa.tarefas.filter((t) => t.ativa && t.proxima_data).sort(ordemTarefas)[0],
-      }
-    : null;
 
-  const resumoEstoque = estoque
-    ? (() => {
-        const ativos = estoque.lotes.filter((l) => l.qtd_atual > 0);
-        const aguas = estoque.produtos.filter((p) => p.tipo === 'agua');
-        return {
-          reserva: percentualReserva(estoque, ['alimento', 'agua']),
-          vencendo: ativos.filter((l) => ['venc', 'd30'].includes(alertaLote(l))).length,
-          comprar: itensParaComprar(estoque).length,
-          litros: soma(aguas, (p) => estoqueAtual(estoque!, p)),
-        };
-      })()
-    : null;
+  /* Casa */
+  let resumoCasa: ResumoPortal['casa'] = null;
+  if (casa) {
+    const por = (s: ReturnType<typeof statusTarefa>) => casa.tarefas.filter((t) => statusTarefa(t) === s);
+    const vencidas = por('vencida').sort(ordemTarefas);
+    const breve = por('breve');
+    const semData = por('semdata');
+    const proxima = casa.tarefas.filter((t) => t.ativa && t.proxima_data && t.proxima_data >= hoje).sort(ordemTarefas)[0];
+    resumoCasa = {
+      vencidas: vencidas.length,
+      breve: breve.length,
+      emDia: por('emdia').length,
+      semData: semData.length,
+      pausadas: por('pausada').length,
+      proxima: proxima ? { titulo: nomeTarefa(casa, proxima), data: proxima.proxima_data! } : null,
+    };
+    if (vencidas.length === 1) alertas.push({ app: 'casa', nivel: 'urgente', texto: nomeTarefa(casa, vencidas[0]), detalhe: textoPrazoTarefa(vencidas[0]), href: '/casa/manutencoes?status=vencida' });
+    else if (vencidas.length > 1) alertas.push({ app: 'casa', nivel: 'urgente', texto: `${vencidas.length} manutenções vencidas`, href: '/casa/manutencoes?status=vencida' });
+    if (breve.length) alertas.push({ app: 'casa', nivel: 'atencao', texto: `${plural(breve.length, 'manutenção vence', 'manutenções vencem')} em breve`, href: '/casa/manutencoes?status=breve' });
+    if (semData.length) alertas.push({ app: 'casa', nivel: 'info', texto: `${plural(semData.length, 'manutenção', 'manutenções')} sem data`, detalhe: 'informe a última vez', href: '/casa/manutencoes?status=semdata' });
+  }
 
-  return (
-    <div className="mx-auto max-w-6xl">
-      <div className="mb-6">
-        <p className="text-sm text-gray-500">Olá, {(perfil?.nome || 'família').split(' ')[0]} 👋</p>
-        <h2 className="text-2xl font-bold text-gray-900">Apps da família</h2>
-        <p className="mt-1 text-sm text-gray-500">Escolha um app. O login, a família e os dados são compartilhados entre todos.</p>
-      </div>
+  const ordem = { urgente: 0, atencao: 1, info: 2 } as const;
+  alertas.sort((a, b) => ordem[a.nivel] - ordem[b.nivel]);
 
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        <div className="flex flex-col rounded-2xl border border-gray-100 bg-white p-5 shadow-card">
-          <div className="mb-4 flex items-center gap-3">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
-              <IconWallet className="h-6 w-6" />
-            </span>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Orçamento Familiar</h3>
-              <p className="text-sm text-gray-500">Contas, cartões, transações, orçamentos, dívidas e metas</p>
-            </div>
-          </div>
-          <div className="mb-5 flex flex-wrap gap-1.5">
-            <Atalho href="/transacoes">Transações</Atalho>
-            <Atalho href="/orcamentos">Orçamentos</Atalho>
-            <Atalho href="/dividas">Dívidas</Atalho>
-            <Atalho href="/metas">Metas</Atalho>
-            <Atalho href="/cofre">Cofre</Atalho>
-          </div>
-          <Link href="/dashboard" className="btn-primary mt-auto self-start">
-            Abrir Orçamento <IconChevronRight className="h-4 w-4" />
-          </Link>
-        </div>
+  const resumo: ResumoPortal = {
+    nome: (perfil?.nome || 'família').split(' ')[0],
+    saudacao: hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite',
+    dataExtenso,
+    mesExtenso: MESES[Number(mes.slice(5, 7)) - 1],
+    orcamento,
+    estoque: resumoEstoque,
+    casa: resumoCasa,
+    alertas,
+  };
 
-        <div className="flex flex-col rounded-2xl border border-gray-100 bg-white p-5 shadow-card">
-          <div className="mb-4 flex items-center gap-3">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-              <IconEstoque className="h-6 w-6" />
-            </span>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Gestão de Estoque Familiar</h3>
-              <p className="text-sm text-gray-500">Reserva de 180 dias: alimentos, água e itens do bebê</p>
-            </div>
-          </div>
-          {resumoEstoque ? (
-            <div className="mb-4 grid grid-cols-2 gap-2 text-sm">
-              <div className="rounded-xl bg-emerald-50 px-3 py-2">
-                <p className="text-xs text-emerald-700">Reserva concluída</p>
-                <p className="text-lg font-bold text-emerald-800">{fmtPct(resumoEstoque.reserva)}</p>
-              </div>
-              <div className="rounded-xl bg-brand-50 px-3 py-2">
-                <p className="text-xs text-brand-700">Água armazenada</p>
-                <p className="text-lg font-bold text-brand-800">{fmtQtd(resumoEstoque.litros)} L</p>
-              </div>
-              <div className={`rounded-xl px-3 py-2 ${resumoEstoque.vencendo ? 'bg-red-50' : 'bg-gray-50'}`}>
-                <p className={`text-xs ${resumoEstoque.vencendo ? 'text-red-700' : 'text-gray-500'}`}>Vencidos / até 30 dias</p>
-                <p className={`text-lg font-bold ${resumoEstoque.vencendo ? 'text-red-800' : 'text-gray-800'}`}>{resumoEstoque.vencendo} lote(s)</p>
-              </div>
-              <div className="rounded-xl bg-amber-50 px-3 py-2">
-                <p className="text-xs text-amber-700">Para comprar</p>
-                <p className="text-lg font-bold text-amber-800">{resumoEstoque.comprar} produto(s)</p>
-              </div>
-            </div>
-          ) : (
-            <p className="mb-4 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">Módulo ainda não configurado no banco (migração 0019).</p>
-          )}
-          <div className="mb-5 flex flex-wrap gap-1.5">
-            <Atalho href="/estoque/compras">Lista de compras</Atalho>
-            <Atalho href="/estoque/lotes">Validades</Atalho>
-            <Atalho href="/estoque/agua">Água</Atalho>
-            <Atalho href="/estoque/bebe">Bebê</Atalho>
-          </div>
-          <Link href="/estoque" className="mt-auto inline-flex items-center justify-center gap-2 self-start rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700">
-            Abrir Estoque <IconChevronRight className="h-4 w-4" />
-          </Link>
-        </div>
-
-        <div className="flex flex-col rounded-2xl border border-gray-100 bg-white p-5 shadow-card">
-          <div className="mb-4 flex items-center gap-3">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
-              <IconCasa className="h-6 w-6" />
-            </span>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Casa</h3>
-              <p className="text-sm text-gray-500">Manutenções: filtro de água, ar-condicionado, caixa d&apos;água e mais</p>
-            </div>
-          </div>
-          {resumoCasa && casa ? (
-            <div className="mb-4 grid grid-cols-2 gap-2 text-sm">
-              <div className={`rounded-xl px-3 py-2 ${resumoCasa.vencidas ? 'bg-red-50' : 'bg-emerald-50'}`}>
-                <p className={`text-xs ${resumoCasa.vencidas ? 'text-red-700' : 'text-emerald-700'}`}>Vencidas</p>
-                <p className={`text-lg font-bold ${resumoCasa.vencidas ? 'text-red-800' : 'text-emerald-800'}`}>{resumoCasa.vencidas}</p>
-              </div>
-              <div className="rounded-xl bg-amber-50 px-3 py-2">
-                <p className="text-xs text-amber-700">Vencem em breve</p>
-                <p className="text-lg font-bold text-amber-800">{resumoCasa.breve}</p>
-              </div>
-              <div className="col-span-2 rounded-xl bg-gray-50 px-3 py-2">
-                <p className="text-xs text-gray-500">{resumoCasa.semData ? `${resumoCasa.semData} manutenção(ões) sem data definida` : 'Próxima manutenção'}</p>
-                <p className="truncate text-sm font-semibold text-gray-800">
-                  {resumoCasa.proxima ? `${fmtData(resumoCasa.proxima.proxima_data)} · ${nomeTarefa(casa, resumoCasa.proxima)}` : 'Defina as datas em Manutenções'}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <p className="mb-4 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">App ainda não configurado no banco (migração 0020).</p>
-          )}
-          <div className="mb-5 flex flex-wrap gap-1.5">
-            <Atalho href="/casa/manutencoes">Manutenções</Atalho>
-            <Atalho href="/casa/itens">Itens</Atalho>
-            <Atalho href="/casa/historico">Histórico</Atalho>
-            <Atalho href="/casa/prestadores">Prestadores</Atalho>
-          </div>
-          <Link href="/casa" className="mt-auto inline-flex items-center justify-center gap-2 self-start rounded-xl bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700">
-            Abrir Casa <IconChevronRight className="h-4 w-4" />
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
+  return <PortalInicio resumo={resumo} />;
 }
