@@ -141,7 +141,7 @@ function gruposDaRota(pathname: string): NavGroup[] {
   if (app === 'estoque') return APPS.estoque.grupos;
   if (app === 'casa') return APPS.casa.grupos;
   if (app === 'orcamento') return [...APPS.orcamento.grupos, GRUPO_GERAL];
-  return [GRUPO_GERAL];
+  return []; // tela inicial dos apps: só o seletor de apps
 }
 
 const estaAtivo = (pathname: string, item: NavItem) => pathname === item.href || (!item.exato && pathname.startsWith(`${item.href}/`));
