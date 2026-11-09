@@ -188,7 +188,7 @@ export function ConfigEstoque() {
         </Secao>
         <Secao titulo="Dados na nuvem">
           <p className="text-sm text-gray-600">
-            O estoque fica salvo no banco do OrçaFamília e é <b>compartilhado com todos os membros da família</b>, no computador e no celular. Cada movimentação registra quem a fez.
+            O estoque fica salvo no banco do Life e é <b>compartilhado com todos os membros da família</b>, no computador e no celular. Cada movimentação registra quem a fez.
           </p>
           <p className="mt-2 text-sm text-gray-600">
             Produtos: <b>{dados.produtos.length}</b> · Lotes: <b>{dados.lotes.length}</b> · Movimentações: <b>{dados.movs.length}</b> · Locais: <b>{dados.locais.length}</b>

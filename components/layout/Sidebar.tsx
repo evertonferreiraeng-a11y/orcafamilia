@@ -26,6 +26,7 @@ import {
   IconCarrinho,
   IconLocal,
   IconRelatorio,
+  IconLife,
 } from '@/components/icons';
 
 type NavItem = { href: string; label: string; icon: (p: SVGProps<SVGSVGElement>) => React.ReactElement; exato?: boolean };
@@ -122,9 +123,9 @@ function Logo() {
   return (
     <Link href="/inicio" className="mb-5 flex items-center gap-2 px-2">
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white shadow-soft">
-        <IconWallet className="h-5 w-5" />
+        <IconLife className="h-5 w-5" />
       </span>
-      <span className="text-base font-bold text-gray-900">OrçaFamília</span>
+      <span className="text-base font-bold text-gray-900">Life</span>
     </Link>
   );
 }
@@ -133,7 +134,7 @@ function LogoCompacto() {
   return (
     <Link href="/inicio" className="mb-5 flex items-center justify-center" title="Início – todos os apps">
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white shadow-soft">
-        <IconWallet className="h-5 w-5" />
+        <IconLife className="h-5 w-5" />
       </span>
     </Link>
   );

@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'OrçaFamília — Apps da família',
-    short_name: 'OrçaFamília',
+    name: 'Life — Apps da família',
+    short_name: 'Life',
     description: 'Apps da família em um só lugar: orçamento familiar e gestão do estoque de emergência de alimentos e água.',
     start_url: '/inicio',
     display: 'standalone',

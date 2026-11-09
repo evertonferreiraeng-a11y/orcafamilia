@@ -1,6 +1,6 @@
 # Gestão de Estoque Familiar – Reserva 180 dias
 
-Módulo do OrçaFamília para controlar a reserva de emergência de alimentos, água e itens do bebê.
+Módulo do Life (app da família) para controlar a reserva de emergência de alimentos, água e itens do bebê.
 Usa o mesmo login e a mesma família do Orçamento: **todos os membros da família veem e editam o mesmo estoque**,
 no computador e no celular.
 

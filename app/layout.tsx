@@ -11,15 +11,15 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: 'OrçaFamília — Controle financeiro do casal',
-    template: '%s · OrçaFamília',
+    default: 'Life — Apps da família',
+    template: '%s · Life',
   },
-  description: 'Painel de controle financeiro para o casal: contas, cartões, orçamentos e metas em um só lugar.',
-  applicationName: 'OrçaFamília',
+  description: 'Os apps da vida em família em um só lugar: orçamento familiar, estoque de emergência e mais.',
+  applicationName: 'Life',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'OrçaFamília',
+    title: 'Life',
   },
 };
 

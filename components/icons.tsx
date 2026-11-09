@@ -57,6 +57,7 @@ import {
   FileSpreadsheet,
   Minus,
   WifiOff,
+  Heart,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -127,3 +128,4 @@ export const IconImprimir = withDefaultStroke(Printer);
 export const IconPlanilha = withDefaultStroke(FileSpreadsheet);
 export const IconMenos = withDefaultStroke(Minus);
 export const IconOffline = withDefaultStroke(WifiOff);
+export const IconLife = withDefaultStroke(Heart);
