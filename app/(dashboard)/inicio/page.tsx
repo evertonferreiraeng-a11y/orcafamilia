@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { createServerSupabase } from '@/lib/supabase-server';
 import { carregarEstoque } from '@/lib/estoque/carregar';
-import { alertaLote, estoqueAtual, fmtPct, fmtQtd, itensParaComprar, percentualReserva, soma, type DadosEstoque } from '@/lib/estoque/calc';
-import { IconEstoque, IconWallet, IconChevronRight } from '@/components/icons';
+import { carregarCasa } from '@/lib/casa/carregar';
+import { statusTarefa, ordemTarefas, nomeTarefa, type DadosCasa } from '@/lib/casa/calc';
+import { fmtData, alertaLote, estoqueAtual, fmtPct, fmtQtd, itensParaComprar, percentualReserva, soma, type DadosEstoque } from '@/lib/estoque/calc';
+import { IconEstoque, IconWallet, IconChevronRight, IconCasa } from '@/components/icons';
 
 export const metadata = { title: 'Início – Apps da família' };
 export const dynamic = 'force-dynamic';
@@ -30,6 +32,21 @@ export default async function InicioPage() {
     estoque = null; // migração ainda não aplicada: o card mostra só o atalho
   }
 
+  let casa: DadosCasa | null = null;
+  try {
+    casa = await carregarCasa(supabase);
+  } catch {
+    casa = null; // migração 0020 ainda não aplicada
+  }
+  const resumoCasa = casa
+    ? {
+        vencidas: casa.tarefas.filter((t) => statusTarefa(t) === 'vencida').length,
+        breve: casa.tarefas.filter((t) => statusTarefa(t) === 'breve').length,
+        semData: casa.tarefas.filter((t) => statusTarefa(t) === 'semdata').length,
+        proxima: casa.tarefas.filter((t) => t.ativa && t.proxima_data).sort(ordemTarefas)[0],
+      }
+    : null;
+
   const resumoEstoque = estoque
     ? (() => {
         const ativos = estoque.lotes.filter((l) => l.qtd_atual > 0);
@@ -44,14 +61,14 @@ export default async function InicioPage() {
     : null;
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto max-w-6xl">
       <div className="mb-6">
         <p className="text-sm text-gray-500">Olá, {(perfil?.nome || 'família').split(' ')[0]} 👋</p>
         <h2 className="text-2xl font-bold text-gray-900">Apps da família</h2>
         <p className="mt-1 text-sm text-gray-500">Escolha um app. O login, a família e os dados são compartilhados entre todos.</p>
       </div>
 
-      <div className="grid gap-5 md:grid-cols-2">
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         <div className="flex flex-col rounded-2xl border border-gray-100 bg-white p-5 shadow-card">
           <div className="mb-4 flex items-center gap-3">
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
@@ -114,6 +131,47 @@ export default async function InicioPage() {
           </div>
           <Link href="/estoque" className="mt-auto inline-flex items-center justify-center gap-2 self-start rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700">
             Abrir Estoque <IconChevronRight className="h-4 w-4" />
+          </Link>
+        </div>
+
+        <div className="flex flex-col rounded-2xl border border-gray-100 bg-white p-5 shadow-card">
+          <div className="mb-4 flex items-center gap-3">
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+              <IconCasa className="h-6 w-6" />
+            </span>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Casa</h3>
+              <p className="text-sm text-gray-500">Manutenções: filtro de água, ar-condicionado, caixa d&apos;água e mais</p>
+            </div>
+          </div>
+          {resumoCasa && casa ? (
+            <div className="mb-4 grid grid-cols-2 gap-2 text-sm">
+              <div className={`rounded-xl px-3 py-2 ${resumoCasa.vencidas ? 'bg-red-50' : 'bg-emerald-50'}`}>
+                <p className={`text-xs ${resumoCasa.vencidas ? 'text-red-700' : 'text-emerald-700'}`}>Vencidas</p>
+                <p className={`text-lg font-bold ${resumoCasa.vencidas ? 'text-red-800' : 'text-emerald-800'}`}>{resumoCasa.vencidas}</p>
+              </div>
+              <div className="rounded-xl bg-amber-50 px-3 py-2">
+                <p className="text-xs text-amber-700">Vencem em breve</p>
+                <p className="text-lg font-bold text-amber-800">{resumoCasa.breve}</p>
+              </div>
+              <div className="col-span-2 rounded-xl bg-gray-50 px-3 py-2">
+                <p className="text-xs text-gray-500">{resumoCasa.semData ? `${resumoCasa.semData} manutenção(ões) sem data definida` : 'Próxima manutenção'}</p>
+                <p className="truncate text-sm font-semibold text-gray-800">
+                  {resumoCasa.proxima ? `${fmtData(resumoCasa.proxima.proxima_data)} · ${nomeTarefa(casa, resumoCasa.proxima)}` : 'Defina as datas em Manutenções'}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <p className="mb-4 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">App ainda não configurado no banco (migração 0020).</p>
+          )}
+          <div className="mb-5 flex flex-wrap gap-1.5">
+            <Atalho href="/casa/manutencoes">Manutenções</Atalho>
+            <Atalho href="/casa/itens">Itens</Atalho>
+            <Atalho href="/casa/historico">Histórico</Atalho>
+            <Atalho href="/casa/prestadores">Prestadores</Atalho>
+          </div>
+          <Link href="/casa" className="mt-auto inline-flex items-center justify-center gap-2 self-start rounded-xl bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700">
+            Abrir Casa <IconChevronRight className="h-4 w-4" />
           </Link>
         </div>
       </div>

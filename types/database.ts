@@ -283,6 +283,71 @@ export type EstoqueMov = {
   criado_em: string;
 };
 
+// ============================================
+// LIFE · CASA (manutenções da casa)
+// ============================================
+export type UnidadeFrequencia = 'dias' | 'semanas' | 'meses' | 'anos';
+
+export type CasaConfig = { familia_id: string; aviso_padrao: number; criado_em: string };
+
+export type CasaPrestador = {
+  id: string;
+  familia_id: string;
+  nome: string;
+  servico: string | null;
+  telefone: string | null;
+  email: string | null;
+  obs: string | null;
+  criado_em: string;
+};
+
+export type CasaItem = {
+  id: string;
+  familia_id: string;
+  nome: string;
+  categoria: string;
+  comodo: string | null;
+  marca: string | null;
+  modelo: string | null;
+  data_instalacao: string | null;
+  garantia_ate: string | null;
+  valor: number;
+  obs: string | null;
+  criado_em: string;
+};
+
+export type CasaTarefa = {
+  id: string;
+  familia_id: string;
+  item_id: string | null;
+  titulo: string;
+  categoria: string;
+  freq_valor: number;
+  freq_unidade: UnidadeFrequencia;
+  ultima_execucao: string | null;
+  proxima_data: string | null;
+  aviso_dias: number;
+  custo_estimado: number;
+  prestador_id: string | null;
+  instrucoes: string | null;
+  ativa: boolean;
+  criado_em: string;
+};
+
+export type CasaExecucao = {
+  id: string;
+  familia_id: string;
+  tarefa_id: string;
+  data: string;
+  custo: number;
+  prestador_id: string | null;
+  obs: string | null;
+  ultima_anterior: string | null;
+  proxima_anterior: string | null;
+  user_id: string | null;
+  criado_em: string;
+};
+
 type Relationship = {
   foreignKeyName: string;
   columns: string[];
@@ -474,6 +539,11 @@ export interface Database {
       estoque_produtos: TableDef<EstoqueProduto>;
       estoque_lotes: TableDef<EstoqueLote>;
       estoque_movs: TableDef<EstoqueMov>;
+      casa_config: TableDef<CasaConfig>;
+      casa_prestadores: TableDef<CasaPrestador>;
+      casa_itens: TableDef<CasaItem>;
+      casa_tarefas: TableDef<CasaTarefa>;
+      casa_execucoes: TableDef<CasaExecucao>;
     };
     Views: Record<string, never>;
     Functions: {
@@ -523,6 +593,19 @@ export interface Database {
         };
         Returns: undefined;
       };
+      casa_inicializar: { Args: Record<string, never>; Returns: boolean };
+      casa_registrar_execucao: {
+        Args: {
+          p_tarefa: string;
+          p_data: string;
+          p_custo?: number;
+          p_prestador?: string | null;
+          p_obs?: string | null;
+          p_proxima?: string | null;
+        };
+        Returns: string;
+      };
+      casa_desfazer_execucao: { Args: { p_exec: string }; Returns: undefined };
       estoque_importar_backup: { Args: { p_dados: unknown }; Returns: { produtos: number; lotes: number; movs: number } };
     };
     Enums: Record<string, never>;

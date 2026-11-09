@@ -6,7 +6,7 @@ type Supa = ReturnType<typeof createServerSupabase>;
 type Resp<T> = PromiseLike<{ data: T[] | null; error: { message: string } | null }>;
 
 /** O PostgREST devolve no máximo 1000 linhas por consulta: busca em páginas até acabar. */
-async function buscarTodos<T>(montar: (de: number, ate: number) => Resp<T>): Promise<T[]> {
+export async function buscarTodos<T>(montar: (de: number, ate: number) => Resp<T>): Promise<T[]> {
   const passo = 1000;
   const out: T[] = [];
   for (let de = 0; ; de += passo) {

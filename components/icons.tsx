@@ -58,6 +58,12 @@ import {
   Minus,
   WifiOff,
   Heart,
+  House,
+  Wrench,
+  Plug,
+  History,
+  Contact,
+  MessageCircle,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -129,3 +135,11 @@ export const IconPlanilha = withDefaultStroke(FileSpreadsheet);
 export const IconMenos = withDefaultStroke(Minus);
 export const IconOffline = withDefaultStroke(WifiOff);
 export const IconLife = withDefaultStroke(Heart);
+
+// App Casa
+export const IconCasa = withDefaultStroke(House);
+export const IconFerramenta = withDefaultStroke(Wrench);
+export const IconEquipamento = withDefaultStroke(Plug);
+export const IconHistorico = withDefaultStroke(History);
+export const IconContato = withDefaultStroke(Contact);
+export const IconWhatsApp = withDefaultStroke(MessageCircle);
