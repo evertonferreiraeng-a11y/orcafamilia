@@ -141,6 +141,8 @@ export function TransacoesClient({
   contas,
   cartoes,
   seletorMes,
+  statusInicial,
+  abrirNovaInicial,
 }: {
   transacoes: TransacaoComRelacoes[];
   categorias: Categoria[];
@@ -148,14 +150,16 @@ export function TransacoesClient({
   contas: Conta[];
   cartoes: Cartao[];
   seletorMes: React.ReactNode;
+  statusInicial?: 'pago' | 'pendente';
+  abrirNovaInicial?: boolean;
 }) {
   const [visao, setVisao] = useState<'lista' | 'faturas'>('lista');
-  const [modalForm, setModalForm] = useState(false);
+  const [modalForm, setModalForm] = useState(!!abrirNovaInicial);
   const [modalFiltros, setModalFiltros] = useState(false);
   const [editando, setEditando] = useState<Transacao | undefined>(undefined);
 
   const [busca, setBusca] = useState('');
-  const [filtroStatus, setFiltroStatus] = useState<StatusFiltro>('todas');
+  const [filtroStatus, setFiltroStatus] = useState<StatusFiltro>(statusInicial ?? 'todas');
 
   const [filtroPeriodo, setFiltroPeriodo] = useState('');
   const [filtroPersonalizadoInicio, setFiltroPersonalizadoInicio] = useState('');

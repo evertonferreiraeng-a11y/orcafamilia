@@ -1,27 +1,23 @@
 import { eachDayOfInterval, format, addDays, differenceInCalendarDays } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { createServerSupabase } from '@/lib/supabase-server';
 import {
   parseMesParam,
   primeiroDiaMes,
   ultimoDiaMes,
   addMeses,
+  nomeMes,
 } from '@/lib/utils';
 import { indexarSubcategoriasPorCategoria, orcadoEfetivoCategoria } from '@/lib/orcamentos';
 import { gerarInsights, type DadosGerente } from '@/lib/gerente';
-import { StatCard } from '@/components/dashboard/StatCard';
+import { HeroOrcamento } from '@/components/dashboard/HeroOrcamento';
 import { MinhasContasCarousel } from '@/components/dashboard/MinhasContasCarousel';
 import { BalancoMensalChart, type PontoBalanco } from '@/components/dashboard/BalancoMensalChart';
 import { GerenteFinanceiroCard } from '@/components/dashboard/GerenteFinanceiroCard';
 import { DespesasPorTipoCard, type CategoriaExecutadoOrcado } from '@/components/dashboard/DespesasPorTipoCard';
 import { SaldoDoMesCard } from '@/components/dashboard/SaldoDoMesCard';
-import { IconTrendUp, IconTrendDown, IconWallet, IconRecorrente, IconCompras } from '@/components/icons';
+import { IconTrendUp, IconRecorrente, IconCompras } from '@/components/icons';
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-
-function formatDataExtenso(data: string): string {
-  return format(new Date(`${data}T00:00:00`), "d 'de' MMMM", { locale: ptBR });
-}
 
 export default async function DashboardPage({
   searchParams,
@@ -69,7 +65,7 @@ export default async function DashboardPage({
       .not('conta_id', 'is', null),
     supabase
       .from('transacoes')
-      .select('valor, data, tipo, pago, tipo_despesa, descricao, parcela_atual, parcela_total')
+      .select('valor, data, data_vencimento, tipo, pago, tipo_despesa, descricao, parcela_atual, parcela_total')
       .eq('user_id', user.id)
       .eq('eh_transferencia', false)
       .gte('data', inicio)
@@ -155,6 +151,8 @@ export default async function DashboardPage({
 
   const pendenteReceita = pendente.filter((t) => t.tipo === 'receita').reduce((a, t) => a + Number(t.valor), 0);
   const pendenteDespesa = pendente.filter((t) => t.tipo === 'despesa').reduce((a, t) => a + Number(t.valor), 0);
+  const despesasPendentes = pendente.filter((t) => t.tipo === 'despesa');
+  const despesasAtrasadas = despesasPendentes.filter((t) => (t.data_vencimento ?? t.data) < hojeStr);
 
   const mesAnteriorTransacoes = transacoesMesAnterior ?? [];
 
@@ -166,12 +164,6 @@ export default async function DashboardPage({
   // Isolado ao mês, com tudo: receita total (paga + a receber) - despesa total (paga + a pagar), sem saldo anterior.
   const previsaoSaldoMesTotal = receitaMes + pendenteReceita - (despesaMes + pendenteDespesa);
 
-  const subtituloSaldoAnterior = `Até ${formatDataExtenso(fimAnterior)} (Receita - Despesa + Saldo Bancário)`;
-  const subtituloPeriodo = `${formatDataExtenso(inicio)} - ${formatDataExtenso(fim)}`;
-  const subtituloSaldoAtual = `Até ${formatDataExtenso(fim)} (Receita - Despesa + Saldo Bancário)`;
-  const subtituloSaldoPrevistoAcumulado = `Até ${formatDataExtenso(fim)} (Receita total - Despesa total + Saldo anterior)`;
-  const subtituloSaldoMesExecutado = `${formatDataExtenso(inicio)} - ${formatDataExtenso(fim)} (Receita paga - Despesa paga, sem saldo anterior)`;
-  const subtituloPrevisaoSaldoMesTotal = `${formatDataExtenso(inicio)} - ${formatDataExtenso(fim)} (Receita total - Despesa total, sem saldo anterior)`;
 
   const gastoPorCategoria = new Map<string, number>();
   const gastoPorCategoriaFixa = new Map<string, number>();
@@ -420,65 +412,25 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          titulo="Saldo do Período Anterior"
-          valor={saldoInicioMes}
-          subtitulo={subtituloSaldoAnterior}
-          tom={saldoInicioMes >= 0 ? 'positivo' : 'negativo'}
-          icon={IconWallet}
-          detalhes={[
-            { label: 'Pendências', valor: saldoInicioMes, tipo: 'pendente' },
-            { label: 'Disponível', valor: saldoInicioMes, tipo: 'ok' },
-          ]}
-        />
-        <StatCard
-          titulo="Receitas"
-          valor={receitaMes}
-          subtitulo={subtituloPeriodo}
-          tom="positivo"
-          icon={IconTrendUp}
-          detalhes={[
-            { label: 'Recebido', valor: receitaMes, tipo: 'ok' },
-            { label: 'A receber', valor: pendenteReceita, tipo: 'pendente' },
-          ]}
-        />
-        <StatCard
-          titulo="Despesas"
-          valor={despesaMes}
-          subtitulo={subtituloPeriodo}
-          tom="negativo"
-          icon={IconTrendDown}
-          detalhes={[
-            { label: 'Pago', valor: despesaMes, tipo: 'ok' },
-            { label: 'A pagar', valor: pendenteDespesa, tipo: 'pendente' },
-          ]}
-        />
-        <StatCard
-          titulo="Saldo Disponível (Bancário Atual)"
-          valor={saldoTotalContas}
-          subtitulo={subtituloSaldoAtual}
-          tom={saldoTotalContas >= 0 ? 'positivo' : 'negativo'}
-          icon={IconWallet}
-          extras={[
-            {
-              titulo: 'Saldo Previsto (Acumulado)',
-              valor: saldoPrevistoAcumulado,
-              subtitulo: subtituloSaldoPrevistoAcumulado,
-            },
-            {
-              titulo: 'Saldo do Mês (Executado)',
-              valor: saldoMesExecutado,
-              subtitulo: subtituloSaldoMesExecutado,
-            },
-            {
-              titulo: 'Previsão do Mês (Total)',
-              valor: previsaoSaldoMesTotal,
-              subtitulo: subtituloPrevisaoSaldoMesTotal,
-            },
-          ]}
-        />
-      </div>
+      <HeroOrcamento
+        mesNome={nomeMes(mesSelecionado)}
+        mesParam={searchParams.mes}
+        saldoContas={saldoTotalContas}
+        saldoPrevisto={saldoPrevistoAcumulado}
+        saldoAnterior={saldoInicioMes}
+        receita={receitaMes}
+        aReceber={pendenteReceita}
+        despesa={despesaMes}
+        aPagar={pendenteDespesa}
+        resultadoMes={saldoMesExecutado}
+        previsaoMes={previsaoSaldoMesTotal}
+        orcado={orcadoFixasTotal + orcadoVariaveisTotal}
+        gastoOrcavel={totalGastoCategorias}
+        atrasadas={{ qtd: despesasAtrasadas.length, valor: despesasAtrasadas.reduce((a, t) => a + Number(t.valor), 0) }}
+        pendentes={{ qtd: despesasPendentes.length, valor: pendenteDespesa }}
+        categoriasAcima={categoriasAcimaDetalhe.length}
+        dividasVencendo={dividasVencendo.length}
+      />
 
       <GerenteFinanceiroCard insights={insights} />
 

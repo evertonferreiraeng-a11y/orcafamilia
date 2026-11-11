@@ -8,7 +8,7 @@ import type { Categoria, Subcategoria, Conta, Cartao } from '@/types/database';
 export default async function TransacoesPage({
   searchParams,
 }: {
-  searchParams: { mes?: string };
+  searchParams: { mes?: string; status?: string; nova?: string };
 }) {
   const supabase = createServerSupabase();
   const {
@@ -60,6 +60,8 @@ export default async function TransacoesPage({
         subcategorias={(subcategorias ?? []) as Subcategoria[]}
         contas={(contas ?? []) as Conta[]}
         cartoes={(cartoes ?? []) as Cartao[]}
+        statusInicial={searchParams.status === 'pendente' || searchParams.status === 'pago' ? searchParams.status : undefined}
+        abrirNovaInicial={searchParams.nova === '1'}
         seletorMes={
           <Suspense fallback={null}>
             <SeletorMesAno />
