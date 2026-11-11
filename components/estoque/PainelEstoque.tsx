@@ -11,12 +11,15 @@ import {
   estoqueAtual,
   fmtData,
   fmtMesCurto,
+  fmtConteudo,
   fmtPct,
+  medidaDoProduto,
   fmtQtd,
   movsAtivas,
   ordemFEFO,
   percentualMeta,
   percentualReserva,
+  reposicao,
   soma,
   statusProduto,
   textoPrazo,
@@ -166,16 +169,31 @@ export function PainelEstoque() {
       <div className="mb-5 grid gap-4 lg:grid-cols-2">
         <Secao titulo="Percentual de conclusão das metas">
           {metas.length ? (
-            <div className="space-y-2.5">
-              {metas.map(({ p, pct }) => (
-                <div key={p.id} className="grid grid-cols-[110px_1fr_44px] items-center gap-3 text-sm sm:grid-cols-[160px_1fr_48px]">
-                  <span className="truncate" title={p.nome}>
-                    {p.nome}
-                  </span>
-                  <Barra pct={pct} tom={pct >= 100 ? 'verde' : p.tipo === 'agua' ? 'azul' : pct > 0 ? 'amarelo' : 'cinza'} />
-                  <span className="text-right font-semibold tabular-nums">{Math.round(pct)}%</span>
-                </div>
-              ))}
+            <div className="space-y-3">
+              {metas.map(({ p, pct }) => {
+                const tem = Math.max(estoqueAtual(dados, p), 0);
+                const falta = reposicao(dados, p);
+                // produto contado (sachês, latas) com embalagem padrão: mostra também o peso/volume equivalente
+                const equivalente = (q: number) => (!medidaDoProduto(p.unidade) && p.emb_conteudo && p.emb_unidade && q > 0 ? ` (≈ ${fmtConteudo(q * p.emb_conteudo, p.emb_unidade)})` : '');
+                return (
+                  <div key={p.id} className="text-sm">
+                    <div className="mb-1 flex items-baseline gap-2">
+                      <span className="min-w-0 flex-1 truncate font-medium text-gray-800" title={p.nome}>
+                        {p.nome}
+                      </span>
+                      <span className="shrink-0 text-xs tabular-nums text-gray-500">
+                        <b className="text-gray-900">{fmtQtd(tem)}</b> de {fmtQtd(p.meta)} {p.unidade}
+                        {equivalente(tem)}
+                      </span>
+                      <span className="w-11 shrink-0 text-right font-semibold tabular-nums">{Math.round(pct)}%</span>
+                    </div>
+                    <Barra pct={pct} tom={pct >= 100 ? 'verde' : p.tipo === 'agua' ? 'azul' : pct > 0 ? 'amarelo' : 'cinza'} />
+                    <p className={`mt-0.5 text-[11px] ${falta > 0 ? 'text-gray-500' : 'font-medium text-emerald-600'}`}>
+                      {falta > 0 ? `Faltam ${fmtQtd(falta)} ${p.unidade}${equivalente(falta)}` : 'Meta atingida'}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <Vazio>Defina metas nos produtos.</Vazio>
