@@ -665,6 +665,11 @@ function LoteModal({ id }: { id: string }) {
         p_local: localId || null,
         p_obs: obs || null,
       });
+      // a observação também aparece no histórico: atualiza a movimentação de entrada deste lote
+      const entrada = dados.movs.find((m) => m.lote_id === l!.id && (m.tipo === 'entrada' || m.tipo === 'reposicao') && !m.estornado);
+      if (entrada && (entrada.obs ?? '') !== obs.trim()) {
+        await gravar('estoque_movs', 'update', { obs: obs.trim() || null }, { coluna: 'id', valor: entrada.id });
+      }
       const novoEmb = emb ? r3(emb) : null;
       if (comEmbalagem && (novoEmb !== (l!.emb_conteudo ?? null) || (novoEmb ? embUnidade : null) !== (l!.emb_unidade ?? null))) {
         await gravar('estoque_lotes', 'update', { emb_conteudo: novoEmb, emb_unidade: novoEmb ? embUnidade : null }, { coluna: 'id', valor: l!.id });
@@ -679,7 +684,7 @@ function LoteModal({ id }: { id: string }) {
   }
 
   return (
-    <Modal open onClose={fechar} title={`Editar lote – ${p.nome}`} wide>
+    <Modal open onClose={fechar} title={`Editar lançamento – ${p.nome}`} wide>
       <form onSubmit={salvar} className="space-y-4" noValidate>
         <div className="grid gap-3 sm:grid-cols-2">
           <Campo rotulo="Número do lote">

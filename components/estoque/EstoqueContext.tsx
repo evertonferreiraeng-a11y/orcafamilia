@@ -35,7 +35,7 @@ type ContextoEstoque = {
   rpc: <T = unknown>(nome: string, args?: Record<string, unknown>) => Promise<T>;
   /** Insere/atualiza/exclui em uma tabela do estoque. Lança Error com mensagem amigável. */
   gravar: (
-    tabela: 'estoque_config' | 'estoque_locais' | 'estoque_produtos' | 'estoque_lotes' | 'estoque_lista',
+    tabela: 'estoque_config' | 'estoque_locais' | 'estoque_produtos' | 'estoque_lotes' | 'estoque_lista' | 'estoque_movs',
     op: 'insert' | 'update' | 'delete',
     valores?: Record<string, unknown> | Record<string, unknown>[],
     id?: { coluna: string; valor: string }

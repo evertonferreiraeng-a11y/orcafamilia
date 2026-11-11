@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useEstoque } from '@/components/estoque/EstoqueContext';
 import { CabecalhoEstoque } from '@/components/estoque/Cabecalho';
 import { Badge, BotaoIcone, Secao, TD, TDN, TH, THN, Tabela, Vazio, type Tom } from '@/components/estoque/ui';
-import { IconDesfazer } from '@/components/icons';
+import { IconDesfazer, IconEdit } from '@/components/icons';
 import { SAIDAS, TIPOS_MOV, fmtData, fmtQtd, ordenarPorNome } from '@/lib/estoque/calc';
 import type { EstoqueMov, TipoMovEstoque } from '@/types/database';
 
@@ -128,7 +128,15 @@ export function MovimentacoesEstoque() {
                         </Badge>
                         {m.estornado && <span className="ml-1 text-xs no-underline">(estornado)</span>}
                       </td>
-                      <td className={`${TD} font-semibold`}>{p?.nome ?? '(produto excluído)'}</td>
+                      <td className={`${TD} font-semibold`}>
+                        {l && !m.estornado ? (
+                          <button type="button" className="text-left hover:text-brand-600 hover:underline" title="Editar as informações deste lançamento" onClick={() => abrir({ tipo: 'lote', id: l.id })}>
+                            {p?.nome ?? '(produto excluído)'}
+                          </button>
+                        ) : (
+                          (p?.nome ?? '(produto excluído)')
+                        )}
+                      </td>
                       <td className={TD}>{l ? l.num_lote || `validade ${fmtData(l.validade)}` : '—'}</td>
                       <td className={TDN}>
                         <b className={m.estornado ? '' : neg ? 'text-negative' : 'text-positive'}>
@@ -140,9 +148,16 @@ export function MovimentacoesEstoque() {
                       <td className={`${TD} max-w-[260px]`}>{m.obs}</td>
                       <td className={TD}>
                         {!m.estornado && (
-                          <BotaoIcone titulo="Estornar (desfazer)" onClick={() => estornar(m)}>
-                            <IconDesfazer className="h-4 w-4" />
-                          </BotaoIcone>
+                          <div className="flex justify-end gap-0.5">
+                            {l && (
+                              <BotaoIcone titulo="Editar informações (validade, lote, embalagem, observações…)" onClick={() => abrir({ tipo: 'lote', id: l.id })}>
+                                <IconEdit className="h-4 w-4" />
+                              </BotaoIcone>
+                            )}
+                            <BotaoIcone titulo="Estornar (desfazer)" onClick={() => estornar(m)}>
+                              <IconDesfazer className="h-4 w-4" />
+                            </BotaoIcone>
+                          </div>
                         )}
                       </td>
                     </tr>
