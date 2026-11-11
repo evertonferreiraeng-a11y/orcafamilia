@@ -29,7 +29,7 @@ export function MovimentacoesEstoque() {
   const lista = dados.movs
     .filter(
       (m) =>
-        (!tipo || (tipo === 'saidas' ? SAIDAS.includes(m.tipo as (typeof SAIDAS)[number]) : m.tipo === tipo)) &&
+        (!tipo || (tipo === 'saidas' ? SAIDAS.includes(m.tipo as (typeof SAIDAS)[number]) : tipo === 'entrada' ? m.tipo === 'entrada' || m.tipo === 'reposicao' : m.tipo === tipo)) &&
         (!pid || m.produto_id === pid) &&
         (!de || m.data >= de) &&
         (!ate || m.data <= ate)
@@ -60,7 +60,7 @@ export function MovimentacoesEstoque() {
 
   return (
     <div>
-      <CabecalhoEstoque titulo="Movimentações" descricao="Entradas, consumo, reposição, perdas, danificados e descartes" />
+      <CabecalhoEstoque titulo="Movimentações" descricao="Entradas, consumo, perdas, danificados e descartes" />
       <div className="mb-4 flex flex-wrap gap-2">
         <button type="button" className="btn-secondary" onClick={() => abrir({ tipo: 'saida', tipoSaida: 'consumo' })}>
           Saída para consumo
@@ -80,7 +80,7 @@ export function MovimentacoesEstoque() {
             <select className="input-field !w-auto !py-1.5" value={tipo} onChange={(e) => setTipo(e.target.value as typeof tipo)}>
               <option value="">Todos os tipos</option>
               <option value="saidas">Todas as saídas</option>
-              {(Object.keys(TIPOS_MOV) as TipoMovEstoque[]).map((k) => (
+              {(Object.keys(TIPOS_MOV) as TipoMovEstoque[]).filter((k) => k !== 'reposicao').map((k) => (
                 <option key={k} value={k}>
                   {TIPOS_MOV[k]}
                 </option>

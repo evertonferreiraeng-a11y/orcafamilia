@@ -106,7 +106,6 @@ function EntradaModal({ produtoIdInicial }: { produtoIdInicial?: string }) {
   const { dados, fechar, rpc, confirmar, avisar } = useEstoque();
   const inicial = produtoIdInicial ? dados.produtos.find((p) => p.id === produtoIdInicial) : undefined;
   const [produtoId, setProdutoId] = useState(produtoIdInicial ?? '');
-  const [tipo, setTipo] = useState<'entrada' | 'reposicao'>('entrada');
   const [dataCompra, setDataCompra] = useState(hojeISO());
   const [qtd, setQtd] = useState('');
   const capInicial = inicial?.cap ?? 5;
@@ -176,7 +175,7 @@ function EntradaModal({ produtoIdInicial }: { produtoIdInicial?: string }) {
         p_local: localId || null,
         p_cap: capacidade,
         p_obs: obs || null,
-        p_tipo: tipo,
+        p_tipo: 'entrada',
       });
       avisar(`Entrada registrada: ${fmtQtd(quantidade)} ${p.unidade} de ${p.nome}.`);
       fechar();
@@ -198,12 +197,6 @@ function EntradaModal({ produtoIdInicial }: { produtoIdInicial?: string }) {
           <Campo rotulo="Produto" obrigatorio className="sm:col-span-2">
             <select className="input-field" value={produtoId} onChange={(e) => trocarProduto(e.target.value)}>
               <OpcoesProdutos dados={dados} />
-            </select>
-          </Campo>
-          <Campo rotulo="Tipo de entrada">
-            <select className="input-field" value={tipo} onChange={(e) => setTipo(e.target.value as 'entrada' | 'reposicao')}>
-              <option value="entrada">Entrada (compra)</option>
-              <option value="reposicao">Reposição de estoque</option>
             </select>
           </Campo>
           <Campo rotulo="Data da compra" obrigatorio>

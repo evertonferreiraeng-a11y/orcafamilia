@@ -27,8 +27,8 @@ export type StatusProduto = 'green' | 'amber' | 'red' | 'sm';
 export type AlertaLote = 'venc' | 'd30' | 'd60' | 'd90' | 'ok' | 'none';
 
 export const TIPOS_MOV: Record<TipoMovEstoque, string> = {
-  entrada: 'Entrada (compra)',
-  reposicao: 'Reposição',
+  entrada: 'Entrada',
+  reposicao: 'Entrada (reposição)', // tipo antigo, mantido só para o histórico
   consumo: 'Saída p/ consumo',
   perda: 'Perda',
   danificado: 'Danificado',

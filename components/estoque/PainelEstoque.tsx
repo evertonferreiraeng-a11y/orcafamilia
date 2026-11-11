@@ -191,7 +191,7 @@ export function PainelEstoque() {
                   <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} width={32} />
                   <Tooltip />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="entradas" name="Entradas/reposição" fill="#059669" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="entradas" name="Entradas" fill="#059669" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="consumo" name="Consumo" fill="#7c9cc9" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="perdas" name="Perdas e descartes" fill="#ea580c" radius={[4, 4, 0, 0]} />
                 </BarChart>
