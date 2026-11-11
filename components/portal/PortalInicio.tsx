@@ -85,8 +85,8 @@ const TEMA = {
     botao: 'bg-amber-500 hover:bg-amber-600 focus-visible:outline-amber-500',
     chip: 'bg-amber-50 text-amber-700',
     atalhos: [
-      { href: '/casa/manutencoes', rotulo: 'Manutenções' },
-      { href: '/casa/itens', rotulo: 'Itens' },
+      { href: '/casa/manutencoes', rotulo: 'Manutenções preventivas' },
+      { href: '/casa/historico', rotulo: 'Histórico' },
       { href: '/casa/prestadores', rotulo: 'Prestadores' },
     ],
   },

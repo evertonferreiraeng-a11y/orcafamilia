@@ -198,20 +198,28 @@ function CartoesTarefas({ tarefas }: { tarefas: CasaTarefa[] }) {
   );
 }
 
-/* ---------- MANUTENÇÕES ---------- */
+/* ---------- MANUTENÇÕES PREVENTIVAS ---------- */
+type Visao = 'equipamentos' | 'cartoes' | 'lista';
+const VISOES: { id: Visao; rotulo: string }[] = [
+  { id: 'equipamentos', rotulo: 'Por equipamento' },
+  { id: 'cartoes', rotulo: 'Por categoria' },
+  { id: 'lista', rotulo: 'Lista' },
+];
 export function ManutencoesCasa() {
   const { dados, abrir } = useCasa();
   const params = useSearchParams();
   const [busca, setBusca] = useState('');
   const [status, setStatus] = useState<'' | StatusTarefa>((params.get('status') as StatusTarefa) || '');
   const [categoria, setCategoria] = useState('');
-  const [visao, setVisao] = useState<'cartoes' | 'lista'>('cartoes');
+  const [visao, setVisao] = useState<Visao>((VISOES.find((v) => v.id === params.get('visao'))?.id) ?? 'equipamentos');
   useEffect(() => {
+    if (params.get('visao')) return;
     try {
-      if (localStorage.getItem('life-casa-visao') === 'lista') setVisao('lista');
+      const v = localStorage.getItem('life-casa-visao');
+      if (v === 'cartoes' || v === 'lista' || v === 'equipamentos') setVisao(v);
     } catch {}
-  }, []);
-  function trocarVisao(v: 'cartoes' | 'lista') {
+  }, [params]);
+  function trocarVisao(v: Visao) {
     setVisao(v);
     try {
       localStorage.setItem('life-casa-visao', v);
@@ -224,7 +232,10 @@ export function ManutencoesCasa() {
     .sort(ordemTarefas);
   return (
     <div>
-      <Cabecalho titulo="Manutenções" descricao="O que precisa ser feito, de quanto em quanto tempo e quando é a próxima">
+      <Cabecalho titulo="Manutenções preventivas" descricao="Equipamentos da casa e o que precisa ser feito em cada um, de quanto em quanto tempo">
+        <button type="button" className="btn-secondary" onClick={() => abrir({ tipo: 'item' })}>
+          <IconPlus className="h-4 w-4" /> Novo equipamento
+        </button>
         <button type="button" className="btn-primary" onClick={() => abrir({ tipo: 'tarefa' })}>
           <IconPlus className="h-4 w-4" /> Nova manutenção
         </button>
@@ -249,20 +260,22 @@ export function ManutencoesCasa() {
           ))}
         </select>
         <div className="ml-auto flex rounded-xl bg-gray-100 p-1 text-xs font-semibold" role="group" aria-label="Forma de exibição">
-          {(['cartoes', 'lista'] as const).map((v) => (
+          {VISOES.map((v) => (
             <button
-              key={v}
+              key={v.id}
               type="button"
-              onClick={() => trocarVisao(v)}
-              aria-pressed={visao === v}
-              className={`rounded-lg px-3 py-1.5 transition ${visao === v ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+              onClick={() => trocarVisao(v.id)}
+              aria-pressed={visao === v.id}
+              className={`rounded-lg px-3 py-1.5 transition ${visao === v.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
             >
-              {v === 'cartoes' ? 'Cartões' : 'Lista'}
+              {v.rotulo}
             </button>
           ))}
         </div>
       </div>
-      {visao === 'cartoes' ? (
+      {visao === 'equipamentos' ? (
+        <PorEquipamento tarefas={lista} filtrando={!!(q || status || categoria)} busca={busca} />
+      ) : visao === 'cartoes' ? (
         <CartoesTarefas tarefas={lista} />
       ) : (
         <Secao semPadding>
@@ -276,99 +289,145 @@ export function ManutencoesCasa() {
   );
 }
 
-/* ---------- ITENS ---------- */
-export function ItensCasa() {
+/* ---------- equipamentos com as manutenções de cada um ---------- */
+function LinhaManutencao({ t }: { t: CasaTarefa }) {
+  const { abrir } = useCasa();
+  const s = statusTarefa(t);
+  const ciclo = cicloTarefa(t);
+  const cor = s === 'vencida' ? 'text-red-600' : s === 'breve' ? 'text-amber-700' : s === 'emdia' ? 'text-gray-600' : 'text-gray-400';
+  return (
+    <li className={`group rounded-xl px-2 py-2 transition-colors hover:bg-gray-50 ${s === 'pausada' ? 'opacity-50' : ''}`}>
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={() => abrir({ tipo: 'tarefa', id: t.id })} className="min-w-0 flex-1 truncate text-left text-sm font-medium text-gray-800 hover:text-amber-700" title="Editar manutenção">
+          {t.titulo}
+        </button>
+        <span className={`shrink-0 text-xs font-semibold tabular-nums ${cor}`}>{s === 'semdata' ? 'sem data' : s === 'pausada' ? 'pausada' : textoPrazoTarefa(t)}</span>
+        <BotaoIcone titulo={`Marcar “${t.titulo}” como feito`} onClick={() => abrir({ tipo: 'feito', tarefaId: t.id })}>
+          <IconCheck className="h-4 w-4" />
+        </BotaoIcone>
+      </div>
+      <div className="mt-1 pr-9">{ciclo !== null ? <Barra pct={ciclo} tom={TOM_TAREFA[s]} /> : <div className="h-2 rounded-full border border-dashed border-gray-200" />}</div>
+      <p className="mt-0.5 text-[11px] text-gray-400">
+        {textoFrequencia(t.freq_valor, t.freq_unidade)}
+        {t.proxima_data ? ` · próxima ${fmtData(t.proxima_data)}` : ' · clique em ✓ e informe a última vez'}
+      </p>
+    </li>
+  );
+}
+
+function PorEquipamento({ tarefas, filtrando, busca }: { tarefas: CasaTarefa[]; filtrando: boolean; busca: string }) {
   const { dados, abrir, gravar, confirmar, avisar } = useCasa();
 
   async function excluir(i: CasaItem) {
     const n = dados.tarefas.filter((t) => t.item_id === i.id).length;
     const ok = await confirmar({
-      titulo: 'Excluir item',
+      titulo: 'Excluir equipamento',
       perigo: true,
       ok: 'Excluir',
       mensagem: (
         <>
-          Excluir <b>{i.nome}</b>?{n > 0 && <p className="mt-2">As {n} manutenção(ões) deste item e o histórico delas também serão apagados.</p>}
+          Excluir <b>{i.nome}</b>?{n > 0 && <p className="mt-2">As {n} manutenção(ões) deste equipamento e o histórico delas também serão apagados.</p>}
         </>
       ),
     });
     if (!ok) return;
     try {
       await gravar('casa_itens', 'delete', undefined, i.id);
-      avisar('Item excluído.');
+      avisar('Equipamento excluído.');
     } catch (e) {
       avisar((e as Error).message, true);
     }
   }
 
+  const PESO: Record<StatusTarefa, number> = { vencida: 0, breve: 1, semdata: 2, emdia: 3, pausada: 4 };
+  const pior = (l: CasaTarefa[]) => (l.length ? Math.min(...l.map((t) => PESO[statusTarefa(t)])) : 5);
+  const q = busca.trim().toLowerCase();
+  const itens = dados.itens
+    .map((i) => ({ i, lista: tarefas.filter((t) => t.item_id === i.id) }))
+    .filter(({ i, lista }) => !filtrando || lista.length > 0 || (!!q && `${i.nome} ${i.categoria} ${i.comodo ?? ''}`.toLowerCase().includes(q)))
+    .sort((a, b) => pior(a.lista) - pior(b.lista) || a.i.nome.localeCompare(b.i.nome, 'pt-BR'));
+  const gerais = tarefas.filter((t) => !t.item_id);
+  const BORDA = ['border-l-red-500', 'border-l-amber-500', 'border-l-gray-300', 'border-l-emerald-500', 'border-l-gray-200', 'border-l-gray-200'];
+
+  if (!itens.length && !gerais.length)
+    return (
+      <Secao>
+        <Vazio>{filtrando ? 'Nada encontrado com esses filtros.' : 'Cadastre os equipamentos da casa (ar-condicionado, caixa d’água, purificador…) e as manutenções de cada um.'}</Vazio>
+      </Secao>
+    );
+
   return (
-    <div>
-      <Cabecalho titulo="Itens e equipamentos" descricao="Aparelhos e partes da casa que precisam de manutenção, com garantia">
-        <button type="button" className="btn-primary" onClick={() => abrir({ tipo: 'item' })}>
-          <IconPlus className="h-4 w-4" /> Novo item
-        </button>
-      </Cabecalho>
-      {dados.itens.length ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {[...dados.itens]
-            .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
-            .map((i) => {
-              const tarefas = dados.tarefas.filter((t) => t.item_id === i.id).sort(ordemTarefas);
-              const g = statusGarantia(i);
-              return (
-                <Secao key={i.id}>
-                  <div className="flex items-start gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-xl" aria-hidden>
-                      {emojiCasa(i.categoria)}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <h4 className="text-base font-semibold text-gray-900">{i.nome}</h4>
-                      <p className="text-xs text-gray-500">
-                        {i.categoria}
-                        {i.comodo ? ` · ${i.comodo}` : ''}
-                        {i.marca || i.modelo ? ` · ${[i.marca, i.modelo].filter(Boolean).join(' ')}` : ''}
-                      </p>
-                    </div>
-                    <BotaoIcone titulo="Editar" onClick={() => abrir({ tipo: 'item', id: i.id })}>
-                      <IconEdit className="h-4 w-4" />
-                    </BotaoIcone>
-                    <BotaoIcone titulo="Excluir" perigo onClick={() => excluir(i)}>
-                      <IconTrash className="h-4 w-4" />
-                    </BotaoIcone>
-                  </div>
-                  <div className="my-2 flex flex-wrap gap-1.5">
-                    <Badge tom={TOM_GARANTIA[g]}>{g === 'none' ? STATUS_GARANTIA.none : `${STATUS_GARANTIA[g]}${i.garantia_ate ? ` · ${fmtData(i.garantia_ate)}` : ''}`}</Badge>
-                    {i.data_instalacao && (
-                      <Badge tom="cinza" ponto={false}>
-                        Instalado em {fmtData(i.data_instalacao)}
-                      </Badge>
-                    )}
-                  </div>
-                  {tarefas.length ? (
-                    <ul className="space-y-1.5 text-sm">
-                      {tarefas.map((t) => (
-                        <li key={t.id} className="flex items-center gap-2">
-                          <span className="min-w-0 flex-1 truncate">{t.titulo}</span>
-                          <span className="whitespace-nowrap text-xs text-gray-500">{fmtData(t.proxima_data)}</span>
-                          <StatusBadge t={t} />
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-gray-400">Nenhuma manutenção para este item.</p>
-                  )}
-                  {i.obs && <p className="mt-2 text-xs text-gray-500">{i.obs}</p>}
-                  <button type="button" className="btn-secondary mt-3 !px-3 !py-1 text-xs" onClick={() => abrir({ tipo: 'tarefa', itemId: i.id })}>
-                    <IconPlus className="h-3.5 w-3.5" /> Manutenção para este item
-                  </button>
-                </Secao>
-              );
-            })}
+    <div className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      {itens.map(({ i, lista }) => {
+        const g = statusGarantia(i);
+        const ordenadas = [...lista].sort(ordemTarefas);
+        return (
+          <div key={i.id} className={`rounded-2xl border border-l-4 border-gray-100 bg-white p-4 shadow-soft transition hover:shadow-card ${BORDA[pior(lista)]}`}>
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-xl" aria-hidden>
+                {emojiCasa(i.categoria)}
+              </span>
+              <div className="min-w-0 flex-1">
+                <h4 className="truncate text-base font-semibold text-gray-900">{i.nome}</h4>
+                <p className="truncate text-xs text-gray-500">
+                  {i.categoria}
+                  {i.comodo ? ` · ${i.comodo}` : ''}
+                  {i.marca || i.modelo ? ` · ${[i.marca, i.modelo].filter(Boolean).join(' ')}` : ''}
+                </p>
+              </div>
+              <BotaoIcone titulo="Editar equipamento" onClick={() => abrir({ tipo: 'item', id: i.id })}>
+                <IconEdit className="h-4 w-4" />
+              </BotaoIcone>
+              <BotaoIcone titulo="Excluir equipamento" perigo onClick={() => excluir(i)}>
+                <IconTrash className="h-4 w-4" />
+              </BotaoIcone>
+            </div>
+            {(g !== 'none' || i.data_instalacao) && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {g !== 'none' && <Badge tom={TOM_GARANTIA[g]}>{`${STATUS_GARANTIA[g]}${i.garantia_ate ? ` · ${fmtData(i.garantia_ate)}` : ''}`}</Badge>}
+                {i.data_instalacao && (
+                  <Badge tom="cinza" ponto={false}>
+                    Instalado em {fmtData(i.data_instalacao)}
+                  </Badge>
+                )}
+              </div>
+            )}
+            {ordenadas.length ? (
+              <ul className="mt-2 space-y-0.5">
+                {ordenadas.map((t) => (
+                  <LinhaManutencao key={t.id} t={t} />
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-3 text-sm text-gray-400">Nenhuma manutenção para este equipamento.</p>
+            )}
+            {i.obs && <p className="mt-2 text-xs text-gray-500">{i.obs}</p>}
+            <button type="button" className="mt-2 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-50" onClick={() => abrir({ tipo: 'tarefa', itemId: i.id })}>
+              <IconPlus className="h-3.5 w-3.5" /> Manutenção para este equipamento
+            </button>
+          </div>
+        );
+      })}
+      {gerais.length > 0 && (
+        <div className={`rounded-2xl border border-l-4 border-gray-100 bg-white p-4 shadow-soft transition hover:shadow-card ${BORDA[pior(gerais)]}`}>
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-xl" aria-hidden>
+              🏡
+            </span>
+            <div className="min-w-0 flex-1">
+              <h4 className="text-base font-semibold text-gray-900">Geral da casa</h4>
+              <p className="text-xs text-gray-500">Manutenções que não são de um equipamento</p>
+            </div>
+          </div>
+          <ul className="mt-2 space-y-0.5">
+            {[...gerais].sort(ordemTarefas).map((t) => (
+              <LinhaManutencao key={t.id} t={t} />
+            ))}
+          </ul>
+          <button type="button" className="mt-2 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-50" onClick={() => abrir({ tipo: 'tarefa' })}>
+            <IconPlus className="h-3.5 w-3.5" /> Manutenção geral
+          </button>
         </div>
-      ) : (
-        <Secao>
-          <Vazio>Nenhum item cadastrado.</Vazio>
-        </Secao>
       )}
     </div>
   );

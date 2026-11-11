@@ -171,7 +171,7 @@ export function PainelCasa() {
               <p className="text-xs font-semibold uppercase tracking-wider text-white/75">Casa</p>
               <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Nossa casa</h1>
               <p className="mt-1 text-sm text-white/85">
-                {ativas.length} manutenção(ões) ativa(s) · {dados.itens.length} item(ns) cadastrado(s)
+                {ativas.length} manutenção(ões) ativa(s) · {dados.itens.length} equipamento(s)
               </p>
             </div>
           </div>
@@ -212,7 +212,7 @@ export function PainelCasa() {
             <IconPlus className="h-4 w-4" /> Nova manutenção
           </button>
           <button type="button" onClick={() => abrir({ tipo: 'item' })} className={botaoClaro}>
-            <IconEquipamento className="h-4 w-4" /> Novo item
+            <IconEquipamento className="h-4 w-4" /> Novo equipamento
           </button>
           <Link href="/casa/historico" className={botaoClaro}>
             <IconHistorico className="h-4 w-4" /> Histórico
@@ -225,7 +225,7 @@ export function PainelCasa() {
         <Atencao href="/casa/manutencoes?status=vencida" valor={conta('vencida')} rotulo="Manutenções vencidas" cor="bg-red-50 text-red-600" ok="nenhuma atrasada" />
         <Atencao href="/casa/manutencoes?status=breve" valor={conta('breve')} rotulo="Vencem em breve" cor="bg-amber-50 text-amber-600" ok="nada para os próximos dias" />
         <Atencao href="/casa/manutencoes?status=semdata" valor={conta('semdata')} rotulo="Sem data definida" cor="bg-sky-50 text-sky-600" ok="todas com data" />
-        <Atencao href="/casa/itens" valor={garantias.length} rotulo="Garantias vencendo" cor="bg-orange-50 text-orange-600" ok="nenhuma nos próximos 90 dias" />
+        <Atencao href="/casa/manutencoes?visao=equipamentos" valor={garantias.length} rotulo="Garantias vencendo" cor="bg-orange-50 text-orange-600" ok="nenhuma nos próximos 90 dias" />
       </section>
 
       {conta('semdata') > 0 && (
@@ -360,7 +360,7 @@ export function PainelCasa() {
           </Secao>
 
           {garantias.length > 0 && (
-            <Secao titulo="Garantias vencendo" extra={<Link href="/casa/itens" className="text-xs font-semibold text-amber-700">Itens</Link>} semPadding>
+            <Secao titulo="Garantias vencendo" extra={<Link href="/casa/manutencoes?visao=equipamentos" className="text-xs font-semibold text-amber-700">Equipamentos</Link>} semPadding>
               <ul className="divide-y divide-gray-50">
                 {garantias.map((i) => (
                   <li key={i.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">

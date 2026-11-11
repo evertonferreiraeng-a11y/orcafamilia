@@ -29,7 +29,6 @@ import {
   IconLife,
   IconCasa,
   IconFerramenta,
-  IconEquipamento,
   IconHistorico,
   IconContato,
 } from '@/components/icons';
@@ -108,8 +107,7 @@ export const APPS: Record<AppId, { nome: string; curto: string; href: string; ic
         label: 'Casa',
         items: [
           { href: '/casa', label: 'Painel', icon: IconDashboard, exato: true },
-          { href: '/casa/manutencoes', label: 'Manutenções', icon: IconFerramenta },
-          { href: '/casa/itens', label: 'Itens e equipamentos', icon: IconEquipamento },
+          { href: '/casa/manutencoes', label: 'Manutenções preventivas', icon: IconFerramenta },
           { href: '/casa/historico', label: 'Histórico', icon: IconHistorico },
           { href: '/casa/prestadores', label: 'Prestadores', icon: IconContato },
         ],

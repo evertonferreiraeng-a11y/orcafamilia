@@ -1,12 +1,6 @@
-import { Suspense } from 'react';
-import { ItensCasa } from '@/components/casa/TelasCasa';
+import { redirect } from 'next/navigation';
 
-export const metadata = { title: 'Itens e equipamentos – Casa' };
-
+// Itens e equipamentos agora ficam junto das manutenções preventivas.
 export default function Page() {
-  return (
-    <Suspense fallback={null}>
-      <ItensCasa />
-    </Suspense>
-  );
+  redirect('/casa/manutencoes?visao=equipamentos');
 }

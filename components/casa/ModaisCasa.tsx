@@ -314,7 +314,7 @@ function ItemModal({ id }: { id?: string }) {
       setSalvando(true);
       if (id) await gravar('casa_itens', 'update', valores, id);
       else await gravar('casa_itens', 'insert', valores);
-      avisar(id ? 'Item atualizado.' : 'Item cadastrado.');
+      avisar(id ? 'Equipamento atualizado.' : 'Equipamento cadastrado.');
       fechar();
     } catch (err) {
       setErro((err as Error).message);
@@ -324,7 +324,7 @@ function ItemModal({ id }: { id?: string }) {
   }
 
   return (
-    <Modal open onClose={fechar} title={id ? 'Editar item' : 'Novo item / equipamento'} wide>
+    <Modal open onClose={fechar} title={id ? 'Editar equipamento' : 'Novo equipamento'} wide>
       <form onSubmit={salvar} className="space-y-4" noValidate>
         <div className="grid gap-3 sm:grid-cols-2">
           <Campo rotulo="Nome" obrigatorio className="sm:col-span-2">
