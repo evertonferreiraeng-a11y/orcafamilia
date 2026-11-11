@@ -92,6 +92,23 @@ export function ComprasEstoque() {
     }
   }
 
+  /** Item livre → produto do estoque (se já existir um produto com o mesmo nome, só liga os dois). */
+  async function cadastrar(i: EstoqueListaItem) {
+    const nome = (i.nome ?? '').trim().toLowerCase();
+    const existente = dados.produtos.find((p) => p.nome.trim().toLowerCase() === nome);
+    if (!existente) return abrir({ tipo: 'produto', nome: i.nome ?? '', listaId: i.id });
+    if (dados.lista?.some((x) => x.produto_id === existente.id)) {
+      avisar(`${existente.nome} já está na lista como produto do estoque. Retire este item duplicado.`, true);
+      return;
+    }
+    try {
+      await gravar('estoque_lista', 'update', { produto_id: existente.id, nome: null }, { coluna: 'id', valor: i.id });
+      abrir({ tipo: 'produto', id: existente.id });
+    } catch (e) {
+      avisar((e as Error).message, true);
+    }
+  }
+
   async function excluir(i: EstoqueListaItem) {
     try {
       await gravar('estoque_lista', 'delete', undefined, { coluna: 'id', valor: i.id });
@@ -219,9 +236,32 @@ export function ComprasEstoque() {
                   <tr key={i.id} className="hover:bg-gray-50/60">
                     <td className={TD}>
                       <p className="font-semibold text-gray-900">{nomeDe(i)}</p>
-                      <p className="text-xs text-gray-400">{p ? p.categoria : 'Item fora do estoque'}</p>
+                      {p ? (
+                        <p className="text-xs text-gray-400">{p.categoria}</p>
+                      ) : (
+                        <p className="text-xs text-gray-400">
+                          Item fora do estoque ·{' '}
+                          <button type="button" className="font-semibold text-brand-600 hover:underline" onClick={() => cadastrar(i)}>
+                            cadastrar no estoque
+                          </button>
+                        </p>
+                      )}
                     </td>
-                    <td className={TDN}>{p && p.meta > 0 ? `${fmtQtd(p.meta)} ${p.unidade}` : '—'}</td>
+                    <td className={TDN}>
+                      {p ? (
+                        p.meta > 0 ? (
+                          `${fmtQtd(p.meta)} ${p.unidade}`
+                        ) : (
+                          <button type="button" className="text-xs font-semibold text-brand-600 hover:underline" onClick={() => abrir({ tipo: 'produto', id: p.id })}>
+                            definir meta
+                          </button>
+                        )
+                      ) : (
+                        <button type="button" className="text-xs font-semibold text-brand-600 hover:underline" onClick={() => cadastrar(i)}>
+                          definir meta
+                        </button>
+                      )}
+                    </td>
                     <td className={TDN}>{p ? <b className={atual! < 0 ? 'text-negative' : ''}>{`${fmtQtd(atual!)} ${p.unidade}`}</b> : '—'}</td>
                     <td className={TD}>{p ? <StatusBadge status={statusProduto(dados, p)} /> : <Badge tom="cinza" ponto={false}>Sem controle</Badge>}</td>
                     <td className={TD}>

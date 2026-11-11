@@ -505,16 +505,26 @@ function SaidaModal({ produtoIdInicial, loteIdInicial, tipoInicial }: { produtoI
 
 /* ---------- PRODUTO ---------- */
 const NOVA = '__nova__';
-function ProdutoModal({ id, tipoPadrao }: { id?: string; tipoPadrao?: TipoProdutoEstoque }) {
+/** Sugere o tipo de controle pelo nome de um item livre da lista. */
+function tipoPeloNome(nome?: string): TipoProdutoEstoque | undefined {
+  if (!nome) return undefined;
+  if (/papel|guardanapo|sabonete|detergente|shampoo|pasta de dente|escova|fralda|len[çc]o|[áa]lcool|desinfetante|sab[ãa]o/i.test(nome)) return 'higiene';
+  if (/kit m[ée]dic|rem[ée]dio|curativo|gaze|band|term[ôo]metro|primeiros socorros|medicamento/i.test(nome)) return 'saude';
+  if (/lanterna|pilha|bateria|vela|f[óo]sforo|isqueiro|r[áa]dio|fita|corda|ferramenta|carregador/i.test(nome)) return 'utilidade';
+  if (/[áa]gua/i.test(nome)) return 'agua';
+  return undefined;
+}
+
+function ProdutoModal({ id, tipoPadrao, nomeInicial, listaId }: { id?: string; tipoPadrao?: TipoProdutoEstoque; nomeInicial?: string; listaId?: string }) {
   const { dados, fechar, gravar, avisar } = useEstoque();
   const atual = id ? dados.produtos.find((p) => p.id === id) : undefined;
-  const t0: TipoProdutoEstoque = atual?.tipo ?? tipoPadrao ?? 'alimento';
-  const [nome, setNome] = useState(atual?.nome ?? '');
+  const t0: TipoProdutoEstoque = atual?.tipo ?? tipoPadrao ?? tipoPeloNome(nomeInicial) ?? 'alimento';
+  const [nome, setNome] = useState(atual?.nome ?? nomeInicial ?? '');
   const [categoria, setCategoria] = useState(atual?.categoria ?? CATEGORIA_DO_TIPO[t0] ?? '');
   const [tipo, setTipo] = useState<TipoProdutoEstoque>(t0);
   const [novaCategoria, setNovaCategoria] = useState(false);
   const opcoesCategoria = [...new Set([...categoriasDe(dados), ...Object.values(CATEGORIA_DO_TIPO), ...(categoria ? [categoria] : [])])].sort((a, b) => a.localeCompare(b, 'pt-BR'));
-  const [unidade, setUnidade] = useState(atual?.unidade ?? (t0 === 'agua' ? 'litros' : 'kg'));
+  const [unidade, setUnidade] = useState(atual?.unidade ?? (t0 === 'agua' ? 'litros' : t0 === 'alimento' ? 'kg' : 'unidades'));
   const [localId, setLocalId] = useState(atual?.local_id ?? dados.locais[0]?.id ?? '');
   const [meta, setMeta] = useState(atual ? paraInput(atual.meta) : '');
   const [minimo, setMinimo] = useState(atual ? paraInput(atual.minimo) : '');
@@ -554,8 +564,13 @@ function ProdutoModal({ id, tipoPadrao }: { id?: string; tipoPadrao?: TipoProdut
       };
       setSalvando(true);
       if (id) await gravar('estoque_produtos', 'update', valores, { coluna: 'id', valor: id });
-      else await gravar('estoque_produtos', 'insert', valores);
-      avisar(id ? 'Produto atualizado.' : 'Produto cadastrado.');
+      else {
+        const novoId = crypto.randomUUID();
+        await gravar('estoque_produtos', 'insert', { id: novoId, ...valores });
+        // item livre da lista de compras vira este produto (passa a ter meta, atual e status)
+        if (listaId) await gravar('estoque_lista', 'update', { produto_id: novoId, nome: null }, { coluna: 'id', valor: listaId });
+      }
+      avisar(id ? 'Produto atualizado.' : listaId ? 'Produto cadastrado e ligado à lista de compras.' : 'Produto cadastrado.');
       fechar();
     } catch (err) {
       setErro((err as Error).message);
@@ -565,8 +580,13 @@ function ProdutoModal({ id, tipoPadrao }: { id?: string; tipoPadrao?: TipoProdut
   }
 
   return (
-    <Modal open onClose={fechar} title={id ? 'Editar produto' : 'Novo produto'} wide>
+    <Modal open onClose={fechar} title={id ? 'Editar produto' : listaId ? 'Cadastrar item no estoque' : 'Novo produto'} wide>
       <form onSubmit={salvar} className="space-y-4" noValidate>
+        {listaId && (
+          <p className="rounded-xl bg-brand-50 px-3 py-2 text-sm text-brand-800">
+            Defina a <b>meta</b> e o <b>tipo de controle</b>. O item continua na lista de compras, agora com meta, quantidade atual e status.
+          </p>
+        )}
         <div className="grid gap-3 sm:grid-cols-2">
           <Campo rotulo="Nome do produto" obrigatorio className="sm:col-span-2">
             <input className="input-field" value={nome} maxLength={80} onChange={(e) => setNome(e.target.value)} />
@@ -925,7 +945,7 @@ export function ModaisEstoque() {
     case 'saida':
       return <SaidaModal key={`s-${modal.produtoId}-${modal.loteId}`} produtoIdInicial={modal.produtoId} loteIdInicial={modal.loteId} tipoInicial={modal.tipoSaida} />;
     case 'produto':
-      return <ProdutoModal key={`p-${modal.id}`} id={modal.id} tipoPadrao={modal.tipoProduto} />;
+      return <ProdutoModal key={`p-${modal.id}-${modal.listaId}`} id={modal.id} tipoPadrao={modal.tipoProduto} nomeInicial={modal.nome} listaId={modal.listaId} />;
     case 'lote':
       return <LoteModal key={`l-${modal.id}`} id={modal.id} />;
     case 'local':

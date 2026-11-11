@@ -9,7 +9,7 @@ import type { TipoSaidaEstoque, TipoProdutoEstoque } from '@/types/database';
 export type ModalEstoque =
   | { tipo: 'entrada'; produtoId?: string }
   | { tipo: 'saida'; produtoId?: string; loteId?: string; tipoSaida?: TipoSaidaEstoque }
-  | { tipo: 'produto'; id?: string; tipoProduto?: TipoProdutoEstoque }
+  | { tipo: 'produto'; id?: string; tipoProduto?: TipoProdutoEstoque; nome?: string; listaId?: string }
   | { tipo: 'lote'; id: string }
   | { tipo: 'local'; id?: string }
   | { tipo: 'itemLista' }
