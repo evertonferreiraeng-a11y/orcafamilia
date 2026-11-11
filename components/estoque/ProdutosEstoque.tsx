@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useEstoque } from '@/components/estoque/EstoqueContext';
 import { CabecalhoEstoque } from '@/components/estoque/Cabecalho';
@@ -21,6 +22,7 @@ import {
   statusProduto,
   type StatusProduto,
 } from '@/lib/estoque/calc';
+import { emojiCategoria } from '@/lib/estoque/visual';
 import type { EstoqueProduto, TipoProdutoEstoque } from '@/types/database';
 
 export function TabelaProdutos({ produtos }: { produtos: EstoqueProduto[] }) {
@@ -148,11 +150,105 @@ export function TabelaProdutos({ produtos }: { produtos: EstoqueProduto[] }) {
   );
 }
 
+/* ---------- visão em cartões ---------- */
+export function CartoesProdutos({ produtos }: { produtos: EstoqueProduto[] }) {
+  const { dados, abrir } = useEstoque();
+  if (!produtos.length) return <Vazio>Nenhum produto encontrado.</Vazio>;
+  const grupos: Record<string, EstoqueProduto[]> = {};
+  for (const p of produtos) (grupos[p.categoria] = grupos[p.categoria] || []).push(p);
+  const COR: Record<StatusProduto, string> = { green: 'before:bg-emerald-500', amber: 'before:bg-amber-500', red: 'before:bg-red-500', sm: 'before:bg-gray-300' };
+  return (
+    <div className="space-y-6">
+      {Object.entries(grupos).map(([cat, lista]) => (
+        <section key={cat}>
+          <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+            <span aria-hidden>{emojiCategoria(cat)}</span> {cat}
+            <span className="rounded-full bg-gray-100 px-2 text-xs font-medium text-gray-500">{lista.length}</span>
+          </h3>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+            {lista.map((p) => {
+              const a = estoqueAtual(dados, p);
+              const falta = reposicao(dados, p);
+              const st = statusProduto(dados, p);
+              const pct = percentualMeta(dados, p) * 100;
+              const venc = estoqueVencido(dados, p);
+              return (
+                <article
+                  key={p.id}
+                  className={`group relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-4 shadow-soft transition before:absolute before:inset-y-0 before:left-0 before:w-1 hover:-translate-y-0.5 hover:shadow-card ${COR[st]}`}
+                >
+                  <div className="flex items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="truncate font-semibold text-gray-900" title={p.nome}>
+                        {p.nome}
+                      </h4>
+                      <p className="truncate text-xs text-gray-400">
+                        {dados.locais.find((l) => l.id === p.local_id)?.nome ?? 'Sem local'}
+                        {p.emb_conteudo && p.emb_unidade ? ` · emb. ${fmtConteudo(p.emb_conteudo, p.emb_unidade)}` : ''}
+                      </p>
+                    </div>
+                    <StatusBadge status={st} />
+                  </div>
+                  <p className="mt-3 tabular-nums">
+                    <span className={`text-2xl font-bold ${a < 0 ? 'text-negative' : 'text-gray-900'}`}>{fmtQtd(a)}</span>
+                    <span className="text-sm text-gray-500">
+                      {p.meta > 0 ? ` / ${fmtQtd(p.meta)}` : ''} {p.unidade}
+                    </span>
+                  </p>
+                  {p.meta > 0 && (
+                    <div className="my-1.5">
+                      <Barra pct={pct} tom={st === 'green' ? 'verde' : st === 'red' ? 'vermelho' : 'amarelo'} />
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-500">
+                    {p.meta > 0 ? (falta > 0 ? `Faltam ${fmtQtd(falta)} ${p.unidade}` : <span className="font-medium text-emerald-600">Meta atingida ✓</span>) : 'Sem meta definida'}
+                    {venc > 0 && <span className="ml-1 font-medium text-negative">· {fmtQtd(venc)} vencido(s)</span>}
+                    {abaixoDoMinimo(dados, p) && <span className="ml-1 font-medium text-amber-700">· abaixo do mínimo</span>}
+                  </p>
+                  <div className="mt-3 flex items-center gap-1.5 border-t border-gray-50 pt-3">
+                    <button type="button" className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg bg-emerald-50 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100" onClick={() => abrir({ tipo: 'entrada', produtoId: p.id })}>
+                      <IconPlus className="h-3.5 w-3.5" /> Entrada
+                    </button>
+                    <button type="button" className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg bg-gray-50 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-100" onClick={() => abrir({ tipo: 'saida', produtoId: p.id })}>
+                      <IconMenos className="h-3.5 w-3.5" /> Saída
+                    </button>
+                    <Link href={`/estoque/lotes?produto=${p.id}`} title="Lotes e validades" aria-label="Lotes e validades" className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700">
+                      <IconValidade className="h-4 w-4" />
+                    </Link>
+                    <BotaoIcone titulo="Editar produto" onClick={() => abrir({ tipo: 'produto', id: p.id })}>
+                      <IconEdit className="h-4 w-4" />
+                    </BotaoIcone>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 export function ProdutosEstoque() {
   const { dados, abrir } = useEstoque();
   const [busca, setBusca] = useState('');
   const [cat, setCat] = useState('');
-  const [st, setSt] = useState<'' | StatusProduto | 'min'>('');
+  const params = useSearchParams();
+  const [st, setSt] = useState<'' | StatusProduto | 'min'>((params.get('status') as StatusProduto | 'min' | null) ?? '');
+  const [visao, setVisao] = useState<'cartoes' | 'lista'>('cartoes');
+  // lembra a visão escolhida neste aparelho
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem('life-estoque-visao');
+      if (v === 'lista' || v === 'cartoes') setVisao(v);
+    } catch {}
+  }, []);
+  function trocarVisao(v: 'cartoes' | 'lista') {
+    setVisao(v);
+    try {
+      localStorage.setItem('life-estoque-visao', v);
+    } catch {}
+  }
   const [tipo, setTipo] = useState<'' | TipoProdutoEstoque>('');
   const q = busca.toLowerCase();
   const lista = dados.produtos
@@ -200,10 +296,27 @@ export function ProdutosEstoque() {
             </option>
           ))}
         </select>
+        <div className="ml-auto flex rounded-xl bg-gray-100 p-1 text-xs font-semibold" role="group" aria-label="Forma de exibição">
+          {(['cartoes', 'lista'] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => trocarVisao(v)}
+              aria-pressed={visao === v}
+              className={`rounded-lg px-3 py-1.5 transition ${visao === v ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+            >
+              {v === 'cartoes' ? 'Cartões' : 'Lista'}
+            </button>
+          ))}
+        </div>
       </div>
-      <Secao semPadding>
-        <TabelaProdutos produtos={lista} />
-      </Secao>
+      {visao === 'cartoes' ? (
+        <CartoesProdutos produtos={lista} />
+      ) : (
+        <Secao semPadding>
+          <TabelaProdutos produtos={lista} />
+        </Secao>
+      )}
       <p className="mt-3 text-xs text-gray-400">
         O <b>mínimo de segurança</b> e a meta são definidos em <b>Editar produto</b> (lápis). Quando houver lotes vencidos, eles aparecem em vermelho embaixo do estoque.
       </p>

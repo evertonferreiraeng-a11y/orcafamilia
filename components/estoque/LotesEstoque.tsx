@@ -89,7 +89,7 @@ export function LotesEstoque() {
   const { dados } = useEstoque();
   const params = useSearchParams();
   const [pid, setPid] = useState(params.get('produto') ?? '');
-  const [al, setAl] = useState<'' | AlertaLote | 'proximos'>('');
+  const [al, setAl] = useState<'' | AlertaLote | 'proximos'>((params.get('alerta') as AlertaLote | 'proximos' | null) ?? '');
   const [zerados, setZerados] = useState(false);
   const ativos = dados.lotes.filter((l) => l.qtd_atual > 0);
   const conta = (a: AlertaLote) => ativos.filter((l) => alertaLote(l) === a).length;

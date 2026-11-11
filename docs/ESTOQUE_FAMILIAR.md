@@ -22,8 +22,8 @@ no computador e no celular.
 
 | Rota | O que faz |
 |---|---|
-| `/estoque` | Painel: % da reserva, água, alertas, investimento, gráficos |
-| `/estoque/produtos` | Controle de estoque (meta, atual, disponível, mínimo, repor, status) |
+| `/estoque` | Painel: anel da reserva, atalhos, alertas clicáveis, metas por categoria (expansíveis, com +/−), próximas validades |
+| `/estoque/produtos` | Controle de estoque em cartões ou lista (meta, atual, falta, status, entrada/saída rápida) |
 | `/estoque/lotes` | Validade por lote, alertas 90/60/30 dias e vencidos, ordem FEFO |
 | `/estoque/movimentacoes` | Histórico completo, saídas e estorno |
 | `/estoque/compras` | Lista de compras montada pela família: incluir/excluir itens (produtos do estoque ou itens livres), com meta, atual, status e observação; sugestões dos produtos abaixo da meta. Requer a migração `0021_estoque_lista_compras.sql` |
