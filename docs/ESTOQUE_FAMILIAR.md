@@ -72,3 +72,10 @@ Rode `supabase/migrations/0022_estoque_embalagem.sql`. Depois disso:
   quantidade é calculada — ou digite a quantidade direto.
 - No cadastro do produto, a "embalagem padrão" já vem preenchida na entrada.
 Antes da migração, os campos simplesmente não aparecem.
+
+## Tipos de item (migração 0023)
+
+Rode `supabase/migrations/0023_estoque_tipos_itens.sql` para liberar, além de Alimento, Água e Bebê:
+**Higiene e limpeza**, **Saúde e primeiros socorros** e **Utilidades e emergência**. Eles têm meta, lotes,
+validade (opcional) e aparecem nas metas, mas não entram no percentual da reserva alimentar — o Painel mostra
+um indicador próprio "Higiene, saúde e utilidades".

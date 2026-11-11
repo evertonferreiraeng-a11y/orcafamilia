@@ -41,6 +41,8 @@ export function PainelEstoque() {
   const vencidos = ativos.filter((l) => alertaLote(l) === 'venc');
   const rTotal = percentualReserva(dados, ['alimento', 'agua']);
   const rAlim = percentualReserva(dados, ['alimento']);
+  const temApoio = comMeta.some((p) => ['higiene', 'saude', 'utilidade'].includes(p.tipo));
+  const rApoio = percentualReserva(dados, ['higiene', 'saude', 'utilidade']);
   const aguas = ps.filter((p) => p.tipo === 'agua');
   const litros = soma(aguas, (p) => estoqueAtual(dados, p));
   const litrosMeta = soma(aguas, (p) => p.meta);
@@ -85,6 +87,7 @@ export function PainelEstoque() {
       <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
         <Kpi titulo="Reserva total (alimentos + água)" valor={fmtPct(rTotal)} tom="verde" sub={<Barra pct={rTotal} />} />
         <Kpi titulo="Reserva alimentar" valor={fmtPct(rAlim)} tom="verde" sub={<Barra pct={rAlim} />} />
+        {temApoio && <Kpi titulo="Higiene, saúde e utilidades" valor={fmtPct(rApoio)} tom="azul" sub={<Barra pct={rApoio} tom="azul" />} />}
         <Kpi
           titulo="Água disponível"
           valor={`${fmtQtd(litros)} L`}

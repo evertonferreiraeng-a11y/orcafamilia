@@ -40,6 +40,17 @@ export const TIPOS_PRODUTO: Record<TipoProdutoEstoque, string> = {
   alimento: 'Alimento',
   agua: 'Água potável',
   bebe: 'Bebê (controle separado)',
+  higiene: 'Higiene e limpeza',
+  saude: 'Saúde e primeiros socorros',
+  utilidade: 'Utilidades e emergência',
+};
+/** Categoria sugerida ao escolher o tipo de controle. */
+export const CATEGORIA_DO_TIPO: Partial<Record<TipoProdutoEstoque, string>> = {
+  agua: 'Água',
+  bebe: 'Bebê',
+  higiene: 'Higiene e limpeza',
+  saude: 'Saúde e primeiros socorros',
+  utilidade: 'Utilidades e emergência',
 };
 export const STATUS_LABEL: Record<StatusProduto, string> = {
   green: 'Completo',
@@ -55,7 +66,7 @@ export const ALERTA_LABEL: Record<AlertaLote, string> = {
   ok: 'Dentro da validade',
   none: 'Sem validade informada',
 };
-export const UNIDADES = ['kg', 'g', 'litros', 'ml', 'unidades', 'latas', 'sachês', 'pacotes', 'caixas', 'garrafas', 'potes'];
+export const UNIDADES = ['kg', 'g', 'litros', 'ml', 'unidades', 'latas', 'sachês', 'pacotes', 'caixas', 'garrafas', 'potes', 'rolos', 'kits', 'pares', 'frascos'];
 export const CAPACIDADES = [0.5, 1, 1.5, 2, 5, 10, 20];
 export const CONDICOES = {
   umidade: ['Adequada', 'Atenção', 'Inadequada'],
@@ -407,6 +418,7 @@ export function mensagemErro(e: { message?: string } | null | undefined): string
   if (m.includes('SEM_FAMILIA')) return 'Seu usuário não está vinculado a uma família.';
   if (m.includes('BACKUP_INVALIDO')) return 'Arquivo não reconhecido como backup do estoque.';
   if (m.includes('estoque_produtos_nome_uk')) return 'Já existe um produto com esse nome.';
+  if (m.includes('estoque_produtos_tipo_check')) return 'Para usar os tipos Higiene, Saúde e Utilidades, rode a migração 0023_estoque_tipos_itens.sql no Supabase.';
   if (m.includes('estoque_locais_nome_uk')) return 'Já existe um local com esse nome.';
   if (m.includes('Failed to fetch') || m.includes('NetworkError')) return 'Sem conexão com a internet. Tente novamente.';
   return m || 'Não foi possível concluir a operação.';

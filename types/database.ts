@@ -206,7 +206,7 @@ export type NotificacaoLog = {
 // ============================================
 // ESTOQUE FAMILIAR (Reserva 180 dias)
 // ============================================
-export type TipoProdutoEstoque = 'alimento' | 'agua' | 'bebe';
+export type TipoProdutoEstoque = 'alimento' | 'agua' | 'bebe' | 'higiene' | 'saude' | 'utilidade';
 export type TipoMovEstoque = 'entrada' | 'reposicao' | 'consumo' | 'perda' | 'danificado' | 'descarte' | 'ajuste';
 export type TipoSaidaEstoque = 'consumo' | 'perda' | 'danificado' | 'descarte';
 

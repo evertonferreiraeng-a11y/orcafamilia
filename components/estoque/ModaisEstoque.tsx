@@ -6,6 +6,7 @@ import { useEstoque } from '@/components/estoque/EstoqueContext';
 import { Campo } from '@/components/estoque/ui';
 import {
   CAPACIDADES,
+  CATEGORIA_DO_TIPO,
   UNIDADES_EMB,
   converter,
   fmtConteudo,
@@ -508,7 +509,7 @@ function ProdutoModal({ id, tipoPadrao }: { id?: string; tipoPadrao?: TipoProdut
   const atual = id ? dados.produtos.find((p) => p.id === id) : undefined;
   const t0: TipoProdutoEstoque = atual?.tipo ?? tipoPadrao ?? 'alimento';
   const [nome, setNome] = useState(atual?.nome ?? '');
-  const [categoria, setCategoria] = useState(atual?.categoria ?? (t0 === 'agua' ? 'Água' : t0 === 'bebe' ? 'Bebê' : ''));
+  const [categoria, setCategoria] = useState(atual?.categoria ?? CATEGORIA_DO_TIPO[t0] ?? '');
   const [tipo, setTipo] = useState<TipoProdutoEstoque>(t0);
   const [unidade, setUnidade] = useState(atual?.unidade ?? (t0 === 'agua' ? 'litros' : 'kg'));
   const [localId, setLocalId] = useState(atual?.local_id ?? dados.locais[0]?.id ?? '');
@@ -576,7 +577,17 @@ function ProdutoModal({ id, tipoPadrao }: { id?: string; tipoPadrao?: TipoProdut
             </datalist>
           </Campo>
           <Campo rotulo="Tipo de controle">
-            <select className="input-field" value={tipo} onChange={(e) => setTipo(e.target.value as TipoProdutoEstoque)}>
+            <select
+              className="input-field"
+              value={tipo}
+              onChange={(e) => {
+                const novo = e.target.value as TipoProdutoEstoque;
+                // sugere a categoria se ela estiver vazia ou ainda for a sugestão do tipo anterior
+                if (!categoria.trim() || Object.values(CATEGORIA_DO_TIPO).includes(categoria)) setCategoria(CATEGORIA_DO_TIPO[novo] ?? '');
+                if (novo !== 'agua' && unidade === 'litros' && !atual) setUnidade(novo === 'alimento' ? 'kg' : 'unidades');
+                setTipo(novo);
+              }}
+            >
               {(Object.keys(TIPOS_PRODUTO) as TipoProdutoEstoque[]).map((t) => (
                 <option key={t} value={t}>
                   {TIPOS_PRODUTO[t]}
