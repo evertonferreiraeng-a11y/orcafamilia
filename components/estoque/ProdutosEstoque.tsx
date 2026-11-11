@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useEstoque } from '@/components/estoque/EstoqueContext';
 import { CabecalhoEstoque } from '@/components/estoque/Cabecalho';
-import { BotaoIcone, Secao, StatusBadge, TD, TDN, TH, THN, Tabela, Vazio } from '@/components/estoque/ui';
+import { Barra, BotaoIcone, Secao, StatusBadge, TD, TH, Tabela, Vazio } from '@/components/estoque/ui';
 import { IconEdit, IconMenos, IconPlus, IconSearch, IconTrash, IconValidade } from '@/components/icons';
 import {
   STATUS_LABEL,
@@ -12,11 +12,11 @@ import {
   abaixoDoMinimo,
   categoriasDe,
   estoqueAtual,
-  estoqueDisponivel,
   estoqueVencido,
   fmtConteudo,
   fmtQtd,
   ordenarPorNome,
+  percentualMeta,
   reposicao,
   statusProduto,
   type StatusProduto,
@@ -55,17 +55,11 @@ export function TabelaProdutos({ produtos }: { produtos: EstoqueProduto[] }) {
 
   if (!produtos.length) return <Vazio>Nenhum produto encontrado.</Vazio>;
   return (
-    <Tabela minW={1050}>
+    <Tabela minW={900}>
       <thead>
         <tr>
           <th className={TH}>Produto</th>
-          <th className={TH}>Categoria</th>
-          <th className={THN}>Meta</th>
-          <th className={THN}>Atual</th>
-          <th className={THN}>Disponível</th>
-          <th className={TH}>Un.</th>
-          <th className={THN}>Mín. seg.</th>
-          <th className={THN}>Repor</th>
+          <th className={`${TH} w-[34%]`}>Estoque</th>
           <th className={TH}>Local</th>
           <th className={TH}>Status</th>
           <th className={TH} />
@@ -75,35 +69,57 @@ export function TabelaProdutos({ produtos }: { produtos: EstoqueProduto[] }) {
         {produtos.map((p) => {
           const a = estoqueAtual(dados, p);
           const venc = estoqueVencido(dados, p);
-          const rep = reposicao(dados, p);
+          const falta = reposicao(dados, p);
+          const st = statusProduto(dados, p);
+          const pct = percentualMeta(dados, p) * 100;
           return (
             <tr key={p.id} className="hover:bg-gray-50/60">
               <td className={TD}>
                 <p className="font-semibold text-gray-900">{p.nome}</p>
                 <p className="text-xs text-gray-400">
-                  {TIPOS_PRODUTO[p.tipo]}
+                  {p.categoria}
+                  {p.tipo === 'bebe' && p.categoria !== 'Bebê' ? ' · controle do bebê' : p.tipo === 'agua' && p.categoria !== 'Água' ? ' · água potável' : ''}
                   {p.emb_conteudo && p.emb_unidade ? ` · emb. ${fmtConteudo(p.emb_conteudo, p.emb_unidade)}` : ''}
-                  {p.obs ? ` · ${p.obs.length > 50 ? `${p.obs.slice(0, 50)}…` : p.obs}` : ''}
                 </p>
               </td>
-              <td className={TD}>{p.categoria}</td>
-              <td className={TDN}>{p.meta > 0 ? fmtQtd(p.meta) : '—'}</td>
-              <td className={TDN}>
-                <b className={a < 0 ? 'text-negative' : ''}>{fmtQtd(a)}</b>
+              <td className={TD}>
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="tabular-nums">
+                    <b className={`text-base ${a < 0 ? 'text-negative' : 'text-gray-900'}`}>{fmtQtd(a)}</b>
+                    <span className="text-gray-500">
+                      {p.meta > 0 ? ` de ${fmtQtd(p.meta)}` : ''} {p.unidade}
+                    </span>
+                  </span>
+                  {p.meta > 0 && <span className="text-xs font-semibold tabular-nums text-gray-500">{Math.round(pct)}%</span>}
+                </div>
+                {p.meta > 0 && (
+                  <div className="my-1">
+                    <Barra pct={pct} tom={st === 'green' ? 'verde' : st === 'red' ? 'vermelho' : 'amarelo'} />
+                  </div>
+                )}
+                <p className="text-xs">
+                  {p.meta > 0 ? (
+                    falta > 0 ? (
+                      <span className="text-gray-500">
+                        Faltam <b className="text-gray-700">{fmtQtd(falta)} {p.unidade}</b>
+                      </span>
+                    ) : (
+                      <span className="font-medium text-emerald-600">Meta atingida</span>
+                    )
+                  ) : (
+                    <span className="text-gray-400">Sem meta definida</span>
+                  )}
+                  {venc > 0 && <span className="ml-2 font-medium text-negative">· {fmtQtd(venc)} {p.unidade} vencido(s)</span>}
+                </p>
               </td>
-              <td className={TDN}>
-                {fmtQtd(estoqueDisponivel(dados, p))}
-                {venc > 0 && <p className="text-xs text-negative">{fmtQtd(venc)} vencido</p>}
-              </td>
-              <td className={TD}>{p.unidade}</td>
-              <td className={TDN}>
-                {p.minimo > 0 ? fmtQtd(p.minimo) : '—'}
-                {abaixoDoMinimo(dados, p) && <p className="text-xs text-amber-600">abaixo</p>}
-              </td>
-              <td className={TDN}>{rep > 0 ? <b>{fmtQtd(rep)}</b> : '0'}</td>
               <td className={TD}>{dados.locais.find((l) => l.id === p.local_id)?.nome ?? '—'}</td>
               <td className={TD}>
-                <StatusBadge status={statusProduto(dados, p)} />
+                <StatusBadge status={st} />
+                {abaixoDoMinimo(dados, p) && (
+                  <p className="mt-1 text-[11px] font-medium text-amber-700" title="Quantidade mínima de segurança definida no produto">
+                    Abaixo do mínimo ({fmtQtd(p.minimo)} {p.unidade})
+                  </p>
+                )}
               </td>
               <td className={TD}>
                 <div className="flex justify-end gap-0.5 whitespace-nowrap">
@@ -113,10 +129,10 @@ export function TabelaProdutos({ produtos }: { produtos: EstoqueProduto[] }) {
                   <BotaoIcone titulo="Saída" onClick={() => abrir({ tipo: 'saida', produtoId: p.id })}>
                     <IconMenos className="h-4 w-4" />
                   </BotaoIcone>
-                  <Link href={`/estoque/lotes?produto=${p.id}`} title="Ver lotes" aria-label="Ver lotes" className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700">
+                  <Link href={`/estoque/lotes?produto=${p.id}`} title="Ver lotes e validades" aria-label="Ver lotes e validades" className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700">
                     <IconValidade className="h-4 w-4" />
                   </Link>
-                  <BotaoIcone titulo="Editar" onClick={() => abrir({ tipo: 'produto', id: p.id })}>
+                  <BotaoIcone titulo="Editar produto" onClick={() => abrir({ tipo: 'produto', id: p.id })}>
                     <IconEdit className="h-4 w-4" />
                   </BotaoIcone>
                   <BotaoIcone titulo="Excluir" perigo onClick={() => excluir(p)}>
@@ -189,7 +205,7 @@ export function ProdutosEstoque() {
         <TabelaProdutos produtos={lista} />
       </Secao>
       <p className="mt-3 text-xs text-gray-400">
-        <b>Atual</b> = soma de todos os lotes · <b>Disponível</b> = apenas lotes dentro da validade · <b>Repor</b> = meta − estoque atual.
+        O <b>mínimo de segurança</b> e a meta são definidos em <b>Editar produto</b> (lápis). Quando houver lotes vencidos, eles aparecem em vermelho embaixo do estoque.
       </p>
     </div>
   );
