@@ -272,6 +272,7 @@ export function itensParaComprar(d: DadosEstoque) {
 export type ColunaRel = { titulo: string; chave: string; tipo?: 'num' | 'moeda' };
 export type Relatorio = { colunas: ColunaRel[]; linhas: Record<string, string | number | null>[]; totais?: string[]; sub?: string };
 export const RELATORIOS = {
+  produtos: 'Cadastro de produtos (tipo e categoria)',
   inventario: 'Inventário completo',
   abaixo: 'Produtos abaixo da meta',
   vencendo: 'Produtos próximos do vencimento (até 90 dias)',
@@ -316,6 +317,18 @@ function montarRelatorio(d: DadosEstoque, tipo: TipoRelatorio, f: { de?: string;
     { titulo: 'Situação', chave: 'sit' }, { titulo: 'Local', chave: 'loc' }, { titulo: 'Fornecedor', chave: 'forn' }, { titulo: 'Valor em estoque', chave: 'v', tipo: 'moeda' },
   ];
   switch (tipo) {
+    case 'produtos':
+      return {
+        colunas: [
+          { titulo: 'Produto', chave: 'p' }, { titulo: 'Tipo de controle', chave: 'tipo' }, { titulo: 'Categoria', chave: 'cat' }, { titulo: 'Unidade', chave: 'un' },
+          { titulo: 'Embalagem padrão', chave: 'emb' }, { titulo: 'Meta', chave: 'meta', tipo: 'num' }, { titulo: 'Mín. seg.', chave: 'min', tipo: 'num' },
+          { titulo: 'Atual', chave: 'at', tipo: 'num' }, { titulo: 'Falta', chave: 'rep', tipo: 'num' }, { titulo: 'Status', chave: 'st' },
+          { titulo: 'Local', chave: 'loc' }, { titulo: 'Observação', chave: 'obs' },
+        ],
+        linhas: [...d.produtos]
+          .sort((a, b) => TIPOS_PRODUTO[a.tipo].localeCompare(TIPOS_PRODUTO[b.tipo], 'pt-BR') || a.categoria.localeCompare(b.categoria, 'pt-BR') || ordenarPorNome(a, b))
+          .map((p) => ({ ...linhaProd(p), emb: p.emb_conteudo && p.emb_unidade ? fmtConteudo(p.emb_conteudo, p.emb_unidade) : '', obs: p.obs ?? '' })),
+      };
     case 'inventario':
       return {
         colunas: [

@@ -5,9 +5,12 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useEstoque } from '@/components/estoque/EstoqueContext';
 import { CabecalhoEstoque } from '@/components/estoque/Cabecalho';
+import { baixarArquivo, nomeArquivo, relatorioXlsx } from '@/lib/estoque/exportar';
 import { Barra, BotaoIcone, Secao, StatusBadge, TD, TH, Tabela, Vazio } from '@/components/estoque/ui';
-import { IconEdit, IconMenos, IconPlus, IconSearch, IconTrash, IconValidade } from '@/components/icons';
+import { IconPlanilha, IconEdit, IconMenos, IconPlus, IconSearch, IconTrash, IconValidade } from '@/components/icons';
 import {
+  RELATORIOS,
+  gerarRelatorio,
   STATUS_LABEL,
   TIPOS_PRODUTO,
   abaixoDoMinimo,
@@ -264,6 +267,17 @@ export function ProdutosEstoque() {
   return (
     <div>
       <CabecalhoEstoque titulo="Controle de estoque" descricao="Produtos, metas, quantidades e status">
+        <button
+          type="button"
+          className="btn-secondary"
+          title="Baixar planilha com todos os produtos, tipo, categoria, meta e quantidade"
+          onClick={() => {
+            const titulo = RELATORIOS.produtos;
+            baixarArquivo(`${nomeArquivo('Produtos do estoque')}.xlsx`, relatorioXlsx(titulo, gerarRelatorio(dados, 'produtos')));
+          }}
+        >
+          <IconPlanilha className="h-4 w-4" /> Exportar Excel
+        </button>
         <button type="button" className="btn-secondary" onClick={() => abrir({ tipo: 'produto' })}>
           <IconPlus className="h-4 w-4" /> Novo produto
         </button>
