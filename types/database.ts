@@ -348,6 +348,16 @@ export type CasaExecucao = {
   criado_em: string;
 };
 
+export type EstoqueListaItem = {
+  id: string;
+  familia_id: string;
+  produto_id: string | null;
+  nome: string | null;
+  obs: string | null;
+  user_id: string | null;
+  criado_em: string;
+};
+
 type Relationship = {
   foreignKeyName: string;
   columns: string[];
@@ -539,6 +549,7 @@ export interface Database {
       estoque_produtos: TableDef<EstoqueProduto>;
       estoque_lotes: TableDef<EstoqueLote>;
       estoque_movs: TableDef<EstoqueMov>;
+      estoque_lista: TableDef<EstoqueListaItem>;
       casa_config: TableDef<CasaConfig>;
       casa_prestadores: TableDef<CasaPrestador>;
       casa_itens: TableDef<CasaItem>;

@@ -3,114 +3,234 @@
 import { useState } from 'react';
 import { useEstoque } from '@/components/estoque/EstoqueContext';
 import { CabecalhoEstoque } from '@/components/estoque/Cabecalho';
-import { Kpi, Secao, StatusBadge, TD, TDN, TH, THN, Tabela, Vazio } from '@/components/estoque/ui';
-import { IconBaixar, IconCheck, IconImprimir, IconPlanilha } from '@/components/icons';
-import { estoqueAtual, fmtQtd, gerarRelatorio, itensParaComprar, paraInput, parseNumero, statusProduto } from '@/lib/estoque/calc';
-import { baixarArquivo, imprimirHtml, nomeArquivo, relatorioXlsx } from '@/lib/estoque/exportar';
+import { Aviso, Badge, BotaoIcone, Kpi, Secao, StatusBadge, TD, TDN, TH, THN, Tabela, Vazio } from '@/components/estoque/ui';
+import { IconImprimir, IconPlanilha, IconPlus, IconTrash } from '@/components/icons';
+import { estoqueAtual, fmtQtd, ordenarPorNome, percentualMeta, statusProduto, type Relatorio } from '@/lib/estoque/calc';
+import { baixarArquivo, imprimirHtml, nomeArquivo, relatorioXlsx, tabelaHtml } from '@/lib/estoque/exportar';
+import type { EstoqueListaItem, EstoqueProduto } from '@/types/database';
 
-type Sel = Record<string, { marcado: boolean; qtd: string }>;
+const STATUS_TEXTO = { green: 'Completo', amber: 'Abaixo da meta', red: 'Sem estoque', sm: 'Meta não definida' } as const;
+
+/** Observação editável direto na tabela: salva ao sair do campo ou com Enter. */
+function CampoObs({ item }: { item: EstoqueListaItem }) {
+  const { gravar, avisar } = useEstoque();
+  const [texto, setTexto] = useState(item.obs ?? '');
+  const [salvando, setSalvando] = useState(false);
+  async function salvar() {
+    const novo = texto.trim();
+    if (novo === (item.obs ?? '')) return;
+    setSalvando(true);
+    try {
+      await gravar('estoque_lista', 'update', { obs: novo || null }, { coluna: 'id', valor: item.id });
+    } catch (e) {
+      avisar((e as Error).message, true);
+      setTexto(item.obs ?? '');
+    } finally {
+      setSalvando(false);
+    }
+  }
+  return (
+    <input
+      className={`input-field !py-1.5 text-sm ${salvando ? 'opacity-60' : ''}`}
+      value={texto}
+      maxLength={200}
+      placeholder="Adicionar observação…"
+      aria-label="Observação"
+      onChange={(e) => setTexto(e.target.value)}
+      onBlur={salvar}
+      onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') e.currentTarget.blur();
+      }}
+    />
+  );
+}
 
 export function ComprasEstoque() {
-  const { dados, abrir, avisar } = useEstoque();
-  const itens = itensParaComprar(dados);
-  const [sel, setSel] = useState<Sel>({});
-  const estado = (pid: string, padrao: number) => sel[pid] ?? { marcado: false, qtd: paraInput(padrao) };
-  const qtdDe = (pid: string, padrao: number) => {
-    const v = parseNumero(estado(pid, padrao).qtd);
-    return Number.isNaN(v) || v < 0 ? 0 : v;
-  };
-  const mudar = (pid: string, padrao: number, campo: 'marcado' | 'qtd', v: boolean | string) =>
-    setSel((s) => ({ ...s, [pid]: { ...estado(pid, padrao), [campo]: v } }));
+  const { dados, abrir, gravar, confirmar, avisar } = useEstoque();
+  const [adicionando, setAdicionando] = useState(false);
 
-  const marcados = itens.filter((i) => estado(i.produto.id, i.comprar).marcado);
-  const zerados = itens.filter((i) => statusProduto(dados, i.produto) === 'red').length;
-
-  function marcarTodos() {
-    const todos = itens.every((i) => estado(i.produto.id, i.comprar).marcado);
-    setSel(Object.fromEntries(itens.map((i) => [i.produto.id, { ...estado(i.produto.id, i.comprar), marcado: !todos }])));
-  }
-  function darEntrada() {
-    const lista = marcados.map((i) => ({ produtoId: i.produto.id, qtd: qtdDe(i.produto.id, i.comprar) })).filter((i) => i.qtd > 0);
-    if (!lista.length) return avisar('Marque ao menos um item com quantidade maior que zero.', true);
-    abrir({ tipo: 'entradaCompras', itens: lista });
-    setSel({});
-  }
-  function imprimir() {
-    const linhas = itens
-      .map((i) => {
-        const q = qtdDe(i.produto.id, i.comprar);
-        return `<tr><td>☐</td><td>${i.produto.nome}</td><td>${i.produto.categoria}</td><td class="n">${fmtQtd(i.produto.meta)}</td><td class="n">${fmtQtd(estoqueAtual(dados, i.produto))}</td><td class="n"><b>${fmtQtd(q)} ${i.produto.unidade}</b></td></tr>`;
-      })
-      .join('');
-    imprimirHtml(
-      'Lista de compras',
-      ` · ${itens.length} produto(s)`,
-      `<table><thead><tr><th>✓</th><th>Produto</th><th>Categoria</th><th class="n">Meta</th><th class="n">Atual</th><th class="n">Comprar</th></tr></thead><tbody>${linhas}</tbody></table>`
+  if (dados.lista === null) {
+    return (
+      <div>
+        <CabecalhoEstoque titulo="Lista de compras" />
+        <Aviso tom="amarelo">
+          A lista de compras precisa de uma atualização no banco. No Supabase → <b>SQL Editor</b>, rode o arquivo <b>supabase/migrations/0021_estoque_lista_compras.sql</b> e
+          recarregue a página.
+        </Aviso>
+      </div>
     );
+  }
+
+  const lista = dados.lista;
+  const produtoDe = (i: EstoqueListaItem) => (i.produto_id ? dados.produtos.find((p) => p.id === i.produto_id) : undefined);
+  const nomeDe = (i: EstoqueListaItem) => produtoDe(i)?.nome ?? i.nome ?? '—';
+  // ordem: sem estoque, abaixo da meta, demais produtos, itens livres
+  const peso = (i: EstoqueListaItem) => {
+    const p = produtoDe(i);
+    if (!p) return 4;
+    return { red: 0, amber: 1, sm: 2, green: 3 }[statusProduto(dados, p)];
+  };
+  const itens = [...lista].sort((a, b) => peso(a) - peso(b) || nomeDe(a).localeCompare(nomeDe(b), 'pt-BR'));
+
+  const naLista = new Set(lista.map((i) => i.produto_id).filter(Boolean));
+  const sugestoes = dados.produtos
+    .filter((p) => p.meta > 0 && !naLista.has(p.id) && ['red', 'amber'].includes(statusProduto(dados, p)))
+    .sort((a, b) => percentualMeta(dados, a) - percentualMeta(dados, b) || ordenarPorNome(a, b));
+
+  const contaStatus = (s: 'red' | 'amber') => itens.filter((i) => produtoDe(i) && statusProduto(dados, produtoDe(i)!) === s).length;
+
+  async function adicionar(ps: EstoqueProduto[]) {
+    if (!ps.length) return;
+    setAdicionando(true);
+    try {
+      await gravar('estoque_lista', 'insert', ps.map((p) => ({ produto_id: p.id })));
+      avisar(ps.length === 1 ? `${ps[0].nome} incluído na lista.` : `${ps.length} itens incluídos na lista.`);
+    } catch (e) {
+      avisar((e as Error).message, true);
+    } finally {
+      setAdicionando(false);
+    }
+  }
+
+  async function excluir(i: EstoqueListaItem) {
+    try {
+      await gravar('estoque_lista', 'delete', undefined, { coluna: 'id', valor: i.id });
+      avisar(`${nomeDe(i)} retirado da lista.`);
+    } catch (e) {
+      avisar((e as Error).message, true);
+    }
+  }
+
+  async function limpar() {
+    const ok = await confirmar({ titulo: 'Limpar lista', perigo: true, ok: 'Limpar tudo', mensagem: `Retirar os ${lista.length} itens da lista de compras?` });
+    if (!ok) return;
+    try {
+      for (const i of lista) await gravar('estoque_lista', 'delete', undefined, { coluna: 'id', valor: i.id });
+      avisar('Lista limpa.');
+    } catch (e) {
+      avisar((e as Error).message, true);
+    }
+  }
+
+  function relatorio(): Relatorio {
+    return {
+      colunas: [
+        { titulo: 'Item', chave: 'item' },
+        { titulo: 'Categoria', chave: 'cat' },
+        { titulo: 'Meta', chave: 'meta', tipo: 'num' },
+        { titulo: 'Atual', chave: 'atual', tipo: 'num' },
+        { titulo: 'Un.', chave: 'un' },
+        { titulo: 'Status', chave: 'status' },
+        { titulo: 'Observação', chave: 'obs' },
+      ],
+      linhas: itens.map((i) => {
+        const p = produtoDe(i);
+        return {
+          item: nomeDe(i),
+          cat: p?.categoria ?? '',
+          meta: p && p.meta > 0 ? p.meta : null,
+          atual: p ? estoqueAtual(dados, p) : null,
+          un: p?.unidade ?? '',
+          status: p ? STATUS_TEXTO[statusProduto(dados, p)] : '',
+          obs: i.obs ?? '',
+        };
+      }),
+    };
   }
 
   return (
     <div>
-      <CabecalhoEstoque titulo="Lista de compras" descricao="Gerada automaticamente com os produtos abaixo da meta, dos mais críticos aos menos" />
-      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3">
-        <Kpi titulo="Produtos para comprar" valor={itens.length} tom="azul" sub="abaixo da meta" />
-        <Kpi titulo="Sem estoque" valor={zerados} tom="vermelho" sub="prioridade" />
-        <Kpi titulo="Itens marcados" valor={marcados.length} tom="verde" sub="para dar entrada" />
+      <CabecalhoEstoque titulo="Lista de compras" descricao="Monte a lista do que precisa comprar. Meta, estoque atual e status vêm do cadastro dos produtos.">
+        <button type="button" className="btn-secondary" onClick={() => abrir({ tipo: 'itemLista' })}>
+          <IconPlus className="h-4 w-4" /> Incluir item
+        </button>
+      </CabecalhoEstoque>
+
+      <div className="mb-4 grid grid-cols-3 gap-3">
+        <Kpi titulo="Itens na lista" valor={lista.length} tom="azul" />
+        <Kpi titulo="Sem estoque" valor={contaStatus('red')} tom="vermelho" sub="na lista" />
+        <Kpi titulo="Abaixo da meta" valor={contaStatus('amber')} tom="amarelo" sub="na lista" />
       </div>
-      <div className="mb-4 flex flex-wrap gap-2">
-        <button type="button" className="btn-secondary" onClick={marcarTodos}>
-          <IconCheck className="h-4 w-4" /> Marcar todos
-        </button>
-        <div className="flex-1" />
-        <button type="button" className="btn-secondary" onClick={() => baixarArquivo(`${nomeArquivo('lista-de-compras')}.xlsx`, relatorioXlsx('Lista de compras', gerarRelatorio(dados, 'reposicao')))}>
-          <IconPlanilha className="h-4 w-4" /> Excel
-        </button>
-        <button type="button" className="btn-secondary" onClick={imprimir}>
-          <IconImprimir className="h-4 w-4" /> Imprimir / PDF
-        </button>
-        <button type="button" className="btn-primary" onClick={darEntrada}>
-          <IconBaixar className="h-4 w-4" /> Dar entrada nos marcados
-        </button>
-      </div>
-      <Secao semPadding>
+
+      {sugestoes.length > 0 && (
+        <Secao
+          className="mb-4"
+          titulo={`Sugestões: ${sugestoes.length} produto(s) abaixo da meta fora da lista`}
+          extra={
+            <button type="button" className="btn-secondary !px-3 !py-1 text-xs" disabled={adicionando} onClick={() => adicionar(sugestoes)}>
+              <IconPlus className="h-3.5 w-3.5" /> Incluir todos
+            </button>
+          }
+        >
+          <div className="flex flex-wrap gap-2">
+            {sugestoes.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                disabled={adicionando}
+                onClick={() => adicionar([p])}
+                className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-sm text-gray-700 transition-colors hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 disabled:opacity-50"
+              >
+                <IconPlus className="h-3.5 w-3.5" />
+                {p.nome}
+                <span className={`h-1.5 w-1.5 rounded-full ${statusProduto(dados, p) === 'red' ? 'bg-red-500' : 'bg-amber-500'}`} />
+              </button>
+            ))}
+          </div>
+        </Secao>
+      )}
+
+      <Secao
+        titulo="Itens da lista"
+        semPadding
+        extra={
+          lista.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className="btn-secondary !px-3 !py-1 text-xs" onClick={() => baixarArquivo(`${nomeArquivo('lista-de-compras')}.xlsx`, relatorioXlsx('Lista de compras', relatorio()))}>
+                <IconPlanilha className="h-3.5 w-3.5" /> Excel
+              </button>
+              <button type="button" className="btn-secondary !px-3 !py-1 text-xs" onClick={() => imprimirHtml('Lista de compras', ` · ${lista.length} item(ns)`, tabelaHtml(relatorio()))}>
+                <IconImprimir className="h-3.5 w-3.5" /> Imprimir / PDF
+              </button>
+              <button type="button" className="btn-secondary !px-3 !py-1 text-xs text-negative" onClick={limpar}>
+                Limpar lista
+              </button>
+            </div>
+          )
+        }
+      >
         {itens.length ? (
-          <Tabela minW={700}>
+          <Tabela minW={820}>
             <thead>
               <tr>
-                <th className={`${TH} w-10`} />
-                <th className={TH}>Produto</th>
+                <th className={TH}>Item</th>
                 <th className={THN}>Meta</th>
                 <th className={THN}>Atual</th>
-                <th className={THN}>Comprar</th>
-                <th className={TH}>Un.</th>
                 <th className={TH}>Status</th>
+                <th className={`${TH} w-[34%]`}>Observação</th>
+                <th className={TH} />
               </tr>
             </thead>
             <tbody>
               {itens.map((i) => {
-                const p = i.produto;
-                const e = estado(p.id, i.comprar);
-                const q = qtdDe(p.id, i.comprar);
+                const p = produtoDe(i);
+                const atual = p ? estoqueAtual(dados, p) : null;
                 return (
-                  <tr key={p.id} className="hover:bg-gray-50/60">
-                    <td className={`${TD} text-center`}>
-                      <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-brand-500" checked={e.marcado} onChange={(ev) => mudar(p.id, i.comprar, 'marcado', ev.target.checked)} aria-label={`Marcar ${p.nome}`} />
+                  <tr key={i.id} className="hover:bg-gray-50/60">
+                    <td className={TD}>
+                      <p className="font-semibold text-gray-900">{nomeDe(i)}</p>
+                      <p className="text-xs text-gray-400">{p ? p.categoria : 'Item fora do estoque'}</p>
+                    </td>
+                    <td className={TDN}>{p && p.meta > 0 ? `${fmtQtd(p.meta)} ${p.unidade}` : '—'}</td>
+                    <td className={TDN}>{p ? <b className={atual! < 0 ? 'text-negative' : ''}>{`${fmtQtd(atual!)} ${p.unidade}`}</b> : '—'}</td>
+                    <td className={TD}>{p ? <StatusBadge status={statusProduto(dados, p)} /> : <Badge tom="cinza" ponto={false}>Sem controle</Badge>}</td>
+                    <td className={TD}>
+                      <CampoObs key={`${i.id}-${i.obs ?? ''}`} item={i} />
                     </td>
                     <td className={TD}>
-                      <p className="font-semibold text-gray-900">{p.nome}</p>
-                      <p className="text-xs text-gray-400">
-                        {p.categoria}
-                        {p.tipo === 'agua' && ` · ≈ ${Math.ceil(q / (p.cap || 5))} garrafa(s) de ${fmtQtd(p.cap || 5)} L`}
-                      </p>
-                    </td>
-                    <td className={TDN}>{fmtQtd(p.meta)}</td>
-                    <td className={TDN}>{fmtQtd(estoqueAtual(dados, p))}</td>
-                    <td className={TDN}>
-                      <input className="input-field !w-24 !py-1 text-right" inputMode="decimal" value={e.qtd} onChange={(ev) => mudar(p.id, i.comprar, 'qtd', ev.target.value)} aria-label={`Quantidade de ${p.nome}`} />
-                    </td>
-                    <td className={TD}>{p.unidade}</td>
-                    <td className={TD}>
-                      <StatusBadge status={statusProduto(dados, p)} />
+                      <BotaoIcone titulo="Retirar da lista" perigo onClick={() => excluir(i)}>
+                        <IconTrash className="h-4 w-4" />
+                      </BotaoIcone>
                     </td>
                   </tr>
                 );
@@ -118,10 +238,13 @@ export function ComprasEstoque() {
             </tbody>
           </Tabela>
         ) : (
-          <Vazio>Tudo certo! Todos os produtos estão na meta.</Vazio>
+          <Vazio>
+            A lista está vazia. Use <b>Incluir item</b>
+            {sugestoes.length > 0 ? ' ou as sugestões acima' : ''}.
+          </Vazio>
         )}
       </Secao>
-      <p className="mt-3 text-xs text-gray-400">Ajuste a quantidade se quiser comprar mais ou menos que o necessário para a meta, marque o que comprou e dê entrada.</p>
+      <p className="mt-3 text-xs text-gray-400">A observação é salva automaticamente quando você sai do campo. Retirar um item da lista não mexe no estoque.</p>
     </div>
   );
 }

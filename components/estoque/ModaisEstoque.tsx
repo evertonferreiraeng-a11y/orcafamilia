@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
-import { useEstoque, type ItemCompraSelecionado } from '@/components/estoque/EstoqueContext';
+import { useEstoque } from '@/components/estoque/EstoqueContext';
 import { Campo } from '@/components/estoque/ui';
 import {
   CAPACIDADES,
@@ -707,140 +707,74 @@ function LocalModal({ id }: { id?: string }) {
   );
 }
 
-/* ---------- ENTRADA EM LOTE (lista de compras) ---------- */
-type LinhaCompra = { qtd: string; nEmb: string; cap: string; validade: string; numLote: string; localId: string };
-
-function EntradaComprasModal({ itens }: { itens: ItemCompraSelecionado[] }) {
-  const { dados, fechar, rpc, avisar } = useEstoque();
-  const [dataCompra, setDataCompra] = useState(hojeISO());
-  const [fornecedor, setFornecedor] = useState('');
-  const [tipo, setTipo] = useState<'entrada' | 'reposicao'>('entrada');
-  const [linhas, setLinhas] = useState<Record<string, LinhaCompra>>(() =>
-    Object.fromEntries(
-      itens.map((i) => {
-        const p = dados.produtos.find((x) => x.id === i.produtoId);
-        const cap = p?.cap || 5;
-        return [
-          i.produtoId,
-          {
-            qtd: paraInput(i.qtd),
-            nEmb: String(Math.ceil(i.qtd / cap)),
-            cap: paraInput(cap),
-            validade: '',
-            numLote: '',
-            localId: p?.local_id ?? '',
-          },
-        ];
-      })
-    )
-  );
+/* ---------- INCLUIR ITEM NA LISTA DE COMPRAS ---------- */
+function ItemListaModal() {
+  const { dados, fechar, gravar, avisar } = useEstoque();
+  const naLista = new Set((dados.lista ?? []).map((i) => i.produto_id).filter(Boolean));
+  const [origem, setOrigem] = useState<'produto' | 'livre'>('produto');
+  const [produtoId, setProdutoId] = useState('');
+  const [nome, setNome] = useState('');
+  const [obs, setObs] = useState('');
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
-  const mudar = (pid: string, campo: keyof LinhaCompra, v: string) => setLinhas((l) => ({ ...l, [pid]: { ...l[pid], [campo]: v } }));
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
     setErro('');
     try {
-      if (!dataCompra) throw new Error('Informe a data da compra.');
-      if (dataCompra > hojeISO()) throw new Error('A data da compra não pode ser futura.');
-      const lista = itens.map((i) => {
-        const p = dados.produtos.find((x) => x.id === i.produtoId)!;
-        const ln = linhas[i.produtoId];
-        let qtd: number;
-        let cap: number | null = null;
-        if (p.tipo === 'agua') {
-          cap = lerNumero(ln.cap, { rotulo: `a capacidade (${p.nome})`, obrigatorio: true, maiorQue: 0 })!;
-          const n = lerNumero(ln.nEmb, { rotulo: `o nº de garrafas (${p.nome})`, obrigatorio: true, maiorQue: 0 })!;
-          if (!Number.isInteger(n)) throw new Error(`${p.nome}: o nº de garrafas deve ser inteiro.`);
-          qtd = r3(cap * n);
-        } else qtd = lerNumero(ln.qtd, { rotulo: `a quantidade de ${p.nome}`, obrigatorio: true, maiorQue: 0 })!;
-        return {
-          p_produto: p.id,
-          p_qtd: qtd,
-          p_data_compra: dataCompra,
-          p_validade: ln.validade || null,
-          p_num_lote: ln.numLote || null,
-          p_valor: 0,
-          p_fornecedor: fornecedor || null,
-          p_local: ln.localId || null,
-          p_cap: cap,
-          p_obs: 'Lista de compras',
-          p_tipo: tipo,
-        };
-      });
+      let valores: Record<string, unknown>;
+      if (origem === 'produto') {
+        if (!produtoId) throw new Error('Selecione o produto.');
+        valores = { produto_id: produtoId, obs: obs.trim() || null };
+      } else {
+        const n = nome.trim();
+        if (!n) throw new Error('Informe o nome do item.');
+        if ((dados.lista ?? []).some((i) => !i.produto_id && (i.nome ?? '').trim().toLowerCase() === n.toLowerCase())) throw new Error('Esse item já está na lista.');
+        valores = { nome: n, obs: obs.trim() || null };
+      }
       setSalvando(true);
-      for (const args of lista) await rpc('estoque_entrada', args);
-      avisar(`${lista.length} entrada(s) registrada(s) a partir da lista de compras.`);
+      await gravar('estoque_lista', 'insert', valores);
+      avisar('Item incluído na lista.');
       fechar();
     } catch (err) {
-      setErro((err as Error).message);
+      const m = (err as Error).message;
+      setErro(m.includes('estoque_lista_produto_uk') || m.includes('estoque_lista_nome_uk') ? 'Esse item já está na lista.' : m);
     } finally {
       setSalvando(false);
     }
   }
 
   return (
-    <Modal open onClose={fechar} title={`Dar entrada em ${itens.length} item(ns) comprado(s)`} wide>
+    <Modal open onClose={fechar} title="Incluir item na lista de compras">
       <form onSubmit={salvar} className="space-y-4" noValidate>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Campo rotulo="Data da compra" obrigatorio>
-            <input type="date" className="input-field" value={dataCompra} max={hojeISO()} onChange={(e) => setDataCompra(e.target.value)} />
-          </Campo>
-          <Campo rotulo="Fornecedor">
-            <input className="input-field" list="estoque-fornecedores-compras" value={fornecedor} onChange={(e) => setFornecedor(e.target.value)} />
-            <datalist id="estoque-fornecedores-compras">
-              {fornecedoresDe(dados).map((f) => (
-                <option key={f} value={f} />
-              ))}
-            </datalist>
-          </Campo>
-          <Campo rotulo="Tipo">
-            <select className="input-field" value={tipo} onChange={(e) => setTipo(e.target.value as 'entrada' | 'reposicao')}>
-              <option value="entrada">Entrada (compra)</option>
-              <option value="reposicao">Reposição</option>
+        <div className="grid grid-cols-2 gap-1 rounded-xl bg-gray-100 p-1 text-sm font-medium">
+          {(['produto', 'livre'] as const).map((o) => (
+            <button
+              key={o}
+              type="button"
+              onClick={() => setOrigem(o)}
+              className={`rounded-lg px-3 py-1.5 transition-colors ${origem === o ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+            >
+              {o === 'produto' ? 'Produto do estoque' : 'Outro item'}
+            </button>
+          ))}
+        </div>
+        {origem === 'produto' ? (
+          <Campo rotulo="Produto" obrigatorio dica="Meta, estoque atual e status vêm do cadastro do produto">
+            <select className="input-field" value={produtoId} onChange={(e) => setProdutoId(e.target.value)}>
+              <OpcoesProdutos dados={dados} filtro={(p) => !naLista.has(p.id)} />
             </select>
           </Campo>
-        </div>
-        {itens.map((i) => {
-          const p = dados.produtos.find((x) => x.id === i.produtoId);
-          if (!p) return null;
-          const ln = linhas[p.id];
-          return (
-            <fieldset key={p.id} className="rounded-xl border border-gray-200 px-3 pb-3 pt-1">
-              <legend className="px-1 text-sm font-semibold text-gray-800">{p.nome}</legend>
-              <div className="grid gap-3 sm:grid-cols-3">
-                {p.tipo === 'agua' ? (
-                  <>
-                    <Campo rotulo="Embalagem (L)">
-                      <input className="input-field" inputMode="decimal" value={ln.cap} onChange={(e) => mudar(p.id, 'cap', e.target.value)} />
-                    </Campo>
-                    <Campo rotulo="Nº de garrafas" obrigatorio>
-                      <input className="input-field" inputMode="numeric" value={ln.nEmb} onChange={(e) => mudar(p.id, 'nEmb', e.target.value)} />
-                    </Campo>
-                  </>
-                ) : (
-                  <Campo rotulo={`Quantidade (${p.unidade})`} obrigatorio>
-                    <input className="input-field" inputMode="decimal" value={ln.qtd} onChange={(e) => mudar(p.id, 'qtd', e.target.value)} />
-                  </Campo>
-                )}
-                <Campo rotulo="Validade">
-                  <input type="date" className="input-field" value={ln.validade} onChange={(e) => mudar(p.id, 'validade', e.target.value)} />
-                </Campo>
-                <Campo rotulo="Nº do lote">
-                  <input className="input-field" value={ln.numLote} onChange={(e) => mudar(p.id, 'numLote', e.target.value)} />
-                </Campo>
-                <Campo rotulo="Local">
-                  <select className="input-field" value={ln.localId} onChange={(e) => mudar(p.id, 'localId', e.target.value)}>
-                    <OpcoesLocais dados={dados} />
-                  </select>
-                </Campo>
-              </div>
-            </fieldset>
-          );
-        })}
+        ) : (
+          <Campo rotulo="Nome do item" obrigatorio dica="Para coisas que não são controladas no estoque">
+            <input className="input-field" value={nome} maxLength={80} onChange={(e) => setNome(e.target.value)} placeholder="ex.: Papel higiênico" />
+          </Campo>
+        )}
+        <Campo rotulo="Observação">
+          <input className="input-field" value={obs} maxLength={200} onChange={(e) => setObs(e.target.value)} placeholder="ex.: tipo 1, marca X, pacote de 5 kg" />
+        </Campo>
         <Erro texto={erro} />
-        <Rodape onCancelar={fechar} salvando={salvando} rotulo="Registrar entradas" />
+        <Rodape onCancelar={fechar} salvando={salvando} rotulo="Incluir" />
       </form>
     </Modal>
   );
@@ -862,7 +796,7 @@ export function ModaisEstoque() {
       return <LoteModal key={`l-${modal.id}`} id={modal.id} />;
     case 'local':
       return <LocalModal key={`c-${modal.id}`} id={modal.id} />;
-    case 'entradaCompras':
-      return <EntradaComprasModal itens={modal.itens} />;
+    case 'itemLista':
+      return <ItemListaModal />;
   }
 }

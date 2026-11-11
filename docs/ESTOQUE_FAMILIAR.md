@@ -26,7 +26,7 @@ no computador e no celular.
 | `/estoque/produtos` | Controle de estoque (meta, atual, disponível, mínimo, repor, status) |
 | `/estoque/lotes` | Validade por lote, alertas 90/60/30 dias e vencidos, ordem FEFO |
 | `/estoque/movimentacoes` | Histórico completo, saídas e estorno |
-| `/estoque/compras` | Lista de compras automática (quantidades) → entrada no estoque |
+| `/estoque/compras` | Lista de compras montada pela família: incluir/excluir itens (produtos do estoque ou itens livres), com meta, atual, status e observação; sugestões dos produtos abaixo da meta. Requer a migração `0021_estoque_lista_compras.sql` |
 | `/estoque/agua` | Água em litros e garrafas (500 ml a 20 L) |
 | `/estoque/bebe` | Itens do bebê (fora do % da reserva) |
 | `/estoque/locais` | Locais e condições de armazenamento |

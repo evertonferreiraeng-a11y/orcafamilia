@@ -1,6 +1,6 @@
 import type { createServerSupabase } from '@/lib/supabase-server';
 import type { DadosEstoque } from '@/lib/estoque/calc';
-import type { EstoqueConfig, EstoqueLocal, EstoqueLote, EstoqueMov, EstoqueProduto } from '@/types/database';
+import type { EstoqueConfig, EstoqueListaItem, EstoqueLocal, EstoqueLote, EstoqueMov, EstoqueProduto } from '@/types/database';
 
 type Supa = ReturnType<typeof createServerSupabase>;
 type Resp<T> = PromiseLike<{ data: T[] | null; error: { message: string } | null }>;
@@ -38,6 +38,9 @@ export async function carregarEstoque(supabase: Supa): Promise<DadosEstoque> {
     buscarTodos<EstoqueMov>((a, b) => supabase.from('estoque_movs').select('*').order('data', { ascending: false }).order('criado_em', { ascending: false }).range(a, b)),
   ]);
 
+  // lista de compras (migração 0021): se a tabela ainda não existir, a tela avisa
+  const lista = await buscarTodos<EstoqueListaItem>((a, b) => supabase.from('estoque_lista').select('*').order('criado_em').range(a, b)).catch(() => null);
+
   // numeric do Postgres pode chegar como string em alguns drivers: normaliza
   const n = (v: unknown) => (v === null || v === undefined ? v : Number(v)) as number;
   return {
@@ -46,5 +49,6 @@ export async function carregarEstoque(supabase: Supa): Promise<DadosEstoque> {
     produtos: produtos.map((p) => ({ ...p, meta: n(p.meta), minimo: n(p.minimo), preco_ref: n(p.preco_ref), cap: p.cap === null ? null : n(p.cap) })),
     lotes: lotes.map((l) => ({ ...l, qtd_inicial: n(l.qtd_inicial), qtd_atual: n(l.qtd_atual), valor: n(l.valor), cap: l.cap === null ? null : n(l.cap) })),
     movs: movs.map((m) => ({ ...m, qtd: n(m.qtd), valor: n(m.valor) })),
+    lista,
   };
 }

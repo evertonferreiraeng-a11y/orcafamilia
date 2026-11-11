@@ -4,6 +4,7 @@
 import type {
   EstoqueConfig,
   EstoqueLocal,
+  EstoqueListaItem,
   EstoqueLote,
   EstoqueMov,
   EstoqueProduto,
@@ -18,6 +19,8 @@ export type DadosEstoque = {
   produtos: EstoqueProduto[];
   lotes: EstoqueLote[];
   movs: EstoqueMov[];
+  /** Lista de compras manual; null quando a migração 0021 ainda não foi aplicada. */
+  lista: EstoqueListaItem[] | null;
 };
 
 export type StatusProduto = 'green' | 'amber' | 'red' | 'sm';

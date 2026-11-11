@@ -6,15 +6,13 @@ import { createBrowserSupabase } from '@/lib/supabase';
 import { mensagemErro, type DadosEstoque } from '@/lib/estoque/calc';
 import type { TipoSaidaEstoque, TipoProdutoEstoque } from '@/types/database';
 
-export type ItemCompraSelecionado = { produtoId: string; qtd: number };
-
 export type ModalEstoque =
   | { tipo: 'entrada'; produtoId?: string }
   | { tipo: 'saida'; produtoId?: string; loteId?: string; tipoSaida?: TipoSaidaEstoque }
   | { tipo: 'produto'; id?: string; tipoProduto?: TipoProdutoEstoque }
   | { tipo: 'lote'; id: string }
   | { tipo: 'local'; id?: string }
-  | { tipo: 'entradaCompras'; itens: ItemCompraSelecionado[] }
+  | { tipo: 'itemLista' }
   | null;
 
 type Confirmacao = {
@@ -37,9 +35,9 @@ type ContextoEstoque = {
   rpc: <T = unknown>(nome: string, args?: Record<string, unknown>) => Promise<T>;
   /** Insere/atualiza/exclui em uma tabela do estoque. Lança Error com mensagem amigável. */
   gravar: (
-    tabela: 'estoque_config' | 'estoque_locais' | 'estoque_produtos' | 'estoque_lotes',
+    tabela: 'estoque_config' | 'estoque_locais' | 'estoque_produtos' | 'estoque_lotes' | 'estoque_lista',
     op: 'insert' | 'update' | 'delete',
-    valores?: Record<string, unknown>,
+    valores?: Record<string, unknown> | Record<string, unknown>[],
     id?: { coluna: string; valor: string }
   ) => Promise<void>;
   recarregar: () => void;
