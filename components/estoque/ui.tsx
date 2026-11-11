@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+import { IconChevronRight } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import {
   ALERTA_LABEL,
@@ -184,3 +186,66 @@ export function BotaoIcone({
     </button>
   );
 }
+
+/* ---------- anel de progresso ---------- */
+export function Anel({
+  pct,
+  tamanho = 120,
+  espessura = 12,
+  cor = '#fff',
+  fundo = 'rgb(255 255 255 / 0.2)',
+  children,
+}: {
+  pct: number;
+  tamanho?: number;
+  espessura?: number;
+  cor?: string;
+  fundo?: string;
+  children?: React.ReactNode;
+}) {
+  const r = (tamanho - espessura) / 2;
+  const c = 2 * Math.PI * r;
+  const p = Math.max(0, Math.min(100, pct));
+  return (
+    <div className="relative shrink-0" style={{ width: tamanho, height: tamanho }}>
+      <svg viewBox={`0 0 ${tamanho} ${tamanho}`} className="h-full w-full -rotate-90">
+        <circle cx={tamanho / 2} cy={tamanho / 2} r={r} fill="none" stroke={fundo} strokeWidth={espessura} />
+        {p > 0 && (
+          <circle
+            cx={tamanho / 2}
+            cy={tamanho / 2}
+            r={r}
+            fill="none"
+            stroke={cor}
+            strokeWidth={espessura}
+            strokeLinecap="round"
+            strokeDasharray={`${(p / 100) * c} ${c}`}
+            className="transition-all duration-700"
+          />
+        )}
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">{children}</div>
+    </div>
+  );
+}
+
+/* ---------- atalho de atenção (clicável) ---------- */
+export function Atencao({ href, valor, rotulo, cor, ok }: { href: string; valor: number; rotulo: string; cor: string; ok: string }) {
+  const ativo = valor > 0;
+  return (
+    <Link
+      href={href}
+      className={`group flex items-center gap-3 rounded-2xl border px-4 py-3 transition hover:-translate-y-0.5 hover:shadow-card ${
+        ativo ? 'border-gray-100 bg-white shadow-soft' : 'border-dashed border-gray-200 bg-white/60'
+      }`}
+    >
+      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg font-bold tabular-nums ${ativo ? cor : 'bg-gray-100 text-gray-400'}`}>{valor}</span>
+      <span className="min-w-0 flex-1">
+        <span className={`block truncate text-sm font-semibold ${ativo ? 'text-gray-900' : 'text-gray-500'}`}>{rotulo}</span>
+        <span className="block truncate text-xs text-gray-400">{ativo ? 'ver e resolver' : ok}</span>
+      </span>
+      <IconChevronRight className="h-4 w-4 shrink-0 text-gray-300 transition group-hover:translate-x-0.5 group-hover:text-gray-500" />
+    </Link>
+  );
+}
+

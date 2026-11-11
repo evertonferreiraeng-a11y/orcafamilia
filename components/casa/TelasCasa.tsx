@@ -1,21 +1,17 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { useCasa } from '@/components/casa/CasaContext';
-import { Aviso, Badge, BotaoIcone, Kpi, Secao, TD, TDN, TH, THN, Tabela, Vazio, type Tom } from '@/components/estoque/ui';
+import { Badge, Barra, BotaoIcone, Secao, TD, TDN, TH, THN, Tabela, Vazio, type Tom } from '@/components/estoque/ui';
 import { IconCheck, IconDesfazer, IconEdit, IconPlanilha, IconPlus, IconSearch, IconTrash, IconWhatsApp } from '@/components/icons';
-import { fmtData, fmtMesCurto, fmtMesLongo, fmtMoeda, hojeISO, soma, ultimosMeses } from '@/lib/estoque/calc';
+import { fmtData, fmtMoeda, soma } from '@/lib/estoque/calc';
+import { cicloTarefa, emojiCasa } from '@/lib/casa/visual';
 import { baixarArquivo, nomeArquivo, relatorioXlsx } from '@/lib/estoque/exportar';
 import {
   STATUS_GARANTIA,
   STATUS_TAREFA,
-  agenda,
   categoriaTarefa,
-  custoAnualEstimado,
-  gastoNoPeriodo,
   linkWhatsApp,
   nomeTarefa,
   ordemTarefas,
@@ -29,7 +25,7 @@ import {
 } from '@/lib/casa/calc';
 import type { CasaItem, CasaPrestador, CasaTarefa } from '@/types/database';
 
-const TOM_TAREFA: Record<StatusTarefa, Tom> = { vencida: 'vermelho', breve: 'amarelo', emdia: 'verde', semdata: 'cinza', pausada: 'cinza' };
+export const TOM_TAREFA: Record<StatusTarefa, Tom> = { vencida: 'vermelho', breve: 'amarelo', emdia: 'verde', semdata: 'cinza', pausada: 'cinza' };
 const TOM_GARANTIA: Record<StatusGarantia, Tom> = { vencida: 'cinza', breve: 'laranja', ok: 'verde', none: 'cinza' };
 
 function Cabecalho({ titulo, descricao, children }: { titulo: string; descricao?: string; children?: React.ReactNode }) {
@@ -135,99 +131,69 @@ function TabelaTarefas({ tarefas, compacta }: { tarefas: CasaTarefa[]; compacta?
   );
 }
 
-/* ---------- PAINEL ---------- */
-export function PainelCasa() {
+/* ---------- manutenções em cartões ---------- */
+function CartoesTarefas({ tarefas }: { tarefas: CasaTarefa[] }) {
   const { dados, abrir } = useCasa();
-  const hoje = hojeISO();
-  const ativas = dados.tarefas.filter((t) => t.ativa);
-  const conta = (s: StatusTarefa) => dados.tarefas.filter((t) => statusTarefa(t) === s).length;
-  const atencao = dados.tarefas.filter((t) => ['vencida', 'breve'].includes(statusTarefa(t))).sort(ordemTarefas);
-  const semData = dados.tarefas.filter((t) => statusTarefa(t) === 'semdata').sort(ordemTarefas);
-  const garantias = dados.itens.filter((i) => statusGarantia(i) === 'breve');
-  const eventos = agenda(dados, 6).filter((e) => !e.atrasada);
-  const porMes: Record<string, typeof eventos> = {};
-  for (const e of eventos) (porMes[e.data.slice(0, 7)] = porMes[e.data.slice(0, 7)] || []).push(e);
-  const grafico = ultimosMeses(12).map((k) => ({ mes: fmtMesCurto(k), gasto: gastoNoPeriodo(dados, k) }));
-
+  if (!tarefas.length) return <Secao><Vazio>Nenhuma manutenção aqui.</Vazio></Secao>;
+  const grupos: Record<string, CasaTarefa[]> = {};
+  for (const t of tarefas) (grupos[categoriaTarefa(dados, t)] = grupos[categoriaTarefa(dados, t)] || []).push(t);
+  const BORDA: Record<StatusTarefa, string> = { vencida: 'border-l-red-500', breve: 'border-l-amber-500', emdia: 'border-l-emerald-500', semdata: 'border-l-gray-300', pausada: 'border-l-gray-200' };
+  const COR_PRAZO: Record<StatusTarefa, string> = { vencida: 'text-red-600', breve: 'text-amber-700', emdia: 'text-gray-900', semdata: 'text-gray-400', pausada: 'text-gray-400' };
   return (
-    <div>
-      <Cabecalho titulo="Painel da casa" descricao="Manutenções periódicas, garantias e gastos com a casa">
-        <button type="button" className="btn-primary" onClick={() => abrir({ tipo: 'tarefa' })}>
-          <IconPlus className="h-4 w-4" /> Nova manutenção
-        </button>
-      </Cabecalho>
-
-      {semData.length > 0 && (
-        <Aviso tom="azul" acao={<Link href="/casa/manutencoes?status=semdata" className="btn-secondary">Definir datas</Link>}>
-          <b>{semData.length} manutenção(ões) sem data.</b> Para cada uma, clique em <b>Feito</b> e informe quando foi feita pela última vez — o sistema calcula a próxima.
-        </Aviso>
-      )}
-
-      <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <Kpi titulo="Vencidas" valor={conta('vencida')} tom="vermelho" sub="fazer o quanto antes" />
-        <Kpi titulo="Vencem em breve" valor={conta('breve')} tom="amarelo" sub="dentro do aviso" />
-        <Kpi titulo="Em dia" valor={conta('emdia')} tom="verde" sub={`de ${ativas.length} ativas`} />
-        <Kpi titulo="Sem data" valor={conta('semdata')} sub="informe a última vez" />
-        <Kpi titulo={`Gasto em ${hoje.slice(0, 4)}`} valor={fmtMoeda(gastoNoPeriodo(dados, hoje.slice(0, 4)))} tom="azul" sub={`este mês: ${fmtMoeda(gastoNoPeriodo(dados, hoje.slice(0, 7)))}`} />
-        <Kpi titulo="Custo anual estimado" valor={fmtMoeda(custoAnualEstimado(dados))} tom="azul" sub="manutenções ativas" />
-      </div>
-
-      <div className="mb-5 grid gap-4 lg:grid-cols-[3fr_2fr]">
-        <Secao titulo="Precisa de atenção" extra={<Link href="/casa/manutencoes" className="text-xs font-semibold text-brand-600">Ver todas</Link>} semPadding>
-          {atencao.length ? <TabelaTarefas tarefas={atencao} compacta /> : <Vazio>Tudo em dia por aqui. 🏡</Vazio>}
-        </Secao>
-        <Secao titulo="Próximos 6 meses" semPadding>
-          {Object.keys(porMes).length ? (
-            <div className="max-h-[420px] overflow-y-auto">
-              {Object.entries(porMes).map(([mes, evs]) => (
-                <div key={mes} className="border-b border-gray-50 px-4 py-3 last:border-0">
-                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">{fmtMesLongo(mes)}</p>
-                  <ul className="space-y-1">
-                    {evs.map((e, i) => (
-                      <li key={`${e.tarefa.id}-${i}`} className="flex gap-3 text-sm">
-                        <span className="w-10 shrink-0 font-semibold tabular-nums text-gray-500">{e.data.slice(8, 10)}</span>
-                        <span className="min-w-0 truncate text-gray-800">{nomeTarefa(dados, e.tarefa)}</span>
-                      </li>
-                    ))}
-                  </ul>
+    <div className="space-y-6">
+      {Object.entries(grupos).map(([cat, lista]) => (
+        <section key={cat}>
+          <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+            <span aria-hidden>{emojiCasa(cat)}</span> {cat}
+            <span className="rounded-full bg-gray-100 px-2 text-xs font-medium text-gray-500">{lista.length}</span>
+          </h3>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {lista.map((t) => {
+              const s = statusTarefa(t);
+              const item = t.item_id ? dados.itens.find((i) => i.id === t.item_id) : undefined;
+              const ciclo = cicloTarefa(t);
+              const prest = dados.prestadores.find((p) => p.id === t.prestador_id);
+              return (
+                <div key={t.id} className={`flex flex-col rounded-2xl border border-l-4 border-gray-100 bg-white p-4 shadow-soft transition hover:shadow-card ${BORDA[s]} ${s === 'pausada' ? 'opacity-60' : ''}`}>
+                  <div className="flex items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold text-gray-900">{t.titulo}</p>
+                      <p className="truncate text-xs text-gray-400">{item ? `${item.nome}${item.comodo ? ` · ${item.comodo}` : ''}` : 'Geral da casa'}</p>
+                    </div>
+                    <StatusBadge t={t} />
+                  </div>
+                  <p className={`mt-3 text-2xl font-bold tabular-nums ${COR_PRAZO[s]}`}>
+                    {s === 'semdata' ? 'Sem data' : s === 'pausada' ? 'Pausada' : textoPrazoTarefa(t)}
+                  </p>
+                  <div className="mt-2">{ciclo !== null ? <Barra pct={ciclo} tom={TOM_TAREFA[s]} /> : <div className="h-2 rounded-full border border-dashed border-gray-200" />}</div>
+                  <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs">
+                    <dt className="text-gray-400">Frequência</dt>
+                    <dd className="text-right text-gray-700">{textoFrequencia(t.freq_valor, t.freq_unidade)}</dd>
+                    <dt className="text-gray-400">Última vez</dt>
+                    <dd className="text-right text-gray-700">{fmtData(t.ultima_execucao)}</dd>
+                    <dt className="text-gray-400">Próxima</dt>
+                    <dd className="text-right font-semibold text-gray-900">{fmtData(t.proxima_data)}</dd>
+                    {(t.custo_estimado > 0 || prest) && (
+                      <>
+                        <dt className="text-gray-400">{prest ? 'Prestador' : 'Custo est.'}</dt>
+                        <dd className="truncate text-right text-gray-700">{prest ? prest.nome : fmtMoeda(t.custo_estimado)}</dd>
+                      </>
+                    )}
+                  </dl>
+                  <div className="mt-auto flex items-center gap-1.5 border-t border-gray-50 pt-3">
+                    <button type="button" className="flex-1 rounded-xl bg-amber-50 py-1.5 text-xs font-semibold text-amber-800 transition hover:bg-amber-100" onClick={() => abrir({ tipo: 'feito', tarefaId: t.id })}>
+                      <IconCheck className="mr-1 inline h-3.5 w-3.5" /> Feito
+                    </button>
+                    <BotaoIcone titulo="Editar" onClick={() => abrir({ tipo: 'tarefa', id: t.id })}>
+                      <IconEdit className="h-4 w-4" />
+                    </BotaoIcone>
+                  </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <Vazio>Defina as datas das manutenções para ver a agenda.</Vazio>
-          )}
-        </Secao>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
-        <Secao titulo="Gastos com manutenção" extra={<span className="text-xs text-gray-400">últimos 12 meses</span>}>
-          <div className="h-52">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={grafico}>
-                <CartesianGrid vertical={false} stroke="#eef1f4" />
-                <XAxis dataKey="mes" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={60} tickFormatter={(v: number) => `R$ ${Math.round(Number(v))}`} />
-                <Tooltip formatter={(v) => fmtMoeda(Number(v))} />
-                <Bar dataKey="gasto" name="Gasto" fill="#d97706" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+              );
+            })}
           </div>
-        </Secao>
-        <Secao titulo="Garantias vencendo (90 dias)" extra={<Link href="/casa/itens" className="text-xs font-semibold text-brand-600">Itens</Link>}>
-          {garantias.length ? (
-            <ul className="space-y-2 text-sm">
-              {garantias.map((i) => (
-                <li key={i.id} className="flex items-center gap-2">
-                  <span className="flex-1 truncate font-medium">{i.nome}</span>
-                  <span className="text-gray-500">até {fmtData(i.garantia_ate)}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <Vazio>Nenhuma garantia vencendo nos próximos 90 dias.</Vazio>
-          )}
-        </Secao>
-      </div>
+        </section>
+      ))}
     </div>
   );
 }
@@ -239,6 +205,18 @@ export function ManutencoesCasa() {
   const [busca, setBusca] = useState('');
   const [status, setStatus] = useState<'' | StatusTarefa>((params.get('status') as StatusTarefa) || '');
   const [categoria, setCategoria] = useState('');
+  const [visao, setVisao] = useState<'cartoes' | 'lista'>('cartoes');
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('life-casa-visao') === 'lista') setVisao('lista');
+    } catch {}
+  }, []);
+  function trocarVisao(v: 'cartoes' | 'lista') {
+    setVisao(v);
+    try {
+      localStorage.setItem('life-casa-visao', v);
+    } catch {}
+  }
   const q = busca.toLowerCase();
   const cats = [...new Set(dados.tarefas.map((t) => categoriaTarefa(dados, t)))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   const lista = dados.tarefas
@@ -270,10 +248,27 @@ export function ManutencoesCasa() {
             <option key={c}>{c}</option>
           ))}
         </select>
+        <div className="ml-auto flex rounded-xl bg-gray-100 p-1 text-xs font-semibold" role="group" aria-label="Forma de exibição">
+          {(['cartoes', 'lista'] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => trocarVisao(v)}
+              aria-pressed={visao === v}
+              className={`rounded-lg px-3 py-1.5 transition ${visao === v ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+            >
+              {v === 'cartoes' ? 'Cartões' : 'Lista'}
+            </button>
+          ))}
+        </div>
       </div>
-      <Secao semPadding>
-        <TabelaTarefas tarefas={lista} />
-      </Secao>
+      {visao === 'cartoes' ? (
+        <CartoesTarefas tarefas={lista} />
+      ) : (
+        <Secao semPadding>
+          <TabelaTarefas tarefas={lista} />
+        </Secao>
+      )}
       <p className="mt-3 text-xs text-gray-400">
         Clique em <b>Feito</b> quando realizar uma manutenção: ela vai para o histórico e a próxima data é calculada pela frequência.
       </p>
@@ -322,7 +317,10 @@ export function ItensCasa() {
               const g = statusGarantia(i);
               return (
                 <Secao key={i.id}>
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-xl" aria-hidden>
+                      {emojiCasa(i.categoria)}
+                    </span>
                     <div className="min-w-0 flex-1">
                       <h4 className="text-base font-semibold text-gray-900">{i.nome}</h4>
                       <p className="text-xs text-gray-500">

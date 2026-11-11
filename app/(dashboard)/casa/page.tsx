@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { PainelCasa } from '@/components/casa/TelasCasa';
+import { PainelCasa } from '@/components/casa/PainelCasa';
 
 export const metadata = { title: 'Painel – Casa' };
 
