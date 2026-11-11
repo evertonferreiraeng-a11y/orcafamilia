@@ -3,7 +3,9 @@
 import { useMemo, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { IconPlus, IconSearch, IconMetas } from '@/components/icons';
+import { IconPlus, IconSearch } from '@/components/icons';
+import { Abertura, Pilulas, botaoAbertura } from '@/components/ui/Abertura';
+import { formatCurrency, formatDate } from '@/lib/utils';
 import { MetaForm } from '@/components/metas/MetaForm';
 import { MetaCard } from '@/components/metas/MetaCard';
 import { criarMeta, atualizarMeta } from '@/app/(dashboard)/metas/actions';
@@ -38,44 +40,55 @@ export function MetasClient({ metas }: { metas: Meta[] }) {
     });
   }, [metas, busca, filtroStatus]);
 
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-            <IconMetas className="h-5 w-5" />
-          </span>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Vision Board - Metas</h1>
-            <p className="mt-1 text-sm text-gray-500">Visualize e acompanhe suas metas financeiras</p>
-          </div>
-        </div>
-        <button type="button" onClick={abrirNova} className="btn-primary">
-          <IconPlus className="h-4 w-4" />
-          Adicionar Meta
-        </button>
-      </div>
+  const resumo = useMemo(() => {
+    const alvo = metas.reduce((a, m) => a + Number(m.valor_alvo), 0);
+    const atual = metas.reduce((a, m) => a + Math.min(Number(m.valor_atual), Number(m.valor_alvo)), 0);
+    const concluidas = metas.filter((m) => Number(m.valor_atual) >= Number(m.valor_alvo)).length;
+    const proxima = metas
+      .filter((m) => m.data_alvo && Number(m.valor_atual) < Number(m.valor_alvo))
+      .sort((a, b) => (a.data_alvo ?? '').localeCompare(b.data_alvo ?? ''))[0];
+    return { alvo, atual, concluidas, ativas: metas.length - concluidas, proxima };
+  }, [metas]);
 
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
+  return (
+    <div className="space-y-5">
+      <Abertura
+        cor="roxo"
+        sobretitulo="Vision Board"
+        titulo="Nossas metas"
+        subtitulo={metas.length ? `${formatCurrency(resumo.atual)} guardados de ${formatCurrency(resumo.alvo)}` : 'Cadastre os sonhos da família e acompanhe cada aporte'}
+        anel={{ pct: resumo.alvo ? (resumo.atual / resumo.alvo) * 100 : 0, rotulo: 'do total' }}
+        cartoes={[
+          { rotulo: '🎯 Ativas', valor: resumo.ativas, sub: 'em andamento', onClick: () => setFiltroStatus('ativa') },
+          { rotulo: '🏆 Concluídas', valor: resumo.concluidas, sub: 'metas atingidas', onClick: () => setFiltroStatus('concluida') },
+          { rotulo: '💰 Falta juntar', valor: formatCurrency(Math.max(0, resumo.alvo - resumo.atual)), sub: 'somando todas' },
+          {
+            rotulo: '📅 Próximo prazo',
+            valor: resumo.proxima ? resumo.proxima.nome : '—',
+            sub: resumo.proxima?.data_alvo ? formatDate(resumo.proxima.data_alvo) : 'sem prazo definido',
+          },
+        ]}
+        acoes={
+          <button type="button" onClick={abrirNova} className={botaoAbertura.principal}>
+            <IconPlus className="h-4 w-4" /> Adicionar meta
+          </button>
+        }
+      />
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <Pilulas
+          valor={filtroStatus}
+          onChange={setFiltroStatus}
+          opcoes={[
+            { id: 'todas', rotulo: 'Todas', n: metas.length },
+            { id: 'ativa', rotulo: 'Ativas', n: resumo.ativas, ponto: 'bg-brand-500' },
+            { id: 'concluida', rotulo: 'Concluídas', n: resumo.concluidas, ponto: 'bg-emerald-500' },
+          ]}
+        />
+        <div className="relative sm:ml-auto sm:w-64">
           <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar metas..."
-            className="input-field pl-9"
-          />
+          <input type="text" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar metas..." className="input-field pl-9" />
         </div>
-        <select
-          value={filtroStatus}
-          onChange={(e) => setFiltroStatus(e.target.value as StatusFiltro)}
-          className="input-field sm:w-48"
-        >
-          <option value="todas">Todas</option>
-          <option value="ativa">Ativa</option>
-          <option value="concluida">Concluída</option>
-        </select>
       </div>
 
       {metasFiltradas.length === 0 ? (

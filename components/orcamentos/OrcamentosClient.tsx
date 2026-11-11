@@ -4,8 +4,8 @@ import { Fragment, useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { salvarOrcamento, limparOrcamentos, copiarOrcamentoAno } from '@/app/(dashboard)/orcamentos/actions';
 import { Modal } from '@/components/ui/Modal';
-import { SummaryCard } from '@/components/ui/SummaryCard';
-import { IconChevronDown, IconChevronRight, IconCheck, IconOrcamentos, IconTrendUp, IconTrendDown, IconWallet } from '@/components/icons';
+import { Abertura, botaoAbertura } from '@/components/ui/Abertura';
+import { IconChevronDown, IconChevronRight, IconCheck } from '@/components/icons';
 import { cn, formatCurrency, formatPercent0 } from '@/lib/utils';
 import { resolverValorEfetivo } from '@/lib/orcamentos';
 
@@ -483,6 +483,118 @@ function TabelaSecao({
   );
 }
 
+/* ---------- visão do mês em cartões ---------- */
+function CartaoCategoriaMes({ c, mes, receita }: { c: CategoriaAnual; mes: number; receita?: boolean }) {
+  const [aberto, setAberto] = useState(false);
+  const orcado = valorEfetivoCategoria(c, mes);
+  const exec = c.valoresExecutadosPorMes[mes] ?? 0;
+  const pct = orcado > 0 ? (exec / orcado) * 100 : exec > 0 ? 100 : 0;
+  const estourou = !receita && orcado > 0 && exec > orcado;
+  const cor = receita ? 'bg-emerald-500' : estourou ? 'bg-red-500' : pct >= 80 ? 'bg-amber-500' : 'bg-emerald-500';
+  const resto = orcado - exec;
+  const subs = c.subcategorias.filter((s) => (s.valoresPorMes[mes] ?? 0) > 0 || (s.valoresExecutadosPorMes[mes] ?? 0) > 0);
+  return (
+    <div className={cn('rounded-2xl border bg-white p-4 shadow-soft transition hover:shadow-card', estourou ? 'border-red-200' : 'border-gray-100')}>
+      <button type="button" className="flex w-full items-center gap-3 text-left" onClick={() => subs.length && setAberto((v) => !v)} aria-expanded={aberto}>
+        <span className="h-9 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: c.cor ?? '#94a3b8' }} />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold text-gray-900">{c.nome}</span>
+          <span className="block text-xs text-gray-500">
+            <b className="tabular-nums text-gray-800">{formatCurrency(exec)}</b> de {orcado > 0 ? formatCurrency(orcado) : 'sem orçamento'}
+          </span>
+        </span>
+        <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-xs font-bold tabular-nums', estourou ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-700')}>
+          {orcado > 0 ? `${Math.round(pct)}%` : '—'}
+        </span>
+        {subs.length > 0 && <IconChevronRight className={cn('h-4 w-4 shrink-0 text-gray-400 transition-transform', aberto && 'rotate-90')} />}
+      </button>
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-gray-100">
+        <div className={cn('h-full rounded-full transition-all duration-700', cor)} style={{ width: `${Math.min(100, pct)}%` }} />
+      </div>
+      {orcado > 0 && (
+        <p className={cn('mt-1.5 text-[11px]', receita ? 'text-gray-500' : estourou ? 'font-semibold text-red-600' : 'text-gray-500')}>
+          {receita
+            ? resto > 0
+              ? `Faltam ${formatCurrency(resto)} para o previsto`
+              : 'Receita prevista atingida ✓'
+            : estourou
+            ? `Passou ${formatCurrency(-resto)} do orçado`
+            : `Restam ${formatCurrency(resto)}`}
+        </p>
+      )}
+      {aberto && (
+        <ul className="mt-3 space-y-2 border-t border-gray-100 pt-3">
+          {subs.map((s) => {
+            const so = s.valoresPorMes[mes] ?? 0;
+            const se = s.valoresExecutadosPorMes[mes] ?? 0;
+            const sp = so > 0 ? (se / so) * 100 : se > 0 ? 100 : 0;
+            return (
+              <li key={s.id}>
+                <div className="mb-0.5 flex items-baseline justify-between gap-2 text-xs">
+                  <span className="truncate text-gray-700">{s.nome}</span>
+                  <span className="shrink-0 tabular-nums text-gray-500">
+                    {formatCurrency(se)}
+                    {so > 0 ? ` / ${formatCurrency(so)}` : ''}
+                  </span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
+                  <div className={cn('h-full rounded-full', !receita && so > 0 && se > so ? 'bg-red-400' : 'bg-brand-400')} style={{ width: `${Math.min(100, sp)}%` }} />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function VisaoMes({ receitas, despesas, mes }: { receitas: CategoriaAnual[]; despesas: CategoriaAnual[]; mes: number }) {
+  const ativas = (l: CategoriaAnual[]) =>
+    l
+      .filter((c) => valorEfetivoCategoria(c, mes) > 0 || (c.valoresExecutadosPorMes[mes] ?? 0) > 0)
+      .sort((a, b) => {
+        const pa = valorEfetivoCategoria(a, mes) > 0 ? (a.valoresExecutadosPorMes[mes] ?? 0) / valorEfetivoCategoria(a, mes) : 0;
+        const pb = valorEfetivoCategoria(b, mes) > 0 ? (b.valoresExecutadosPorMes[mes] ?? 0) / valorEfetivoCategoria(b, mes) : 0;
+        return pb - pa;
+      });
+  const d = ativas(despesas);
+  const r = ativas(receitas);
+  return (
+    <div className="space-y-6">
+      <section>
+        <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+          📉 Gastos de {MESES_COMPLETOS[mes].toLowerCase()} <span className="rounded-full bg-gray-100 px-2 text-xs font-medium text-gray-500">{d.length}</span>
+          <span className="ml-auto text-xs font-normal text-gray-400">os mais próximos do limite primeiro</span>
+        </h3>
+        {d.length ? (
+          <div className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {d.map((c) => (
+              <CartaoCategoriaMes key={c.id} c={c} mes={mes} />
+            ))}
+          </div>
+        ) : (
+          <p className="rounded-2xl border border-dashed border-gray-200 bg-white/60 px-4 py-6 text-center text-sm text-gray-500">Nenhum gasto ou orçamento neste mês. Defina os valores na tabela anual.</p>
+        )}
+      </section>
+      <section>
+        <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+          📈 Receitas de {MESES_COMPLETOS[mes].toLowerCase()} <span className="rounded-full bg-gray-100 px-2 text-xs font-medium text-gray-500">{r.length}</span>
+        </h3>
+        {r.length ? (
+          <div className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {r.map((c) => (
+              <CartaoCategoriaMes key={c.id} c={c} mes={mes} receita />
+            ))}
+          </div>
+        ) : (
+          <p className="rounded-2xl border border-dashed border-gray-200 bg-white/60 px-4 py-6 text-center text-sm text-gray-500">Nenhuma receita prevista ou recebida neste mês.</p>
+        )}
+      </section>
+    </div>
+  );
+}
+
 export function OrcamentosClient({
   ano,
   categoriasReceita,
@@ -497,6 +609,19 @@ export function OrcamentosClient({
   const searchParams = useSearchParams();
 
   const [dadosReceita, setDadosReceita] = useState(categoriasReceita);
+  const [visao, setVisao] = useState<'mes' | 'tabela'>('mes');
+  const [mesFoco, setMesFoco] = useState(ano === new Date().getFullYear() ? new Date().getMonth() : 0);
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('life-orcamentos-visao') === 'tabela') setVisao('tabela');
+    } catch {}
+  }, []);
+  function trocarVisao(v: 'mes' | 'tabela') {
+    setVisao(v);
+    try {
+      localStorage.setItem('life-orcamentos-visao', v);
+    } catch {}
+  }
   const [dadosDespesa, setDadosDespesa] = useState(categoriasDespesa);
 
   const [limpando, startLimpeza] = useTransition();
@@ -641,35 +766,93 @@ export function OrcamentosClient({
   const anosDisponiveis = Array.from({ length: 6 }, (_, i) => anoAtual + i);
   if (!anosDisponiveis.includes(ano)) anosDisponiveis.unshift(ano);
 
+  const mesHoje = ano === anoAtual ? new Date().getMonth() : 0;
+  const totalAnoGastosExec = totalGastosExecutadoPorMes.reduce((a, v) => a + v, 0);
+  const totalAnoReceitasExec = totalReceitasExecutadoPorMes.reduce((a, v) => a + v, 0);
+  const gastoMes = totalGastosExecutadoPorMes[mesFoco] ?? 0;
+  const orcadoMes = totalGastosPorMes[mesFoco] ?? 0;
+  const acimaMes = dadosDespesa.filter((c) => {
+    const o = valorEfetivoCategoria(c, mesFoco);
+    return o > 0 && (c.valoresExecutadosPorMes[mesFoco] ?? 0) > o;
+  }).length;
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-            <IconOrcamentos className="h-5 w-5" />
-          </span>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Orçamentos</h1>
-            <p className="mt-1 text-sm text-gray-500">Base anual de receitas e gastos, mês a mês</p>
+    <div className="space-y-5">
+      <Abertura
+        sobretitulo={`Orçamentos · ${ano}`}
+        titulo={`${MESES_COMPLETOS[mesFoco]} de ${ano}`}
+        subtitulo={orcadoMes > 0 ? `${formatCurrency(gastoMes)} gastos de ${formatCurrency(orcadoMes)} orçados no mês` : 'Defina os valores do mês na tabela anual'}
+        anel={{ pct: orcadoMes > 0 ? (gastoMes / orcadoMes) * 100 : 0, rotulo: 'do orçado', alerta: orcadoMes > 0 && gastoMes > orcadoMes }}
+        cartoes={[
+          { rotulo: '📈 Receitas no ano', valor: formatCurrency(totalAnoReceitas), sub: `recebido: ${formatCurrency(totalAnoReceitasExec)}` },
+          { rotulo: '📉 Gastos no ano', valor: formatCurrency(totalAnoGastos), sub: `gasto: ${formatCurrency(totalAnoGastosExec)}` },
+          { rotulo: '⚖️ Resultado previsto', valor: formatCurrency(totalAnoResultado), sub: 'receitas − gastos orçados', alerta: totalAnoResultado < 0 },
+          { rotulo: '🚨 Acima do orçado', valor: acimaMes, sub: `categorias em ${MESES_ABREV[mesFoco].toLowerCase()}`, alerta: acimaMes > 0, onClick: () => trocarVisao('mes') },
+        ]}
+        acoes={
+          <>
+            <button type="button" onClick={() => setModalCopiarAberto(true)} disabled={copiando} className={botaoAbertura.claro}>
+              {copiando ? 'Copiando...' : 'Copiar de outro ano'}
+            </button>
+            <button type="button" onClick={() => setModalLimparAberto(true)} disabled={limpando} className={botaoAbertura.claro}>
+              {limpando ? 'Limpando...' : 'Limpar orçamentos'}
+            </button>
+            <select value={ano} onChange={(e) => mudarAno(Number(e.target.value))} className="rounded-xl border-0 bg-white px-3 py-2 text-sm font-semibold text-brand-700 shadow-soft">
+              {anosDisponiveis
+                .sort((a, b) => b - a)
+                .map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
+            </select>
+          </>
+        }
+      />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex rounded-xl bg-gray-100 p-1 text-xs font-semibold" role="group" aria-label="Forma de exibição">
+          {(
+            [
+              ['mes', 'Mês em cartões'],
+              ['tabela', 'Tabela anual (editar)'],
+            ] as const
+          ).map(([v, rotulo]) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => trocarVisao(v)}
+              aria-pressed={visao === v}
+              className={cn('rounded-lg px-3 py-1.5 transition', visao === v ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-800')}
+            >
+              {rotulo}
+            </button>
+          ))}
+        </div>
+        {visao === 'mes' && (
+          <div className="flex flex-wrap gap-1">
+            {MESES_ABREV.map((m, i) => {
+              const o = totalGastosPorMes[i] ?? 0;
+              const e = totalGastosExecutadoPorMes[i] ?? 0;
+              const ponto = o > 0 && e > o ? 'bg-red-500' : e > 0 ? 'bg-emerald-500' : 'bg-gray-300';
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMesFoco(i)}
+                  className={cn(
+                    'relative rounded-lg px-2.5 py-1.5 text-xs font-semibold transition',
+                    mesFoco === i ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 ring-1 ring-inset ring-gray-200 hover:bg-gray-50',
+                    i === mesHoje && mesFoco !== i && 'ring-brand-300'
+                  )}
+                >
+                  {m}
+                  <span className={cn('absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full', ponto)} />
+                </button>
+              );
+            })}
           </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={() => setModalCopiarAberto(true)} disabled={copiando} className="btn-secondary">
-            {copiando ? 'Copiando...' : 'Copiar orçamento de outro ano'}
-          </button>
-          <button type="button" onClick={() => setModalLimparAberto(true)} disabled={limpando} className="btn-danger">
-            {limpando ? 'Limpando...' : 'Limpar orçamentos'}
-          </button>
-          <select value={ano} onChange={(e) => mudarAno(Number(e.target.value))} className="input-field w-auto">
-            {anosDisponiveis
-              .sort((a, b) => b - a)
-              .map((a) => (
-                <option key={a} value={a}>
-                  {a}
-                </option>
-              ))}
-          </select>
-        </div>
+        )}
       </div>
 
       {mensagemLimpeza && (
@@ -782,17 +965,9 @@ export function OrcamentosClient({
         </div>
       </Modal>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <SummaryCard titulo="Total Receitas no ano" valor={totalAnoReceitas} tom="positivo" icon={IconTrendUp} />
-        <SummaryCard titulo="Total Gastos no ano" valor={totalAnoGastos} tom="negativo" icon={IconTrendDown} />
-        <SummaryCard
-          titulo="Resultado do ano"
-          valor={totalAnoResultado}
-          tom={totalAnoResultado >= 0 ? 'positivo' : 'negativo'}
-          icon={IconWallet}
-        />
-      </div>
-
+      {visao === 'mes' ? (
+        <VisaoMes receitas={dadosReceita} despesas={dadosDespesa} mes={mesFoco} />
+      ) : (
       <div className="card overflow-x-auto p-0">
         <table className="w-full border-collapse">
           <thead>
@@ -871,6 +1046,7 @@ export function OrcamentosClient({
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }

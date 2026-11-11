@@ -7,7 +7,9 @@ import { CofreForm } from '@/components/cofre/CofreForm';
 import { CofreCard } from '@/components/cofre/CofreCard';
 import { CofreDetalheModal } from '@/components/cofre/CofreDetalheModal';
 import { MovimentacaoCofreForm } from '@/components/cofre/MovimentacaoCofreForm';
-import { IconPlus, IconCofre, IconSearch } from '@/components/icons';
+import { IconPlus, IconSearch } from '@/components/icons';
+import { Abertura, botaoAbertura } from '@/components/ui/Abertura';
+import { formatCurrency } from '@/lib/utils';
 import { criarCofre, atualizarCofre, registrarMovimentacaoCofre } from '@/app/(dashboard)/cofre/actions';
 import type { CofreSeguro } from '@/components/cofre/types';
 import type { CofreMovimentacao, TipoMovimentacaoCofre } from '@/types/database';
@@ -75,34 +77,43 @@ export function CofreClient({
     setDesbloqueados((atual) => new Set(atual).add(id));
   }
 
+  const resumo = useMemo(() => {
+    const visiveis = cofres.filter((c) => !c.protegido || desbloqueados.has(c.id));
+    const ids = new Set(visiveis.map((c) => c.id));
+    const mes = new Date().toISOString().slice(0, 7);
+    const doMes = movimentacoes.filter((m) => ids.has(m.cofre_id) && m.data.startsWith(mes));
+    return {
+      total: visiveis.reduce((a, c) => a + Number(c.saldo), 0),
+      protegidos: cofres.length - visiveis.length,
+      depositos: doMes.filter((m) => m.tipo === 'deposito').reduce((a, m) => a + Number(m.valor), 0),
+      retiradas: doMes.filter((m) => m.tipo !== 'deposito').reduce((a, m) => a + Number(m.valor), 0),
+    };
+  }, [cofres, movimentacoes, desbloqueados]);
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-            <IconCofre className="h-5 w-5" />
-          </span>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Cofre</h1>
-            <p className="mt-1 text-sm text-gray-500">Guarde dinheiro para projetos e reservas específicas</p>
-          </div>
-        </div>
-        <button type="button" onClick={abrirNovo} className="btn-primary">
-          <IconPlus className="h-4 w-4" />
-          Novo cofre
-        </button>
-      </div>
+    <div className="space-y-5">
+      <Abertura
+        cor="verde"
+        sobretitulo="Cofre"
+        titulo={formatCurrency(resumo.total)}
+        subtitulo={`guardados em ${cofres.length - resumo.protegidos} cofre(s)${resumo.protegidos ? ` · ${resumo.protegidos} protegido(s) por senha não somado(s)` : ''}`}
+        cartoes={[
+          { rotulo: '🔐 Cofres', valor: cofres.length, sub: resumo.protegidos ? `${resumo.protegidos} com senha` : 'todos abertos' },
+          { rotulo: '⬆️ Depósitos no mês', valor: formatCurrency(resumo.depositos), sub: 'cofres visíveis' },
+          { rotulo: '⬇️ Retiradas no mês', valor: formatCurrency(resumo.retiradas), sub: 'cofres visíveis' },
+        ]}
+        acoes={
+          <button type="button" onClick={abrirNovo} className={botaoAbertura.principal}>
+            <IconPlus className="h-4 w-4" /> Novo cofre
+          </button>
+        }
+        rodape="Guarde dinheiro para projetos e reservas específicas"
+      />
 
       {cofres.length > 0 && (
-        <div className="relative">
+        <div className="relative sm:max-w-sm">
           <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Pesquisar cofres..."
-            className="input-field pl-9"
-          />
+          <input type="text" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Pesquisar cofres..." className="input-field pl-9" />
         </div>
       )}
 
@@ -117,6 +128,7 @@ export function CofreClient({
               desbloqueado={!c.protegido || desbloqueados.has(c.id)}
               onDesbloquear={() => marcarDesbloqueado(c.id)}
               onAbrir={() => abrirDetalhe(c)}
+              onMovimentar={(tipo) => abrirMovimentacao(c, tipo)}
             />
           ))}
         </div>

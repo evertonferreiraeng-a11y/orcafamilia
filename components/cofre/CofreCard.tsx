@@ -11,11 +11,13 @@ export function CofreCard({
   desbloqueado,
   onDesbloquear,
   onAbrir,
+  onMovimentar,
 }: {
   cofre: CofreSeguro;
   desbloqueado: boolean;
   onDesbloquear: () => void;
   onAbrir: () => void;
+  onMovimentar?: (tipo: 'deposito' | 'retirada') => void;
 }) {
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState('');
@@ -40,9 +42,10 @@ export function CofreCard({
   }
 
   return (
-    <div className="card flex flex-col items-center p-5 text-center transition-shadow hover:shadow-elevated">
+    <div className="card group relative flex flex-col items-center overflow-hidden p-5 text-center transition hover:-translate-y-0.5 hover:shadow-elevated">
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-16 opacity-15" style={{ background: `linear-gradient(180deg, ${cor}, transparent)` }} />
       <div
-        className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl shadow-[inset_0_2px_4px_rgba(255,255,255,0.35),inset_0_-6px_10px_rgba(0,0,0,0.3)]"
+        className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:rotate-[-4deg] group-hover:scale-105 shadow-[inset_0_2px_4px_rgba(255,255,255,0.35),inset_0_-6px_10px_rgba(0,0,0,0.3)]"
         style={{ backgroundColor: cor }}
       >
         <span className="absolute left-2 top-2 h-1.5 w-1.5 rounded-full bg-white/40" />
@@ -81,10 +84,22 @@ export function CofreCard({
           </button>
         </form>
       ) : (
-        <button type="button" onClick={onAbrir} className="mt-3 w-full">
-          <p className="text-lg font-bold text-gray-900">{formatCurrency(Number(cofre.saldo))}</p>
-          <p className="text-xs font-medium text-brand-600">Toque para abrir</p>
-        </button>
+        <>
+          <button type="button" onClick={onAbrir} className="mt-3 w-full">
+            <p className="text-2xl font-bold tabular-nums text-gray-900">{formatCurrency(Number(cofre.saldo))}</p>
+            <p className="text-xs font-medium text-brand-600">Ver histórico</p>
+          </button>
+          {onMovimentar && (
+            <div className="mt-3 grid w-full grid-cols-2 gap-2">
+              <button type="button" onClick={() => onMovimentar('deposito')} className="rounded-xl bg-emerald-50 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100">
+                + Depositar
+              </button>
+              <button type="button" onClick={() => onMovimentar('retirada')} className="rounded-xl bg-gray-50 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-100">
+                − Retirar
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

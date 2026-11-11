@@ -3,19 +3,16 @@
 import { useMemo, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { ProgressBar } from '@/components/ui/ProgressBar';
-import { SummaryCard } from '@/components/ui/SummaryCard';
+import { Abertura, Pilulas, botaoAbertura } from '@/components/ui/Abertura';
+import { Anel } from '@/components/estoque/ui';
 import { DeleteButton } from '@/components/ui/DeleteButton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import {
   IconPlus,
   IconEdit,
-  IconLandmark,
-  IconTrendDown,
-  IconAlerta,
   IconCalendario,
   IconSearch,
   IconCartao,
-  IconDividas,
 } from '@/components/icons';
 import { DividaForm } from '@/components/dividas/DividaForm';
 import { PagamentoForm } from '@/components/dividas/PagamentoForm';
@@ -109,91 +106,53 @@ export function DividasClient({
     });
   }, [dividas, busca, filtroStatus, hoje]);
 
+  const pagoAtivas = ativas.reduce((a, d) => a + Number(d.valor_pago), 0);
+  const conta = (st: StatusChave) => dividas.filter((d) => statusDivida(d, hoje) === st).length;
+  const proximaVenc = ativas
+    .filter((d) => d.data_vencimento && d.data_vencimento >= hoje)
+    .sort((a, b) => (a.data_vencimento ?? '').localeCompare(b.data_vencimento ?? ''))[0];
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-            <IconDividas className="h-5 w-5" />
-          </span>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Controle de Dívidas</h1>
-            <p className="mt-1 text-sm text-gray-500">Gerencie suas dívidas e acompanhe os pagamentos</p>
-          </div>
-        </div>
-        <button type="button" onClick={abrirNova} className="btn-primary">
-          <IconPlus className="h-4 w-4" />
-          Nova dívida
-        </button>
-      </div>
+    <div className="space-y-5">
+      <Abertura
+        cor="rosa"
+        sobretitulo="Controle de dívidas"
+        titulo={formatCurrency(restanteAPagar)}
+        subtitulo={ativas.length ? `restante a pagar de ${formatCurrency(totalDividas)} em ${ativas.length} dívida(s) ativa(s)` : 'Nenhuma dívida ativa 🎉'}
+        anel={{ pct: totalDividas ? (pagoAtivas / totalDividas) * 100 : 100, rotulo: 'já pago' }}
+        cartoes={[
+          { rotulo: '⚠️ Vencidas', valor: dividasVencidas, sub: dividasVencidas ? 'precisam de atenção' : 'nenhuma vencida', alerta: dividasVencidas > 0, onClick: () => setFiltroStatus('vencida') },
+          { rotulo: '📆 Parcelas por mês', valor: formatCurrency(pagamentosMensais), sub: 'estimativa mensal' },
+          {
+            rotulo: '⏰ Próximo vencimento',
+            valor: proximaVenc ? proximaVenc.descricao : '—',
+            sub: proximaVenc?.data_vencimento ? formatDate(proximaVenc.data_vencimento) : 'sem vencimento próximo',
+          },
+          { rotulo: '✅ Quitadas', valor: conta('quitada'), sub: 'dívidas encerradas', onClick: () => setFiltroStatus('quitada') },
+        ]}
+        acoes={
+          <button type="button" onClick={abrirNova} className={botaoAbertura.principal}>
+            <IconPlus className="h-4 w-4" /> Nova dívida
+          </button>
+        }
+      />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard
-          titulo="Total em Dívidas"
-          valor={totalDividas}
-          tom="negativo"
-          subtitulo="Valor total devendo"
-          icon={IconLandmark}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <Pilulas
+          valor={filtroStatus}
+          onChange={setFiltroStatus}
+          opcoes={[
+            { id: 'todos', rotulo: 'Todas', n: dividas.length },
+            { id: 'vencida', rotulo: 'Vencidas', n: conta('vencida'), ponto: 'bg-red-500' },
+            { id: 'pendente', rotulo: 'Pendentes', n: conta('pendente'), ponto: 'bg-gray-400' },
+            { id: 'parcial', rotulo: 'Parciais', n: conta('parcial'), ponto: 'bg-brand-500' },
+            { id: 'quitada', rotulo: 'Quitadas', n: conta('quitada'), ponto: 'bg-emerald-500' },
+          ]}
         />
-        <SummaryCard
-          titulo="Restante a Pagar"
-          valor={restanteAPagar}
-          tom="negativo"
-          subtitulo="Ainda precisa ser pago"
-          icon={IconTrendDown}
-        />
-        <div
-          className={cn(
-            'rounded-2xl p-4 transition-shadow hover:shadow-card',
-            dividasVencidas > 0 ? 'bg-negative/5' : 'bg-brand-50'
-          )}
-        >
-          <div className="flex items-center gap-3">
-            <span
-              className={cn(
-                'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
-                dividasVencidas > 0 ? 'bg-negative/15 text-negative' : 'bg-brand-100 text-brand-600'
-              )}
-            >
-              <IconAlerta className="h-5 w-5" />
-            </span>
-            <p className="text-sm font-semibold text-gray-600">Dívidas Vencidas</p>
-          </div>
-          <p className={cn('mt-4 text-xl font-bold', dividasVencidas > 0 ? 'text-negative' : 'text-gray-900')}>
-            {dividasVencidas}
-          </p>
-          <p className="mt-1 text-xs text-gray-400">Precisam de atenção</p>
-        </div>
-        <SummaryCard
-          titulo="Pagamentos Mensais"
-          valor={pagamentosMensais}
-          subtitulo="Estimativa mensal"
-          icon={IconCalendario}
-        />
-      </div>
-
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
+        <div className="relative sm:ml-auto sm:w-64">
           <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Pesquisar dívidas..."
-            className="input-field pl-9"
-          />
+          <input type="text" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Pesquisar dívidas..." className="input-field pl-9" />
         </div>
-        <select
-          value={filtroStatus}
-          onChange={(e) => setFiltroStatus(e.target.value as StatusFiltro)}
-          className="input-field sm:w-48"
-        >
-          <option value="todos">Todos os status</option>
-          <option value="pendente">Pendente</option>
-          <option value="parcial">Parcial</option>
-          <option value="vencida">Vencida</option>
-          <option value="quitada">Quitada</option>
-        </select>
       </div>
 
       {dividasFiltradas.length === 0 ? (
@@ -207,7 +166,13 @@ export function DividasClient({
             const status = statusDivida(d, hoje);
 
             return (
-              <div key={d.id} className="card p-4 transition-shadow hover:shadow-elevated">
+              <div
+                key={d.id}
+                className={cn(
+                  'card flex flex-col border-l-4 p-4 transition hover:-translate-y-0.5 hover:shadow-elevated',
+                  status === 'vencida' ? 'border-l-red-500' : status === 'quitada' ? 'border-l-emerald-500' : status === 'parcial' ? 'border-l-brand-500' : 'border-l-gray-300'
+                )}
+              >
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="font-semibold text-gray-900">{d.descricao}</p>
@@ -242,12 +207,16 @@ export function DividasClient({
                   </div>
                 </div>
 
-                <div className="mt-4">
-                  <div className="mb-1 flex items-center justify-between text-xs text-gray-500">
-                    <span>Progresso do pagamento</span>
-                    <span className="font-medium text-gray-700">{percentualPago.toFixed(1)}%</span>
+                <div className="mt-4 flex items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 flex items-center justify-between text-xs text-gray-500">
+                      <span>Pago {formatCurrency(Number(d.valor_pago))}</span>
+                    </div>
+                    <ProgressBar percentual={percentualPago} tom={quitada ? 'positive' : 'brand'} />
                   </div>
-                  <ProgressBar percentual={percentualPago} tom="brand" />
+                  <Anel pct={Math.min(100, percentualPago)} tamanho={48} espessura={5} cor={quitada ? '#059669' : status === 'vencida' ? '#ef4444' : '#3b82f6'} fundo="#eef0f4">
+                    <span className="text-[10px] font-bold tabular-nums text-gray-800">{Math.round(percentualPago)}%</span>
+                  </Anel>
                 </div>
 
                 <p
@@ -266,9 +235,9 @@ export function DividasClient({
                   <p className="mt-2 line-clamp-2 text-xs italic text-gray-400">{d.observacoes}</p>
                 )}
 
-                <div className="mt-4 flex gap-2">
+                <div className="mt-auto flex gap-2 pt-4">
                   {!quitada && (
-                    <button type="button" onClick={() => abrirPagamento(d)} className="btn-secondary flex-1">
+                    <button type="button" onClick={() => abrirPagamento(d)} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-rose-50 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100">
                       <IconCartao className="h-4 w-4" />
                       Pagar
                     </button>

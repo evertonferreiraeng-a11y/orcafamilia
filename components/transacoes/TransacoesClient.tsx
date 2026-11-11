@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { DeleteButton } from '@/components/ui/DeleteButton';
-import { StatCard } from '@/components/dashboard/StatCard';
+import { Abertura, Pilulas, botaoAbertura } from '@/components/ui/Abertura';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { TransacaoForm } from '@/components/transacoes/TransacaoForm';
 import { FaturasView } from '@/components/transacoes/FaturasView';
@@ -12,14 +12,10 @@ import {
   IconPlus,
   IconEdit,
   IconSearch,
-  IconWallet,
-  IconTrendUp,
-  IconTrendDown,
   IconOrdenar,
   IconFiltro,
   IconCartao,
   IconTrash,
-  IconTransacoes,
 } from '@/components/icons';
 import {
   criarTransacao,
@@ -352,81 +348,71 @@ export function TransacoesClient({
     });
   }
 
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-            <IconTransacoes className="h-5 w-5" />
-          </span>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Transações</h1>
-            <p className="mt-1 text-sm text-gray-500">Gerencie todas as suas transações financeiras</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <button type="button" onClick={() => setModalFiltros(true)} className="btn-secondary">
-            <IconFiltro className="h-4 w-4" />
-            Filtros Avançados
-          </button>
-          <button type="button" onClick={abrirNova} className="btn-primary">
-            <IconPlus className="h-4 w-4" />
-            Nova Transação
-          </button>
-        </div>
-      </div>
+  const contagem = (() => {
+    const reais = transacoes.filter((t) => !t.eh_transferencia);
+    const hoje = new Date().toISOString().slice(0, 10);
+    const pend = reais.filter((t) => !t.pago);
+    return {
+      todas: reais.length,
+      pagas: reais.length - pend.length,
+      pendentes: pend.length,
+      atrasadas: pend.filter((t) => t.tipo === 'despesa' && (t.data_vencimento ?? t.data) < hoje).length,
+    };
+  })();
+  const despTotal = resumo.despesas + resumo.despesasPendentes;
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard
-          titulo="Saldo Executado"
-          valor={resumo.saldoExecutado}
-          tom={resumo.saldoExecutado >= 0 ? 'positivo' : 'negativo'}
-          icon={IconWallet}
-          extras={[{ titulo: 'Saldo Projetado', valor: resumo.saldoProjetado }]}
-        />
-        <StatCard
-          titulo="Receitas"
-          valor={resumo.receitas}
-          tom="positivo"
-          icon={IconTrendUp}
-          detalhes={[
-            { label: 'Recebido', valor: resumo.receitas, tipo: 'ok' },
-            { label: 'A receber', valor: resumo.receitasPendentes, tipo: 'pendente' },
-          ]}
-        />
-        <StatCard
-          titulo="Despesas"
-          valor={resumo.despesas}
-          tom="negativo"
-          icon={IconTrendDown}
-          detalhes={[
-            { label: 'Pago', valor: resumo.despesas, tipo: 'ok' },
-            { label: 'A pagar', valor: resumo.despesasPendentes, tipo: 'pendente' },
-          ]}
-        />
-      </div>
+  return (
+    <div className="space-y-5">
+      <Abertura
+        sobretitulo="Transações"
+        titulo={`${resumo.saldoExecutado >= 0 ? '' : '−'}${formatCurrency(Math.abs(resumo.saldoExecutado))}`}
+        subtitulo={`saldo executado no período · projetado ${formatCurrency(resumo.saldoProjetado)}`}
+        anel={{ pct: despTotal > 0 ? (resumo.despesas / despTotal) * 100 : 100, rotulo: 'das despesas pagas' }}
+        cartoes={[
+          { rotulo: '📈 Receitas', valor: formatCurrency(resumo.receitas), sub: `a receber: ${formatCurrency(resumo.receitasPendentes)}` },
+          { rotulo: '📉 Despesas', valor: formatCurrency(resumo.despesas), sub: `a pagar: ${formatCurrency(resumo.despesasPendentes)}` },
+          { rotulo: '⏳ Pendentes', valor: contagem.pendentes, sub: 'toque para filtrar', onClick: () => setFiltroStatus('pendente') },
+          {
+            rotulo: '⚠️ Atrasadas',
+            valor: contagem.atrasadas,
+            sub: contagem.atrasadas ? 'despesas vencidas sem pagamento' : 'nenhuma atrasada',
+            alerta: contagem.atrasadas > 0,
+            onClick: () => setFiltroStatus('pendente'),
+          },
+        ]}
+        acoes={
+          <>
+            <button type="button" onClick={abrirNova} className={botaoAbertura.principal}>
+              <IconPlus className="h-4 w-4" /> Nova transação
+            </button>
+            <button type="button" onClick={() => setModalFiltros(true)} className={botaoAbertura.claro}>
+              <IconFiltro className="h-4 w-4" /> Filtros avançados
+            </button>
+            <button type="button" onClick={() => setVisao((v) => (v === 'lista' ? 'faturas' : 'lista'))} className={botaoAbertura.claro}>
+              <IconCartao className="h-4 w-4" /> {visao === 'lista' ? 'Faturas dos cartões' : 'Ver lista'}
+            </button>
+          </>
+        }
+      />
 
       <div className="card space-y-3 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           {seletorMes}
-          <button type="button" onClick={() => setVisao((v) => (v === 'lista' ? 'faturas' : 'lista'))} className="btn-secondary">
-            <IconCartao className="h-4 w-4" />
-            {visao === 'lista' ? 'Faturas' : 'Ver lista'}
-          </button>
+          {visao === 'lista' && (
+            <Pilulas
+              valor={filtroStatus}
+              onChange={setFiltroStatus}
+              opcoes={[
+                { id: 'todas', rotulo: 'Todas', n: contagem.todas },
+                { id: 'pago', rotulo: 'Pagas', n: contagem.pagas, ponto: 'bg-emerald-500' },
+                { id: 'pendente', rotulo: 'Pendentes', n: contagem.pendentes, ponto: 'bg-amber-500' },
+              ]}
+            />
+          )}
         </div>
 
         {visao === 'lista' && (
           <div className="flex flex-wrap items-center gap-3">
-            <select
-              value={filtroStatus}
-              onChange={(e) => setFiltroStatus(e.target.value as StatusFiltro)}
-              className="input-field w-auto"
-            >
-              <option value="todas">Todas</option>
-              <option value="pago">Pago</option>
-              <option value="pendente">Pendente</option>
-            </select>
-
             <div className="relative min-w-[200px] flex-1">
               <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
