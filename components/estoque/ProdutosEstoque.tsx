@@ -14,6 +14,7 @@ import {
   estoqueAtual,
   estoqueDisponivel,
   estoqueVencido,
+  fmtConteudo,
   fmtQtd,
   ordenarPorNome,
   reposicao,
@@ -81,6 +82,7 @@ export function TabelaProdutos({ produtos }: { produtos: EstoqueProduto[] }) {
                 <p className="font-semibold text-gray-900">{p.nome}</p>
                 <p className="text-xs text-gray-400">
                   {TIPOS_PRODUTO[p.tipo]}
+                  {p.emb_conteudo && p.emb_unidade ? ` · emb. ${fmtConteudo(p.emb_conteudo, p.emb_unidade)}` : ''}
                   {p.obs ? ` · ${p.obs.length > 50 ? `${p.obs.slice(0, 50)}…` : p.obs}` : ''}
                 </p>
               </td>

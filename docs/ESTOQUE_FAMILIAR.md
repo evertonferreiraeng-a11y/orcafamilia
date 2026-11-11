@@ -62,3 +62,13 @@ A versão em arquivo HTML continua disponível para uso 100% offline, e o backup
 O módulo não usa preços, valores pagos, orçamento nem custos (removidos a pedido). As colunas
 `valor`/`preco_ref`/`orc_*` continuam no banco só por compatibilidade com o backup da versão offline,
 e não aparecem em nenhuma tela ou relatório.
+
+## Conteúdo da embalagem (migração 0022)
+
+Rode `supabase/migrations/0022_estoque_embalagem.sql`. Depois disso:
+- Produto contado em unidades (sachês, latas…): na entrada informe a quantidade e o conteúdo de cada um
+  (ex.: 3 sachês de 340 g → total 1,02 kg). O lote mostra "340 g cada".
+- Produto em kg/g/litros/ml: informe nº de embalagens × conteúdo (ex.: 5 × 1 kg, 2 × 500 g) e a
+  quantidade é calculada — ou digite a quantidade direto.
+- No cadastro do produto, a "embalagem padrão" já vem preenchida na entrada.
+Antes da migração, os campos simplesmente não aparecem.

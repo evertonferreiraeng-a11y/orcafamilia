@@ -6,7 +6,7 @@ import { useEstoque } from '@/components/estoque/EstoqueContext';
 import { CabecalhoEstoque } from '@/components/estoque/Cabecalho';
 import { AlertaBadge, Aviso, BotaoIcone, Kpi, Secao, TD, TDN, TH, THN, Tabela, Vazio } from '@/components/estoque/ui';
 import { IconEdit, IconMenos } from '@/components/icons';
-import { ALERTA_LABEL, alertaLote, fmtData, fmtQtd, loteVencido, ordemFEFO, ordenarPorNome, textoPrazo, type AlertaLote } from '@/lib/estoque/calc';
+import { ALERTA_LABEL, alertaLote, fmtConteudo, fmtData, fmtQtd, medidaDoProduto, loteVencido, ordemFEFO, ordenarPorNome, textoPrazo, type AlertaLote } from '@/lib/estoque/calc';
 import type { EstoqueLote } from '@/types/database';
 
 export function TabelaLotes({ lotes, agua }: { lotes: EstoqueLote[]; agua?: boolean }) {
@@ -48,6 +48,12 @@ export function TabelaLotes({ lotes, agua }: { lotes: EstoqueLote[]; agua?: bool
               )}
               <td className={TDN}>
                 <b className={l.qtd_atual < 0 ? 'text-negative' : ''}>{fmtQtd(l.qtd_atual)}</b> {p?.unidade}
+                {l.emb_conteudo && l.emb_unidade ? (
+                  <p className="text-xs font-normal text-gray-400">
+                    {fmtConteudo(l.emb_conteudo, l.emb_unidade)} cada
+                    {p && !medidaDoProduto(p.unidade) && l.qtd_atual > 0 ? ` · ${fmtConteudo(l.qtd_atual * l.emb_conteudo, l.emb_unidade)}` : ''}
+                  </p>
+                ) : null}
               </td>
               <td className={TDN}>{fmtQtd(l.qtd_inicial)}</td>
               <td className={TD}>{fmtData(l.data_compra)}</td>

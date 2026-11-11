@@ -244,6 +244,9 @@ export type EstoqueProduto = {
   cap: number | null;
   local_id: string | null;
   obs: string | null;
+  /** conteúdo da embalagem padrão (migração 0022) */
+  emb_conteudo?: number | null;
+  emb_unidade?: string | null;
   criado_em: string;
 };
 
@@ -263,6 +266,9 @@ export type EstoqueLote = {
   cap: number | null;
   obs: string | null;
   saldo_negativo: boolean;
+  /** conteúdo de cada embalagem desta compra (migração 0022) */
+  emb_conteudo?: number | null;
+  emb_unidade?: string | null;
   criado_em: string;
 };
 
@@ -573,6 +579,8 @@ export interface Database {
           p_cap?: number | null;
           p_obs?: string | null;
           p_tipo?: 'entrada' | 'reposicao';
+          p_emb_conteudo?: number | null;
+          p_emb_unidade?: string | null;
         };
         Returns: string;
       };

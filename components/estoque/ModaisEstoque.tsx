@@ -6,6 +6,12 @@ import { useEstoque } from '@/components/estoque/EstoqueContext';
 import { Campo } from '@/components/estoque/ui';
 import {
   CAPACIDADES,
+  UNIDADES_EMB,
+  converter,
+  fmtConteudo,
+  medidaDoProduto,
+  temEmbalagem,
+  type UnidadeEmb,
   CONDICOES,
   SAIDAS,
   TIPOS_MOV,
@@ -101,6 +107,22 @@ function OpcoesLocais({ dados }: { dados: DadosEstoque }) {
   );
 }
 
+/** Conteúdo da embalagem: valor + unidade (g, kg, ml, L). */
+function CampoConteudo({ valor, unidade, onValor, onUnidade }: { valor: string; unidade: UnidadeEmb; onValor: (v: string) => void; onUnidade: (u: UnidadeEmb) => void }) {
+  return (
+    <div className="flex gap-2">
+      <input className="input-field min-w-0 flex-1" inputMode="decimal" value={valor} onChange={(e) => onValor(e.target.value)} placeholder="ex.: 340" />
+      <select className="input-field !w-20 shrink-0" value={unidade} onChange={(e) => onUnidade(e.target.value as UnidadeEmb)} aria-label="Unidade do conteúdo">
+        {UNIDADES_EMB.map((u) => (
+          <option key={u} value={u}>
+            {u}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 /* ---------- ENTRADA ---------- */
 function EntradaModal({ produtoIdInicial }: { produtoIdInicial?: string }) {
   const { dados, fechar, rpc, confirmar, avisar } = useEstoque();
@@ -112,6 +134,9 @@ function EntradaModal({ produtoIdInicial }: { produtoIdInicial?: string }) {
   const [capSel, setCapSel] = useState(CAPACIDADES.includes(capInicial) ? String(capInicial) : 'outra');
   const [capOutra, setCapOutra] = useState(CAPACIDADES.includes(capInicial) ? '' : paraInput(capInicial));
   const [nEmb, setNEmb] = useState('');
+  const [embConteudo, setEmbConteudo] = useState(inicial?.emb_conteudo ? paraInput(inicial.emb_conteudo) : '');
+  const [embUnidade, setEmbUnidade] = useState<UnidadeEmb>((inicial?.emb_unidade as UnidadeEmb) || (inicial && medidaDoProduto(inicial.unidade)) || 'g');
+  const [nPacotes, setNPacotes] = useState('');
   const [dataFab, setDataFab] = useState('');
   const [validade, setValidade] = useState('');
   const [numLote, setNumLote] = useState('');
@@ -124,12 +149,23 @@ function EntradaModal({ produtoIdInicial }: { produtoIdInicial?: string }) {
   const p = dados.produtos.find((x) => x.id === produtoId);
   const agua = p?.tipo === 'agua';
   const cap = capSel === 'outra' ? parseNumero(capOutra) : Number(capSel);
-  const q = agua ? (cap > 0 && parseNumero(nEmb) > 0 ? r3(cap * parseNumero(nEmb)) : NaN) : parseNumero(qtd);
+  const comEmbalagem = temEmbalagem(dados) && !agua;
+  const medida = p ? medidaDoProduto(p.unidade) : null; // produto em kg/g/L/ml?
+  const ec = parseNumero(embConteudo);
+  const temConteudo = comEmbalagem && ec > 0;
+  const porEmbalagem = temConteudo && medida ? converter(ec, embUnidade, medida) : null; // conteúdo convertido p/ a unidade do produto
+  const np = parseNumero(nPacotes);
+  const automatico = !!medida && temConteudo && porEmbalagem !== null && np > 0 && Number.isInteger(np);
+  const q = agua ? (cap > 0 && parseNumero(nEmb) > 0 ? r3(cap * parseNumero(nEmb)) : NaN) : automatico ? r3(np * porEmbalagem!) : parseNumero(qtd);
+  const totalConteudo = temConteudo && !medida && q > 0 ? `${fmtQtd(q)} × ${fmtConteudo(ec, embUnidade)} = ${fmtConteudo(q * ec, embUnidade)}` : '';
 
   function trocarProduto(id: string) {
     setProdutoId(id);
     const np = dados.produtos.find((x) => x.id === id);
     if (np?.local_id) setLocalId(np.local_id);
+    setEmbConteudo(np?.emb_conteudo ? paraInput(np.emb_conteudo) : '');
+    setEmbUnidade((np?.emb_unidade as UnidadeEmb) || (np && medidaDoProduto(np.unidade)) || 'g');
+    setNPacotes('');
     if (np?.tipo === 'agua' && np.cap) {
       if (CAPACIDADES.includes(np.cap)) setCapSel(String(np.cap));
       else {
@@ -151,8 +187,15 @@ function EntradaModal({ produtoIdInicial }: { produtoIdInicial?: string }) {
         const n = lerNumero(nEmb, { rotulo: 'o número de embalagens', obrigatorio: true, maiorQue: 0 })!;
         if (!Number.isInteger(n)) throw new Error('O número de embalagens deve ser inteiro.');
         quantidade = r3(capacidade * n);
+      } else if (automatico) {
+        quantidade = q;
       } else {
+        if (medida && nPacotes.trim() && !temConteudo) throw new Error('Informe o conteúdo de cada embalagem para calcular a quantidade.');
         quantidade = lerNumero(qtd, { rotulo: 'a quantidade', obrigatorio: true, maiorQue: 0 })!;
+      }
+      if (comEmbalagem && embConteudo.trim()) {
+        lerNumero(embConteudo, { rotulo: 'o conteúdo da embalagem', maiorQue: 0 });
+        if (medida && porEmbalagem === null) throw new Error(`O conteúdo em ${embUnidade} não combina com a unidade do produto (${p.unidade}).`);
       }
       if (!dataCompra) throw new Error('Informe a data da compra.');
       if (dataCompra > hojeISO()) throw new Error('A data da compra não pode ser futura.');
@@ -176,6 +219,7 @@ function EntradaModal({ produtoIdInicial }: { produtoIdInicial?: string }) {
         p_cap: capacidade,
         p_obs: obs || null,
         p_tipo: 'entrada',
+        ...(temConteudo ? { p_emb_conteudo: r3(ec), p_emb_unidade: embUnidade } : {}),
       });
       avisar(`Entrada registrada: ${fmtQtd(quantidade)} ${p.unidade} de ${p.nome}.`);
       fechar();
@@ -223,10 +267,40 @@ function EntradaModal({ produtoIdInicial }: { produtoIdInicial?: string }) {
                 <input className="input-field" inputMode="numeric" value={nEmb} onChange={(e) => setNEmb(e.target.value)} placeholder="ex.: 6" />
               </Campo>
             </>
+          ) : medida && comEmbalagem ? (
+            <>
+              <Campo rotulo="Nº de embalagens" dica="Opcional: com o conteúdo, calcula a quantidade">
+                <input className="input-field" inputMode="numeric" value={nPacotes} onChange={(e) => setNPacotes(e.target.value)} placeholder="ex.: 5" />
+              </Campo>
+              <Campo rotulo="Conteúdo de cada embalagem" dica={temConteudo && porEmbalagem === null ? <span className="text-negative">Unidade não combina com {p?.unidade}</span> : undefined}>
+                <CampoConteudo valor={embConteudo} unidade={embUnidade} onValor={setEmbConteudo} onUnidade={setEmbUnidade} />
+              </Campo>
+              <Campo
+                rotulo={`Quantidade comprada (${p?.unidade})`}
+                obrigatorio
+                dica={automatico ? `Calculado: ${fmtQtd(np)} × ${fmtConteudo(ec, embUnidade)} = ${fmtQtd(q)} ${p?.unidade}` : undefined}
+              >
+                <input
+                  className={`input-field ${automatico ? 'bg-gray-50 text-gray-500' : ''}`}
+                  inputMode="decimal"
+                  value={automatico ? paraInput(q) : qtd}
+                  readOnly={automatico}
+                  onChange={(e) => setQtd(e.target.value)}
+                  placeholder="ex.: 5 ou 2,5"
+                />
+              </Campo>
+            </>
           ) : (
-            <Campo rotulo={`Quantidade comprada${p ? ` (${p.unidade})` : ''}`} obrigatorio>
-              <input className="input-field" inputMode="decimal" value={qtd} onChange={(e) => setQtd(e.target.value)} placeholder="ex.: 5 ou 2,5" />
-            </Campo>
+            <>
+              <Campo rotulo={`Quantidade comprada${p ? ` (${p.unidade})` : ''}`} obrigatorio>
+                <input className="input-field" inputMode="decimal" value={qtd} onChange={(e) => setQtd(e.target.value)} placeholder="ex.: 5 ou 2,5" />
+              </Campo>
+              {comEmbalagem && (
+                <Campo rotulo={`Conteúdo de cada ${p ? p.unidade.replace(/s$/, '') : 'embalagem'}`} dica={totalConteudo ? `Total: ${totalConteudo}` : 'Opcional. Ex.: 340 g, 1 kg, 900 ml'}>
+                  <CampoConteudo valor={embConteudo} unidade={embUnidade} onValor={setEmbConteudo} onUnidade={setEmbUnidade} />
+                </Campo>
+              )}
+            </>
           )}
           <Campo rotulo="Data de fabricação">
             <input type="date" className="input-field" value={dataFab} onChange={(e) => setDataFab(e.target.value)} />
@@ -441,6 +515,9 @@ function ProdutoModal({ id, tipoPadrao }: { id?: string; tipoPadrao?: TipoProdut
   const [meta, setMeta] = useState(atual ? paraInput(atual.meta) : '');
   const [minimo, setMinimo] = useState(atual ? paraInput(atual.minimo) : '');
   const [cap, setCap] = useState(paraInput(atual?.cap ?? 5));
+  const [embConteudo, setEmbConteudo] = useState(atual?.emb_conteudo ? paraInput(atual.emb_conteudo) : '');
+  const [embUnidade, setEmbUnidade] = useState<UnidadeEmb>((atual?.emb_unidade as UnidadeEmb) || 'g');
+  const comEmbalagem = temEmbalagem(dados);
   const [obs, setObs] = useState(atual?.obs ?? '');
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
@@ -458,7 +535,8 @@ function ProdutoModal({ id, tipoPadrao }: { id?: string; tipoPadrao?: TipoProdut
       const mn = lerNumero(minimo, { rotulo: 'o mínimo de segurança', minimo: 0 }) ?? 0;
       if (m > 0 && mn > m) throw new Error('O mínimo de segurança não pode ser maior que a meta.');
       const c = tipo === 'agua' ? lerNumero(cap, { rotulo: 'a capacidade da embalagem', obrigatorio: true, maiorQue: 0 }) : null;
-      const valores = {
+      const emb = tipo !== 'agua' && comEmbalagem ? lerNumero(embConteudo, { rotulo: 'o conteúdo da embalagem', maiorQue: 0 }) : null;
+      const valores: Record<string, unknown> = {
         nome: n,
         categoria: categoria.trim(),
         tipo,
@@ -468,6 +546,7 @@ function ProdutoModal({ id, tipoPadrao }: { id?: string; tipoPadrao?: TipoProdut
         minimo: r3(mn),
         cap: c,
         obs: obs.trim() || null,
+        ...(comEmbalagem ? { emb_conteudo: emb ? r3(emb) : null, emb_unidade: emb ? embUnidade : null } : {}),
       };
       setSalvando(true);
       if (id) await gravar('estoque_produtos', 'update', valores, { coluna: 'id', valor: id });
@@ -529,6 +608,11 @@ function ProdutoModal({ id, tipoPadrao }: { id?: string; tipoPadrao?: TipoProdut
               <input className="input-field" inputMode="decimal" value={cap} onChange={(e) => setCap(e.target.value)} />
             </Campo>
           )}
+          {tipo !== 'agua' && comEmbalagem && (
+            <Campo rotulo="Embalagem padrão (conteúdo)" dica="Opcional. Ex.: sachê de 340 g, pacote de 1 kg — já vem preenchido na entrada">
+              <CampoConteudo valor={embConteudo} unidade={embUnidade} onValor={setEmbConteudo} onUnidade={setEmbUnidade} />
+            </Campo>
+          )}
           <Campo rotulo="Observações" className="sm:col-span-2">
             <textarea className="input-field min-h-[60px]" value={obs} maxLength={500} onChange={(e) => setObs(e.target.value)} />
           </Campo>
@@ -542,7 +626,7 @@ function ProdutoModal({ id, tipoPadrao }: { id?: string; tipoPadrao?: TipoProdut
 
 /* ---------- LOTE (edição + contagem) ---------- */
 function LoteModal({ id }: { id: string }) {
-  const { dados, fechar, rpc, avisar } = useEstoque();
+  const { dados, fechar, rpc, gravar, avisar } = useEstoque();
   const l = dados.lotes.find((x) => x.id === id);
   const p = l ? dados.produtos.find((x) => x.id === l.produto_id) : undefined;
   const [numLote, setNumLote] = useState(l?.num_lote ?? '');
@@ -552,6 +636,9 @@ function LoteModal({ id }: { id: string }) {
   const [validade, setValidade] = useState(l?.validade ?? '');
   const [fornecedor, setFornecedor] = useState(l?.fornecedor ?? '');
   const [contagem, setContagem] = useState(paraInput(l?.qtd_atual ?? 0));
+  const [embConteudo, setEmbConteudo] = useState(l?.emb_conteudo ? paraInput(l.emb_conteudo) : '');
+  const [embUnidade, setEmbUnidade] = useState<UnidadeEmb>((l?.emb_unidade as UnidadeEmb) || 'g');
+  const comEmbalagem = temEmbalagem(dados) && p?.tipo !== 'agua';
   const [obs, setObs] = useState(l?.obs ?? '');
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
@@ -564,6 +651,7 @@ function LoteModal({ id }: { id: string }) {
       if (!dataCompra) throw new Error('Informe a data da compra.');
       if (dataFab && validade && validade <= dataFab) throw new Error('A validade deve ser posterior à fabricação.');
       const c = lerNumero(contagem, { rotulo: 'a quantidade atual', obrigatorio: true, minimo: l!.saldo_negativo ? -1e9 : 0 })!;
+      const emb = comEmbalagem ? lerNumero(embConteudo, { rotulo: 'o conteúdo da embalagem', maiorQue: 0 }) : null;
       setSalvando(true);
       await rpc('estoque_atualizar_lote', {
         p_lote: l!.id,
@@ -577,6 +665,10 @@ function LoteModal({ id }: { id: string }) {
         p_local: localId || null,
         p_obs: obs || null,
       });
+      const novoEmb = emb ? r3(emb) : null;
+      if (comEmbalagem && (novoEmb !== (l!.emb_conteudo ?? null) || (novoEmb ? embUnidade : null) !== (l!.emb_unidade ?? null))) {
+        await gravar('estoque_lotes', 'update', { emb_conteudo: novoEmb, emb_unidade: novoEmb ? embUnidade : null }, { coluna: 'id', valor: l!.id });
+      }
       avisar('Lote atualizado.');
       fechar();
     } catch (err) {
@@ -618,6 +710,11 @@ function LoteModal({ id }: { id: string }) {
           <Campo rotulo={`Quantidade atual – contagem (${p.unidade})`} dica="Alterar gera um “Ajuste de inventário” no histórico">
             <input className="input-field" inputMode="decimal" value={contagem} onChange={(e) => setContagem(e.target.value)} />
           </Campo>
+          {comEmbalagem && (
+            <Campo rotulo="Conteúdo de cada embalagem" dica="Opcional. Ex.: 340 g, 1 kg, 900 ml">
+              <CampoConteudo valor={embConteudo} unidade={embUnidade} onValor={setEmbConteudo} onUnidade={setEmbUnidade} />
+            </Campo>
+          )}
           <Campo rotulo="Observações" className="sm:col-span-2">
             <textarea className="input-field min-h-[60px]" value={obs} maxLength={300} onChange={(e) => setObs(e.target.value)} />
           </Campo>

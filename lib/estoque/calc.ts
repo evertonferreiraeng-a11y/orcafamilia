@@ -64,6 +64,43 @@ export const CONDICOES = {
   embalagem: ['Íntegra', 'Verificar', 'Com avarias'],
 } as const;
 
+/* ---------- embalagem (conteúdo de cada pacote, sachê, lata…) ---------- */
+export const UNIDADES_EMB = ['g', 'kg', 'ml', 'L'] as const;
+export type UnidadeEmb = (typeof UNIDADES_EMB)[number];
+const FATOR: Record<UnidadeEmb, { grupo: 'massa' | 'volume'; base: number }> = {
+  g: { grupo: 'massa', base: 1 },
+  kg: { grupo: 'massa', base: 1000 },
+  ml: { grupo: 'volume', base: 1 },
+  L: { grupo: 'volume', base: 1000 },
+};
+/** Se a unidade do produto é de peso/volume, devolve a unidade de embalagem equivalente (kg, g, L, ml). */
+export function medidaDoProduto(unidade: string): UnidadeEmb | null {
+  const u = unidade.trim().toLowerCase();
+  if (['kg', 'quilo', 'quilos', 'kilo', 'kilos'].includes(u)) return 'kg';
+  if (['g', 'grama', 'gramas'].includes(u)) return 'g';
+  if (['l', 'litro', 'litros', 'lt'].includes(u)) return 'L';
+  if (['ml', 'mililitro', 'mililitros'].includes(u)) return 'ml';
+  return null;
+}
+/** A migração 0022 (conteúdo da embalagem) já foi aplicada? (as colunas vêm no select *) */
+export const temEmbalagem = (d: { produtos: object[]; lotes: object[] }) =>
+  d.produtos.some((p) => 'emb_conteudo' in p) || d.lotes.some((l) => 'emb_conteudo' in l);
+/** Converte entre unidades compatíveis (g↔kg, ml↔L). null se forem de grupos diferentes. */
+export function converter(valor: number, de: UnidadeEmb, para: UnidadeEmb): number | null {
+  if (FATOR[de].grupo !== FATOR[para].grupo) return null;
+  return (valor * FATOR[de].base) / FATOR[para].base;
+}
+/** Formata um conteúdo escolhendo a unidade mais legível (1500 g → 1,5 kg). */
+export function fmtConteudo(valor: number, un: string): string {
+  const u = un as UnidadeEmb;
+  if (FATOR[u]) {
+    const baseVal = valor * FATOR[u].base;
+    if (FATOR[u].grupo === 'massa') return baseVal >= 1000 ? `${fmtQtd(r3(baseVal / 1000))} kg` : `${fmtQtd(r3(baseVal))} g`;
+    return baseVal >= 1000 ? `${fmtQtd(r3(baseVal / 1000))} L` : `${fmtQtd(r3(baseVal))} ml`;
+  }
+  return `${fmtQtd(valor)} ${un}`;
+}
+
 /* ---------- utilidades ---------- */
 export const r3 = (n: number) => Math.round((Number(n) || 0) * 1000) / 1000;
 export const r2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
@@ -359,6 +396,8 @@ function montarRelatorio(d: DadosEstoque, tipo: TipoRelatorio, f: { de?: string;
 export function mensagemErro(e: { message?: string } | null | undefined): string {
   const m = e?.message || '';
   if (m.includes('ESTOQUE_INSUFICIENTE')) return 'Estoque insuficiente para esta saída.';
+  if (m.includes('EMBALAGEM_INVALIDA') || m.includes('_emb_check')) return 'Conteúdo da embalagem inválido: informe um valor maior que zero e a unidade (g, kg, ml ou L).';
+  if (m.includes('p_emb_') || m.includes('emb_conteudo')) return 'Para registrar o conteúdo da embalagem, rode a migração 0022_estoque_embalagem.sql no Supabase.';
   if (m.includes('LOTE_COM_SAIDAS')) return 'Este lote já teve saídas ou ajustes. Estorne essas movimentações primeiro.';
   if (m.includes('VALIDADE_ANTES_FABRICACAO')) return 'A validade deve ser posterior à data de fabricação.';
   if (m.includes('QUANTIDADE_INVALIDA')) return 'Quantidade inválida.';

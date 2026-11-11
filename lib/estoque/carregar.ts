@@ -46,8 +46,8 @@ export async function carregarEstoque(supabase: Supa): Promise<DadosEstoque> {
   return {
     config: { ...(config as EstoqueConfig), orc_min: n(config.orc_min), orc_max: n(config.orc_max) },
     locais,
-    produtos: produtos.map((p) => ({ ...p, meta: n(p.meta), minimo: n(p.minimo), preco_ref: n(p.preco_ref), cap: p.cap === null ? null : n(p.cap) })),
-    lotes: lotes.map((l) => ({ ...l, qtd_inicial: n(l.qtd_inicial), qtd_atual: n(l.qtd_atual), valor: n(l.valor), cap: l.cap === null ? null : n(l.cap) })),
+    produtos: produtos.map((p) => ({ ...p, meta: n(p.meta), minimo: n(p.minimo), preco_ref: n(p.preco_ref), cap: p.cap === null ? null : n(p.cap), ...(p.emb_conteudo != null ? { emb_conteudo: n(p.emb_conteudo) } : {}) })),
+    lotes: lotes.map((l) => ({ ...l, qtd_inicial: n(l.qtd_inicial), qtd_atual: n(l.qtd_atual), valor: n(l.valor), cap: l.cap === null ? null : n(l.cap), ...(l.emb_conteudo != null ? { emb_conteudo: n(l.emb_conteudo) } : {}) })),
     movs: movs.map((m) => ({ ...m, qtd: n(m.qtd), valor: n(m.valor) })),
     lista,
   };
