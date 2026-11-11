@@ -504,6 +504,7 @@ function SaidaModal({ produtoIdInicial, loteIdInicial, tipoInicial }: { produtoI
 }
 
 /* ---------- PRODUTO ---------- */
+const NOVA = '__nova__';
 function ProdutoModal({ id, tipoPadrao }: { id?: string; tipoPadrao?: TipoProdutoEstoque }) {
   const { dados, fechar, gravar, avisar } = useEstoque();
   const atual = id ? dados.produtos.find((p) => p.id === id) : undefined;
@@ -511,6 +512,8 @@ function ProdutoModal({ id, tipoPadrao }: { id?: string; tipoPadrao?: TipoProdut
   const [nome, setNome] = useState(atual?.nome ?? '');
   const [categoria, setCategoria] = useState(atual?.categoria ?? CATEGORIA_DO_TIPO[t0] ?? '');
   const [tipo, setTipo] = useState<TipoProdutoEstoque>(t0);
+  const [novaCategoria, setNovaCategoria] = useState(false);
+  const opcoesCategoria = [...new Set([...categoriasDe(dados), ...Object.values(CATEGORIA_DO_TIPO), ...(categoria ? [categoria] : [])])].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   const [unidade, setUnidade] = useState(atual?.unidade ?? (t0 === 'agua' ? 'litros' : 'kg'));
   const [localId, setLocalId] = useState(atual?.local_id ?? dados.locais[0]?.id ?? '');
   const [meta, setMeta] = useState(atual ? paraInput(atual.meta) : '');
@@ -569,12 +572,33 @@ function ProdutoModal({ id, tipoPadrao }: { id?: string; tipoPadrao?: TipoProdut
             <input className="input-field" value={nome} maxLength={80} onChange={(e) => setNome(e.target.value)} />
           </Campo>
           <Campo rotulo="Categoria" obrigatorio>
-            <input className="input-field" list="estoque-categorias" value={categoria} maxLength={50} onChange={(e) => setCategoria(e.target.value)} />
-            <datalist id="estoque-categorias">
-              {categoriasDe(dados).map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
+            {novaCategoria ? (
+              <div className="flex gap-2">
+                <input className="input-field" autoFocus placeholder="Nome da nova categoria" value={categoria} maxLength={50} onChange={(e) => setCategoria(e.target.value)} />
+                <button type="button" className="shrink-0 rounded-xl px-3 text-xs font-semibold text-gray-500 hover:bg-gray-100" onClick={() => { setNovaCategoria(false); setCategoria(atual?.categoria ?? CATEGORIA_DO_TIPO[tipo] ?? ''); }}>
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <select
+                className="input-field"
+                value={categoria}
+                onChange={(e) => {
+                  if (e.target.value === NOVA) {
+                    setNovaCategoria(true);
+                    setCategoria('');
+                  } else setCategoria(e.target.value);
+                }}
+              >
+                {!categoria && <option value="">Escolha…</option>}
+                {opcoesCategoria.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+                <option value={NOVA}>+ Nova categoria…</option>
+              </select>
+            )}
           </Campo>
           <Campo rotulo="Tipo de controle">
             <select
@@ -582,8 +606,12 @@ function ProdutoModal({ id, tipoPadrao }: { id?: string; tipoPadrao?: TipoProdut
               value={tipo}
               onChange={(e) => {
                 const novo = e.target.value as TipoProdutoEstoque;
-                // sugere a categoria se ela estiver vazia ou ainda for a sugestão do tipo anterior
-                if (!categoria.trim() || Object.values(CATEGORIA_DO_TIPO).includes(categoria)) setCategoria(CATEGORIA_DO_TIPO[novo] ?? '');
+                // itens que não são alimento vão para a categoria do tipo; ao voltar para alimento, limpa a categoria do tipo
+                const sugerida = CATEGORIA_DO_TIPO[novo];
+                if (sugerida) {
+                  setCategoria(sugerida);
+                  setNovaCategoria(false);
+                } else if (Object.values(CATEGORIA_DO_TIPO).includes(categoria)) setCategoria('');
                 if (novo !== 'agua' && unidade === 'litros' && !atual) setUnidade(novo === 'alimento' ? 'kg' : 'unidades');
                 setTipo(novo);
               }}
