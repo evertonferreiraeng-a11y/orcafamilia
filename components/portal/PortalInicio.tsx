@@ -22,7 +22,7 @@ export type ResumoPortal = {
   dataExtenso: string;
   mesExtenso: string;
   orcamento: { receitas: number; despesas: number; saldo: number; aPagar: number; aPagarValor: number; atrasadas: number; atrasadasValor: number } | null;
-  estoque: { reserva: number; litros: number; litrosMeta: number; vencendo: number; comprar: number; custoCompletar: number } | null;
+  estoque: { reserva: number; litros: number; litrosMeta: number; vencendo: number; comprar: number; semEstoque: number } | null;
   casa: { vencidas: number; breve: number; emDia: number; semData: number; pausadas: number; proxima: { titulo: string; data: string } | null } | null;
   alertas: AlertaPortal[];
 };
@@ -224,7 +224,7 @@ function CardEstoque({ r }: { r: ResumoPortal['estoque'] }) {
               <p className="text-sm text-gray-600">
                 Faltam <b className="text-gray-900">{r.comprar} produto(s)</b> na meta
               </p>
-              {r.custoCompletar > 0 && <p className="text-xs text-gray-500">≈ {moeda(r.custoCompletar)} para completar</p>}
+              {r.semEstoque > 0 && <p className="text-xs text-gray-500">{r.semEstoque} sem nenhum estoque</p>}
             </>
           ) : (
             <p className="text-sm font-semibold text-emerald-700">Todas as metas atingidas</p>

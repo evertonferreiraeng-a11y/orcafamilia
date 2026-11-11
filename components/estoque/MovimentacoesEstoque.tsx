@@ -5,7 +5,7 @@ import { useEstoque } from '@/components/estoque/EstoqueContext';
 import { CabecalhoEstoque } from '@/components/estoque/Cabecalho';
 import { Badge, BotaoIcone, Secao, TD, TDN, TH, THN, Tabela, Vazio, type Tom } from '@/components/estoque/ui';
 import { IconDesfazer } from '@/components/icons';
-import { SAIDAS, TIPOS_MOV, fmtData, fmtMoeda, fmtQtd, ordenarPorNome } from '@/lib/estoque/calc';
+import { SAIDAS, TIPOS_MOV, fmtData, fmtQtd, ordenarPorNome } from '@/lib/estoque/calc';
 import type { EstoqueMov, TipoMovEstoque } from '@/types/database';
 
 const TOM_MOV: Record<TipoMovEstoque, Tom> = {
@@ -109,7 +109,6 @@ export function MovimentacoesEstoque() {
                   <th className={TH}>Produto</th>
                   <th className={TH}>Lote</th>
                   <th className={THN}>Quantidade</th>
-                  <th className={THN}>Valor</th>
                   <th className={TH}>Observações</th>
                   <th className={TH} />
                 </tr>
@@ -138,7 +137,6 @@ export function MovimentacoesEstoque() {
                         </b>{' '}
                         {p?.unidade}
                       </td>
-                      <td className={TDN}>{m.valor ? fmtMoeda(Math.abs(m.valor)) : '—'}</td>
                       <td className={`${TD} max-w-[260px]`}>{m.obs}</td>
                       <td className={TD}>
                         {!m.estornado && (

@@ -2,7 +2,7 @@ import { createServerSupabase } from '@/lib/supabase-server';
 import { carregarEstoque } from '@/lib/estoque/carregar';
 import { carregarCasa } from '@/lib/casa/carregar';
 import { nomeTarefa, ordemTarefas, statusTarefa, textoPrazoTarefa } from '@/lib/casa/calc';
-import { alertaLote, estoqueAtual, fmtMoeda, itensParaComprar, percentualReserva, soma } from '@/lib/estoque/calc';
+import { alertaLote, estoqueAtual, fmtMoeda, itensParaComprar, percentualReserva, soma, statusProduto } from '@/lib/estoque/calc';
 import { PortalInicio, type AlertaPortal, type ResumoPortal } from '@/components/portal/PortalInicio';
 
 export const metadata = { title: 'Início – Apps da família' };
@@ -100,7 +100,7 @@ export default async function InicioPage() {
       litrosMeta: soma(aguas, (p) => p.meta),
       vencendo: vencidos.length + d30.length,
       comprar: comprar.length,
-      custoCompletar: soma(comprar, (i) => i.comprar * i.precoUnit),
+      semEstoque: comprar.filter((i) => statusProduto(estoque, i.produto) === 'red').length,
     };
     if (vencidos.length) alertas.push({ app: 'estoque', nivel: 'urgente', texto: `${plural(vencidos.length, 'lote vencido', 'lotes vencidos')} no estoque`, detalhe: nomes(vencidos), href: '/estoque/lotes' });
     if (d30.length) alertas.push({ app: 'estoque', nivel: 'atencao', texto: `${plural(d30.length, 'lote vence', 'lotes vencem')} em até 30 dias`, detalhe: nomes(d30), href: '/estoque/lotes' });
@@ -109,7 +109,7 @@ export default async function InicioPage() {
         app: 'estoque',
         nivel: 'info',
         texto: `${plural(comprar.length, 'produto abaixo', 'produtos abaixo')} da meta`,
-        detalhe: resumoEstoque.custoCompletar > 0 ? `≈ ${fmtMoeda(resumoEstoque.custoCompletar)}` : undefined,
+        detalhe: comprar.slice(0, 3).map((i) => i.produto.nome).join(', '),
         href: '/estoque/compras',
       });
   }

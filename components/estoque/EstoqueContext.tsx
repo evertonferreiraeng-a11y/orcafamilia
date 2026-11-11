@@ -6,7 +6,7 @@ import { createBrowserSupabase } from '@/lib/supabase';
 import { mensagemErro, type DadosEstoque } from '@/lib/estoque/calc';
 import type { TipoSaidaEstoque, TipoProdutoEstoque } from '@/types/database';
 
-export type ItemCompraSelecionado = { produtoId: string; qtd: number; precoUnit: number };
+export type ItemCompraSelecionado = { produtoId: string; qtd: number };
 
 export type ModalEstoque =
   | { tipo: 'entrada'; produtoId?: string }

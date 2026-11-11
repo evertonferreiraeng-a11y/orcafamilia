@@ -8,32 +8,22 @@ import { AlertaBadge, Aviso, Barra, Kpi, Secao, StatusBadge, Vazio } from '@/com
 import {
   abaixoDoMinimo,
   alertaLote,
-  compras,
   estoqueAtual,
   fmtData,
   fmtMesCurto,
-  fmtMoeda,
   fmtPct,
   fmtQtd,
-  gastoNoMes,
-  hojeISO,
   movsAtivas,
   ordemFEFO,
   percentualMeta,
   percentualReserva,
-  precoUnitario,
-  r2,
-  reposicao,
   soma,
   statusProduto,
   textoPrazo,
   ultimosMeses,
-  valorEmEstoque,
 } from '@/lib/estoque/calc';
 import type { TipoMovEstoque } from '@/types/database';
 
-const CORES = ['#059669', '#2a78d6', '#34d399', '#7c9cc9', '#0f766e', '#94a3b8', '#a7f3d0', '#475569', '#bfdbfe', '#64748b', '#0e7490', '#cbd5e1'];
-const moedaCurta = (v: number) => (v >= 1000 ? `R$ ${(v / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mil` : `R$ ${Math.round(v)}`);
 
 export function PainelEstoque() {
   const { dados, abrir } = useEstoque();
@@ -46,9 +36,6 @@ export function PainelEstoque() {
   const ativos = dados.lotes.filter((l) => l.qtd_atual > 0);
   const proximos = ativos.filter((l) => ['d30', 'd60', 'd90'].includes(alertaLote(l)));
   const vencidos = ativos.filter((l) => alertaLote(l) === 'venc');
-  const investido = soma(compras(dados), (m) => m.valor);
-  const valorEst = soma(dados.lotes, valorEmEstoque);
-  const completar = soma(comMeta, (p) => reposicao(dados, p) * precoUnitario(dados, p));
   const rTotal = percentualReserva(dados, ['alimento', 'agua']);
   const rAlim = percentualReserva(dados, ['alimento']);
   const aguas = ps.filter((p) => p.tipo === 'agua');
@@ -56,19 +43,16 @@ export function PainelEstoque() {
   const litrosMeta = soma(aguas, (p) => p.meta);
   const bebes = ps.filter((p) => p.tipo === 'bebe');
 
-  const porCategoria: Record<string, number> = {};
-  for (const l of dados.lotes) {
-    const p = ps.find((x) => x.id === l.produto_id);
-    if (p) porCategoria[p.categoria] = (porCategoria[p.categoria] || 0) + valorEmEstoque(l);
-  }
-  const fatias = Object.entries(porCategoria)
-    .filter(([, v]) => v > 0)
-    .sort((a, b) => b[1] - a[1])
-    .map(([nome, valor]) => ({ nome, valor: r2(valor) }));
+  // situação dos produtos com meta
+  const fatias = [
+    { nome: 'Completo', valor: completos, cor: '#059669' },
+    { nome: 'Abaixo da meta', valor: abaixo, cor: '#f59e0b' },
+    { nome: 'Sem estoque', valor: zerados, cor: '#ef4444' },
+  ].filter((f) => f.valor > 0);
 
   const metas = comMeta.map((p) => ({ p, pct: percentualMeta(dados, p) * 100 })).sort((a, b) => a.pct - b.pct);
-  const meses12 = ultimosMeses(12).map((k) => ({ mes: fmtMesCurto(k), compras: gastoNoMes(dados, k) }));
-  const serie = (k: string, tipos: TipoMovEstoque[]) => r2(soma(movsAtivas(dados, tipos).filter((m) => m.data.startsWith(k)), (m) => Math.abs(m.valor)));
+  // nº de movimentações por mês (cada saída FEFO em vários lotes conta uma vez)
+  const serie = (k: string, tipos: TipoMovEstoque[]) => new Set(movsAtivas(dados, tipos).filter((m) => m.data.startsWith(k)).map((m) => m.grupo)).size;
   const meses6 = ultimosMeses(6).map((k) => ({
     mes: fmtMesCurto(k),
     entradas: serie(k, ['entrada', 'reposicao']),
@@ -95,7 +79,7 @@ export function PainelEstoque() {
         </Aviso>
       )}
 
-      <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+      <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
         <Kpi titulo="Reserva total (alimentos + água)" valor={fmtPct(rTotal)} tom="verde" sub={<Barra pct={rTotal} />} />
         <Kpi titulo="Reserva alimentar" valor={fmtPct(rAlim)} tom="verde" sub={<Barra pct={rAlim} />} />
         <Kpi
@@ -117,39 +101,37 @@ export function PainelEstoque() {
         <Kpi titulo="Sem estoque" valor={zerados} tom="vermelho" sub="produtos zerados" />
         <Kpi titulo="Próximos do vencimento" valor={proximos.length} tom="laranja" sub="lotes em até 90 dias" />
         <Kpi titulo="Vencidos" valor={vencidos.length} tom="vermelho" sub={vencidos.length ? <Link href="/estoque/lotes" className="underline">registrar descarte</Link> : 'nenhum lote vencido'} />
-        <Kpi titulo="Total investido" valor={fmtMoeda(investido)} tom="azul" sub={`valor em estoque: ${fmtMoeda(valorEst)}`} />
-        <Kpi titulo="Para completar o estoque" valor={fmtMoeda(completar)} tom="amarelo" sub={`orçamento: ${fmtMoeda(dados.config.orc_min)} a ${fmtMoeda(dados.config.orc_max)}/mês`} />
-        <Kpi titulo="Gasto neste mês" valor={fmtMoeda(gastoNoMes(dados, hojeISO().slice(0, 7)))} sub={<Link href="/estoque/financeiro" className="underline">ver financeiro</Link>} />
+        <Kpi titulo="Lotes ativos" valor={ativos.length} tom="azul" sub={<Link href="/estoque/lotes" className="underline">ver validades</Link>} />
       </div>
 
       <div className="mb-5 grid gap-4 lg:grid-cols-2">
-        <Secao titulo="Distribuição do estoque por categoria" extra={<span className="text-xs text-gray-400">valor em estoque</span>}>
+        <Secao titulo="Situação dos produtos" extra={<span className="text-xs text-gray-400">{comMeta.length} com meta</span>}>
           {fatias.length ? (
             <div className="grid items-center gap-4 sm:grid-cols-[180px_1fr]">
               <div className="h-[180px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie data={fatias} dataKey="valor" nameKey="nome" innerRadius={50} outerRadius={80} paddingAngle={1}>
-                      {fatias.map((f, i) => (
-                        <Cell key={f.nome} fill={CORES[i % CORES.length]} />
+                      {fatias.map((f) => (
+                        <Cell key={f.nome} fill={f.cor} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(v) => fmtMoeda(Number(v))} />
+                    <Tooltip formatter={(v) => `${v} produto(s)`} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
               <ul className="space-y-1.5 text-sm">
-                {fatias.map((f, i) => (
+                {fatias.map((f) => (
                   <li key={f.nome} className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: CORES[i % CORES.length] }} />
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: f.cor }} />
                     <span className="flex-1 truncate">{f.nome}</span>
-                    <b className="tabular-nums">{fmtMoeda(f.valor)}</b>
+                    <b className="tabular-nums">{f.valor}</b>
                   </li>
                 ))}
               </ul>
             </div>
           ) : (
-            <Vazio>Registre compras com valor pago para ver a distribuição.</Vazio>
+            <Vazio>Defina metas nos produtos para ver a situação.</Vazio>
           )}
         </Secao>
 
@@ -200,27 +182,14 @@ export function PainelEstoque() {
           )}
         </Secao>
         <div className="grid content-start gap-4">
-          <Secao titulo="Compras mensais" extra={<span className="text-xs text-gray-400">últimos 12 meses</span>}>
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={meses12}>
-                  <CartesianGrid vertical={false} stroke="#eef1f4" />
-                  <XAxis dataKey="mes" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={moedaCurta} width={64} />
-                  <Tooltip formatter={(v) => fmtMoeda(Number(v))} />
-                  <Bar dataKey="compras" name="Compras" fill="#2a78d6" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Secao>
-          <Secao titulo="Consumo e reposição" extra={<span className="text-xs text-gray-400">valor estimado · 6 meses</span>}>
-            <div className="h-52">
+          <Secao titulo="Movimentações por mês" extra={<span className="text-xs text-gray-400">nº de registros · 6 meses</span>}>
+            <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={meses6}>
                   <CartesianGrid vertical={false} stroke="#eef1f4" />
                   <XAxis dataKey="mes" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={moedaCurta} width={64} />
-                  <Tooltip formatter={(v) => fmtMoeda(Number(v))} />
+                  <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} width={32} />
+                  <Tooltip />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
                   <Bar dataKey="entradas" name="Entradas/reposição" fill="#059669" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="consumo" name="Consumo" fill="#7c9cc9" radius={[4, 4, 0, 0]} />

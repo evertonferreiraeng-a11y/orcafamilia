@@ -5,7 +5,7 @@ import { useEstoque } from '@/components/estoque/EstoqueContext';
 import { CabecalhoEstoque } from '@/components/estoque/Cabecalho';
 import { Aviso, Campo, Secao, TD, TDN, TH, THN, Tabela, Vazio } from '@/components/estoque/ui';
 import { IconBaixar, IconEnviar, IconImprimir, IconPlanilha } from '@/components/icons';
-import { RELATORIOS, gerarRelatorio, hojeISO, paraInput, parseNumero, r2, soma, type TipoRelatorio } from '@/lib/estoque/calc';
+import { RELATORIOS, gerarRelatorio, hojeISO, r2, soma, type TipoRelatorio } from '@/lib/estoque/calc';
 import { baixarArquivo, formatarCelula, imprimirHtml, nomeArquivo, relatorioCsv, relatorioXlsx, tabelaHtml } from '@/lib/estoque/exportar';
 
 /* ---------- RELATÓRIOS ---------- */
@@ -14,10 +14,9 @@ export function RelatoriosEstoque() {
   const [tipo, setTipo] = useState<TipoRelatorio>('inventario');
   const [de, setDe] = useState('');
   const [ate, setAte] = useState('');
-  const [mes, setMes] = useState(hojeISO().slice(0, 7));
-  const r = gerarRelatorio(dados, tipo, { de, ate, mes });
+  const r = gerarRelatorio(dados, tipo, { de, ate });
   const titulo = RELATORIOS[tipo];
-  const comPeriodo = tipo === 'compras' || tipo === 'consumo' || tipo === 'investimento';
+  const comPeriodo = tipo === 'compras' || tipo === 'consumo';
   const totais = r.totais ?? [];
 
   return (
@@ -43,11 +42,6 @@ export function RelatoriosEstoque() {
                 <input type="date" className="input-field" value={ate} onChange={(e) => setAte(e.target.value)} />
               </Campo>
             </>
-          )}
-          {tipo === 'mensal' && (
-            <Campo rotulo="Mês">
-              <input type="month" className="input-field" value={mes} onChange={(e) => e.target.value && setMes(e.target.value)} />
-            </Campo>
           )}
           <div className="flex-1" />
           <button type="button" className="btn-secondary" onClick={() => baixarArquivo(`${nomeArquivo(titulo)}.xlsx`, relatorioXlsx(titulo, r))}>
@@ -109,22 +103,15 @@ export function RelatoriosEstoque() {
 export function ConfigEstoque() {
   const { dados, gravar, rpc, confirmar, avisar } = useEstoque();
   const c = dados.config;
-  const [orcMin, setOrcMin] = useState(paraInput(c.orc_min));
-  const [orcMax, setOrcMax] = useState(paraInput(c.orc_max));
   const [composicao, setComposicao] = useState(c.composicao ?? '');
   const [salvando, setSalvando] = useState(false);
   const arquivo = useRef<HTMLInputElement>(null);
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
-    const mn = parseNumero(orcMin);
-    const mx = parseNumero(orcMax);
-    if (Number.isNaN(mn) || mn < 0) return avisar('Orçamento mínimo inválido.', true);
-    if (Number.isNaN(mx) || mx <= 0) return avisar('Orçamento máximo inválido.', true);
-    if (mn > mx) return avisar('O mínimo não pode ser maior que o máximo.', true);
     setSalvando(true);
     try {
-      await gravar('estoque_config', 'update', { orc_min: r2(mn), orc_max: r2(mx), composicao: composicao.trim() || null, atualizado_em: new Date().toISOString() }, { coluna: 'familia_id', valor: c.familia_id });
+      await gravar('estoque_config', 'update', { composicao: composicao.trim() || null, atualizado_em: new Date().toISOString() }, { coluna: 'familia_id', valor: c.familia_id });
       avisar('Configurações salvas.');
     } catch (err) {
       avisar((err as Error).message, true);
@@ -168,14 +155,8 @@ export function ConfigEstoque() {
     <div>
       <CabecalhoEstoque titulo="Configurações do estoque" />
       <div className="grid gap-4 lg:grid-cols-2">
-        <Secao titulo="Orçamento e família">
+        <Secao titulo="Família">
           <form onSubmit={salvar} className="grid gap-3 sm:grid-cols-2" noValidate>
-            <Campo rotulo="Orçamento mínimo mensal (R$)">
-              <input className="input-field" inputMode="decimal" value={orcMin} onChange={(e) => setOrcMin(e.target.value)} />
-            </Campo>
-            <Campo rotulo="Orçamento máximo mensal (R$)">
-              <input className="input-field" inputMode="decimal" value={orcMax} onChange={(e) => setOrcMax(e.target.value)} />
-            </Campo>
             <Campo rotulo="Composição da família" className="sm:col-span-2">
               <input className="input-field" value={composicao} onChange={(e) => setComposicao(e.target.value)} />
             </Campo>
@@ -200,7 +181,7 @@ export function ConfigEstoque() {
         <Secao titulo="Importar da versão offline (arquivo HTML)" className="lg:col-span-2">
           <Aviso tom="amarelo">
             Se você já usava o sistema <b>Reserva 180 Dias</b> em arquivo HTML, abra-o, vá em <b>Configurações → Baixar backup (.json)</b> e importe o arquivo aqui. Os produtos, lotes,
-            movimentações, locais e o orçamento serão trazidos para a nuvem, <b>substituindo</b> o estoque atual da família.
+            movimentações e locais serão trazidos para a nuvem, <b>substituindo</b> o estoque atual da família.
           </Aviso>
           <input
             ref={arquivo}

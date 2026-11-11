@@ -6,7 +6,7 @@ import { useEstoque } from '@/components/estoque/EstoqueContext';
 import { CabecalhoEstoque } from '@/components/estoque/Cabecalho';
 import { AlertaBadge, Aviso, BotaoIcone, Kpi, Secao, TD, TDN, TH, THN, Tabela, Vazio } from '@/components/estoque/ui';
 import { IconEdit, IconMenos } from '@/components/icons';
-import { ALERTA_LABEL, alertaLote, fmtData, fmtMoeda, fmtQtd, loteVencido, ordemFEFO, ordenarPorNome, textoPrazo, type AlertaLote } from '@/lib/estoque/calc';
+import { ALERTA_LABEL, alertaLote, fmtData, fmtQtd, loteVencido, ordemFEFO, ordenarPorNome, textoPrazo, type AlertaLote } from '@/lib/estoque/calc';
 import type { EstoqueLote } from '@/types/database';
 
 export function TabelaLotes({ lotes, agua }: { lotes: EstoqueLote[]; agua?: boolean }) {
@@ -29,7 +29,6 @@ export function TabelaLotes({ lotes, agua }: { lotes: EstoqueLote[]; agua?: bool
           <th className={TH}>Situação</th>
           <th className={TH}>Local</th>
           <th className={TH}>Fornecedor</th>
-          <th className={THN}>Valor pago</th>
           <th className={TH} />
         </tr>
       </thead>
@@ -60,7 +59,6 @@ export function TabelaLotes({ lotes, agua }: { lotes: EstoqueLote[]; agua?: bool
               </td>
               <td className={TD}>{dados.locais.find((x) => x.id === l.local_id)?.nome ?? '—'}</td>
               <td className={TD}>{l.fornecedor || '—'}</td>
-              <td className={TDN}>{l.valor ? fmtMoeda(l.valor) : '—'}</td>
               <td className={TD}>
                 <div className="flex justify-end gap-0.5">
                   {l.qtd_atual > 0 && (

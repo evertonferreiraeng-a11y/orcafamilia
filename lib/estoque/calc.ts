@@ -225,16 +225,23 @@ export const RELATORIOS = {
   abaixo: 'Produtos abaixo da meta',
   vencendo: 'Produtos próximos do vencimento (até 90 dias)',
   vencidos: 'Produtos vencidos',
-  compras: 'Histórico de compras',
+  compras: 'Histórico de entradas (compras)',
   consumo: 'Histórico de consumo e saídas',
-  investimento: 'Investimento por categoria',
   reposicao: 'Lista de reposição',
   agua: 'Relatório de água',
-  mensal: 'Relatório mensal',
 } as const;
 export type TipoRelatorio = keyof typeof RELATORIOS;
 
-export function gerarRelatorio(d: DadosEstoque, tipo: TipoRelatorio, f: { de?: string; ate?: string; mes?: string } = {}): Relatorio {
+/** Relatórios do estoque — só quantidades e datas (o controle de valores foi retirado). */
+export function gerarRelatorio(d: DadosEstoque, tipo: TipoRelatorio, f: { de?: string; ate?: string } = {}): Relatorio {
+  const r = montarRelatorio(d, tipo, f);
+  const colunas = r.colunas.filter((c) => c.tipo !== 'moeda');
+  const chaves = new Set(colunas.map((c) => c.chave));
+  const totais = (r.totais ?? []).filter((k) => chaves.has(k));
+  return { ...r, colunas, totais: totais.length ? totais : undefined };
+}
+
+function montarRelatorio(d: DadosEstoque, tipo: TipoRelatorio, f: { de?: string; ate?: string }): Relatorio {
   const prod = (id: string) => d.produtos.find((p) => p.id === id);
   const local = (id: string | null) => (id ? d.locais.find((l) => l.id === id)?.nome || '' : '');
   const noPeriodo = (m: EstoqueMov) => (!f.de || m.data >= f.de) && (!f.ate || m.data <= f.ate);
@@ -341,50 +348,7 @@ export function gerarRelatorio(d: DadosEstoque, tipo: TipoRelatorio, f: { de?: s
           }),
         totais: ['v'],
       };
-    case 'investimento': {
-      const c: Record<string, { cat: string; n: number; v: number; e: number }> = {};
-      const k = (pid: string) => prod(pid)?.categoria || 'Sem categoria';
-      for (const m of compras(d).filter(noPeriodo)) {
-        const cat = k(m.produto_id);
-        c[cat] = c[cat] || { cat, n: 0, v: 0, e: 0 };
-        c[cat].n++;
-        c[cat].v += m.valor;
-      }
-      for (const l of d.lotes) {
-        const cat = k(l.produto_id);
-        c[cat] = c[cat] || { cat, n: 0, v: 0, e: 0 };
-        c[cat].e += valorEmEstoque(l);
-      }
-      return {
-        sub,
-        colunas: [
-          { titulo: 'Categoria', chave: 'cat' }, { titulo: 'Nº de compras', chave: 'n', tipo: 'num' },
-          { titulo: 'Total investido', chave: 'v', tipo: 'moeda' }, { titulo: 'Valor em estoque hoje', chave: 'e', tipo: 'moeda' },
-        ],
-        linhas: Object.values(c).map((x) => ({ ...x, v: r2(x.v), e: r2(x.e) })).sort((a, b) => b.v - a.v),
-        totais: ['n', 'v', 'e'],
-      };
-    }
-    case 'mensal': {
-      const mes = f.mes || hojeISO().slice(0, 7);
-      const c: Record<string, { cat: string; comp: number; cons: number; per: number }> = {};
-      for (const m of d.movs.filter((x) => !x.estornado && x.data.startsWith(mes))) {
-        const cat = prod(m.produto_id)?.categoria || 'Sem categoria';
-        c[cat] = c[cat] || { cat, comp: 0, cons: 0, per: 0 };
-        if (m.tipo === 'entrada' || m.tipo === 'reposicao') c[cat].comp += m.valor;
-        else if (m.tipo === 'consumo') c[cat].cons += m.valor;
-        else if (m.tipo !== 'ajuste') c[cat].per += m.valor;
-      }
-      return {
-        sub: ` · ${fmtMesLongo(mes)} · gasto ${fmtMoeda(gastoNoMes(d, mes))} · orçamento ${fmtMoeda(d.config.orc_min)} a ${fmtMoeda(d.config.orc_max)}`,
-        colunas: [
-          { titulo: 'Categoria', chave: 'cat' }, { titulo: 'Compras', chave: 'comp', tipo: 'moeda' },
-          { titulo: 'Consumo (est.)', chave: 'cons', tipo: 'moeda' }, { titulo: 'Perdas/descartes (est.)', chave: 'per', tipo: 'moeda' },
-        ],
-        linhas: Object.values(c).map((x) => ({ cat: x.cat, comp: r2(x.comp), cons: r2(x.cons), per: r2(x.per) })).sort((a, b) => b.comp - a.comp),
-        totais: ['comp', 'cons', 'per'],
-      };
-    }
+
   }
 }
 

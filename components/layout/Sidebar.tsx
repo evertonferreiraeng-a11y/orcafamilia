@@ -86,7 +86,6 @@ export const APPS: Record<AppId, { nome: string; curto: string; href: string; ic
         label: 'Planejamento',
         items: [
           { href: '/estoque/compras', label: 'Lista de compras', icon: IconCarrinho },
-          { href: '/estoque/financeiro', label: 'Financeiro', icon: IconWallet },
         ],
       },
       {

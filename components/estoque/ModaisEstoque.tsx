@@ -17,7 +17,6 @@ import {
   estoqueDisponivel,
   estoqueVencido,
   fmtData,
-  fmtMoeda,
   fmtPct,
   fmtQtd,
   fornecedoresDe,
@@ -29,7 +28,6 @@ import {
   paraInput,
   parseNumero,
   planoSaida,
-  precoUnitario,
   r2,
   r3,
   type DadosEstoque,
@@ -115,7 +113,6 @@ function EntradaModal({ produtoIdInicial }: { produtoIdInicial?: string }) {
   const [capSel, setCapSel] = useState(CAPACIDADES.includes(capInicial) ? String(capInicial) : 'outra');
   const [capOutra, setCapOutra] = useState(CAPACIDADES.includes(capInicial) ? '' : paraInput(capInicial));
   const [nEmb, setNEmb] = useState('');
-  const [valor, setValor] = useState('');
   const [dataFab, setDataFab] = useState('');
   const [validade, setValidade] = useState('');
   const [numLote, setNumLote] = useState('');
@@ -129,7 +126,6 @@ function EntradaModal({ produtoIdInicial }: { produtoIdInicial?: string }) {
   const agua = p?.tipo === 'agua';
   const cap = capSel === 'outra' ? parseNumero(capOutra) : Number(capSel);
   const q = agua ? (cap > 0 && parseNumero(nEmb) > 0 ? r3(cap * parseNumero(nEmb)) : NaN) : parseNumero(qtd);
-  const v = parseNumero(valor);
 
   function trocarProduto(id: string) {
     setProdutoId(id);
@@ -163,7 +159,6 @@ function EntradaModal({ produtoIdInicial }: { produtoIdInicial?: string }) {
       if (dataCompra > hojeISO()) throw new Error('A data da compra não pode ser futura.');
       if (dataFab && dataFab > dataCompra) throw new Error('A fabricação não pode ser posterior à data da compra.');
       if (dataFab && validade && validade <= dataFab) throw new Error('A validade deve ser posterior à data de fabricação.');
-      const valorPago = lerNumero(valor, { rotulo: 'o valor pago', minimo: 0 }) ?? 0;
       if (validade && validade < hojeISO()) {
         const ok = await confirmar({ titulo: 'Validade já passou', mensagem: 'A data de validade informada já passou. Deseja registrar mesmo assim?', ok: 'Registrar mesmo assim' });
         if (!ok) return;
@@ -176,7 +171,7 @@ function EntradaModal({ produtoIdInicial }: { produtoIdInicial?: string }) {
         p_validade: validade || null,
         p_data_fab: dataFab || null,
         p_num_lote: numLote || null,
-        p_valor: valorPago,
+        p_valor: 0,
         p_fornecedor: fornecedor || null,
         p_local: localId || null,
         p_cap: capacidade,
@@ -194,7 +189,6 @@ function EntradaModal({ produtoIdInicial }: { produtoIdInicial?: string }) {
 
   const atual = p ? estoqueAtual(dados, p) : 0;
   const novo = atual + (q > 0 ? q : 0);
-  const ref = p ? precoUnitario(dados, p) : 0;
   const forns = fornecedoresDe(dados);
 
   return (
@@ -241,9 +235,6 @@ function EntradaModal({ produtoIdInicial }: { produtoIdInicial?: string }) {
               <input className="input-field" inputMode="decimal" value={qtd} onChange={(e) => setQtd(e.target.value)} placeholder="ex.: 5 ou 2,5" />
             </Campo>
           )}
-          <Campo rotulo="Valor pago total (R$)">
-            <input className="input-field" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="ex.: 32,90" />
-          </Campo>
           <Campo rotulo="Data de fabricação">
             <input type="date" className="input-field" value={dataFab} onChange={(e) => setDataFab(e.target.value)} />
           </Campo>
@@ -274,13 +265,6 @@ function EntradaModal({ produtoIdInicial }: { produtoIdInicial?: string }) {
           <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-600">
             Estoque atual: <b>{fmtQtd(atual)} {p.unidade}</b> → após a entrada: <b>{fmtQtd(novo)} {p.unidade}</b>
             {p.meta > 0 && ` (meta ${fmtQtd(p.meta)} · ${fmtPct(Math.min(novo / p.meta, 1) * 100)})`}
-            {q > 0 && v > 0 && (
-              <>
-                <br />
-                Preço por {p.unidade}: <b>{fmtMoeda(v / q)}</b>
-                {ref > 0 && ` · referência anterior ${fmtMoeda(ref)} (${v / q > ref ? '+' : ''}${fmtPct((v / q / ref - 1) * 100)})`}
-              </>
-            )}
             <br />
             {validade ? (
               (diasAte(validade) ?? 0) < 0 ? (
@@ -463,7 +447,6 @@ function ProdutoModal({ id, tipoPadrao }: { id?: string; tipoPadrao?: TipoProdut
   const [localId, setLocalId] = useState(atual?.local_id ?? dados.locais[0]?.id ?? '');
   const [meta, setMeta] = useState(atual ? paraInput(atual.meta) : '');
   const [minimo, setMinimo] = useState(atual ? paraInput(atual.minimo) : '');
-  const [preco, setPreco] = useState(atual ? paraInput(atual.preco_ref) : '');
   const [cap, setCap] = useState(paraInput(atual?.cap ?? 5));
   const [obs, setObs] = useState(atual?.obs ?? '');
   const [erro, setErro] = useState('');
@@ -481,7 +464,6 @@ function ProdutoModal({ id, tipoPadrao }: { id?: string; tipoPadrao?: TipoProdut
       const m = lerNumero(meta, { rotulo: 'a meta', minimo: 0 }) ?? 0;
       const mn = lerNumero(minimo, { rotulo: 'o mínimo de segurança', minimo: 0 }) ?? 0;
       if (m > 0 && mn > m) throw new Error('O mínimo de segurança não pode ser maior que a meta.');
-      const pr = lerNumero(preco, { rotulo: 'o preço de referência', minimo: 0 }) ?? 0;
       const c = tipo === 'agua' ? lerNumero(cap, { rotulo: 'a capacidade da embalagem', obrigatorio: true, maiorQue: 0 }) : null;
       const valores = {
         nome: n,
@@ -491,7 +473,6 @@ function ProdutoModal({ id, tipoPadrao }: { id?: string; tipoPadrao?: TipoProdut
         local_id: localId || null,
         meta: r3(m),
         minimo: r3(mn),
-        preco_ref: r2(pr),
         cap: c,
         obs: obs.trim() || null,
       };
@@ -550,9 +531,6 @@ function ProdutoModal({ id, tipoPadrao }: { id?: string; tipoPadrao?: TipoProdut
           <Campo rotulo="Quantidade mínima de segurança" dica="Alerta quando o estoque ficar abaixo">
             <input className="input-field" inputMode="decimal" value={minimo} onChange={(e) => setMinimo(e.target.value)} placeholder="ex.: 12" />
           </Campo>
-          <Campo rotulo="Preço de referência por unidade (R$)" dica="Usado na estimativa até haver compras registradas">
-            <input className="input-field" inputMode="decimal" value={preco} onChange={(e) => setPreco(e.target.value)} />
-          </Campo>
           {tipo === 'agua' && (
             <Campo rotulo="Capacidade padrão da embalagem (L)" obrigatorio>
               <input className="input-field" inputMode="decimal" value={cap} onChange={(e) => setCap(e.target.value)} />
@@ -579,7 +557,6 @@ function LoteModal({ id }: { id: string }) {
   const [dataCompra, setDataCompra] = useState(l?.data_compra ?? hojeISO());
   const [dataFab, setDataFab] = useState(l?.data_fab ?? '');
   const [validade, setValidade] = useState(l?.validade ?? '');
-  const [valor, setValor] = useState(paraInput(l?.valor ?? 0));
   const [fornecedor, setFornecedor] = useState(l?.fornecedor ?? '');
   const [contagem, setContagem] = useState(paraInput(l?.qtd_atual ?? 0));
   const [obs, setObs] = useState(l?.obs ?? '');
@@ -593,7 +570,6 @@ function LoteModal({ id }: { id: string }) {
     try {
       if (!dataCompra) throw new Error('Informe a data da compra.');
       if (dataFab && validade && validade <= dataFab) throw new Error('A validade deve ser posterior à fabricação.');
-      const v = lerNumero(valor, { rotulo: 'o valor pago', minimo: 0 }) ?? 0;
       const c = lerNumero(contagem, { rotulo: 'a quantidade atual', obrigatorio: true, minimo: l!.saldo_negativo ? -1e9 : 0 })!;
       setSalvando(true);
       await rpc('estoque_atualizar_lote', {
@@ -603,7 +579,7 @@ function LoteModal({ id }: { id: string }) {
         p_validade: validade || null,
         p_data_fab: dataFab || null,
         p_num_lote: numLote || null,
-        p_valor: v,
+        p_valor: l!.valor, // valor não é mais exibido; mantém o que já estava gravado
         p_fornecedor: fornecedor || null,
         p_local: localId || null,
         p_obs: obs || null,
@@ -637,9 +613,6 @@ function LoteModal({ id }: { id: string }) {
           </Campo>
           <Campo rotulo="Data de validade">
             <input type="date" className="input-field" value={validade} onChange={(e) => setValidade(e.target.value)} />
-          </Campo>
-          <Campo rotulo="Valor pago total (R$)">
-            <input className="input-field" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} />
           </Campo>
           <Campo rotulo="Fornecedor">
             <input className="input-field" list="estoque-fornecedores-lote" value={fornecedor} onChange={(e) => setFornecedor(e.target.value)} />
@@ -735,7 +708,7 @@ function LocalModal({ id }: { id?: string }) {
 }
 
 /* ---------- ENTRADA EM LOTE (lista de compras) ---------- */
-type LinhaCompra = { qtd: string; nEmb: string; cap: string; valor: string; validade: string; numLote: string; localId: string };
+type LinhaCompra = { qtd: string; nEmb: string; cap: string; validade: string; numLote: string; localId: string };
 
 function EntradaComprasModal({ itens }: { itens: ItemCompraSelecionado[] }) {
   const { dados, fechar, rpc, avisar } = useEstoque();
@@ -753,7 +726,6 @@ function EntradaComprasModal({ itens }: { itens: ItemCompraSelecionado[] }) {
             qtd: paraInput(i.qtd),
             nEmb: String(Math.ceil(i.qtd / cap)),
             cap: paraInput(cap),
-            valor: i.precoUnit > 0 ? paraInput(r2(i.qtd * i.precoUnit)) : '',
             validade: '',
             numLote: '',
             localId: p?.local_id ?? '',
@@ -789,7 +761,7 @@ function EntradaComprasModal({ itens }: { itens: ItemCompraSelecionado[] }) {
           p_data_compra: dataCompra,
           p_validade: ln.validade || null,
           p_num_lote: ln.numLote || null,
-          p_valor: lerNumero(ln.valor, { rotulo: `o valor de ${p.nome}`, minimo: 0 }) ?? 0,
+          p_valor: 0,
           p_fornecedor: fornecedor || null,
           p_local: ln.localId || null,
           p_cap: cap,
@@ -852,9 +824,6 @@ function EntradaComprasModal({ itens }: { itens: ItemCompraSelecionado[] }) {
                     <input className="input-field" inputMode="decimal" value={ln.qtd} onChange={(e) => mudar(p.id, 'qtd', e.target.value)} />
                   </Campo>
                 )}
-                <Campo rotulo="Valor pago (R$)">
-                  <input className="input-field" inputMode="decimal" value={ln.valor} onChange={(e) => mudar(p.id, 'valor', e.target.value)} />
-                </Campo>
                 <Campo rotulo="Validade">
                   <input type="date" className="input-field" value={ln.validade} onChange={(e) => mudar(p.id, 'validade', e.target.value)} />
                 </Campo>

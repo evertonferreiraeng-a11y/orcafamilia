@@ -26,13 +26,12 @@ no computador e no celular.
 | `/estoque/produtos` | Controle de estoque (meta, atual, disponível, mínimo, repor, status) |
 | `/estoque/lotes` | Validade por lote, alertas 90/60/30 dias e vencidos, ordem FEFO |
 | `/estoque/movimentacoes` | Histórico completo, saídas e estorno |
-| `/estoque/compras` | Lista de compras automática → entrada no estoque |
-| `/estoque/financeiro` | Orçamento mensal, gastos por categoria, comparação de preços |
+| `/estoque/compras` | Lista de compras automática (quantidades) → entrada no estoque |
 | `/estoque/agua` | Água em litros e garrafas (500 ml a 20 L) |
 | `/estoque/bebe` | Itens do bebê (fora do % da reserva) |
 | `/estoque/locais` | Locais e condições de armazenamento |
-| `/estoque/relatorios` | 10 relatórios com exportação Excel (.xlsx), CSV e PDF |
-| `/estoque/configuracoes` | Orçamento, exportação e **importação do backup da versão offline (HTML)** |
+| `/estoque/relatorios` | 8 relatórios (só quantidades e datas) com exportação Excel (.xlsx), CSV e PDF |
+| `/estoque/configuracoes` | Família, exportação e **importação do backup da versão offline (HTML)** |
 
 ## Regras (no banco, atômicas)
 
@@ -57,3 +56,9 @@ As operações que mudam quantidades são funções do Postgres (`estoque_entrad
 
 Os dados ficam na nuvem (Supabase); sem internet a tela avisa e as alterações não são salvas.
 A versão em arquivo HTML continua disponível para uso 100% offline, e o backup dela pode ser importado aqui.
+
+## Sem controle de valores
+
+O módulo não usa preços, valores pagos, orçamento nem custos (removidos a pedido). As colunas
+`valor`/`preco_ref`/`orc_*` continuam no banco só por compatibilidade com o backup da versão offline,
+e não aparecem em nenhuma tela ou relatório.

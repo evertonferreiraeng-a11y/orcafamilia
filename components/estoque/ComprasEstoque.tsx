@@ -5,7 +5,7 @@ import { useEstoque } from '@/components/estoque/EstoqueContext';
 import { CabecalhoEstoque } from '@/components/estoque/Cabecalho';
 import { Kpi, Secao, StatusBadge, TD, TDN, TH, THN, Tabela, Vazio } from '@/components/estoque/ui';
 import { IconBaixar, IconCheck, IconImprimir, IconPlanilha } from '@/components/icons';
-import { estoqueAtual, fmtMoeda, fmtQtd, gastoNoMes, gerarRelatorio, hojeISO, itensParaComprar, paraInput, parseNumero, statusProduto, soma } from '@/lib/estoque/calc';
+import { estoqueAtual, fmtQtd, gerarRelatorio, itensParaComprar, paraInput, parseNumero, statusProduto } from '@/lib/estoque/calc';
 import { baixarArquivo, imprimirHtml, nomeArquivo, relatorioXlsx } from '@/lib/estoque/exportar';
 
 type Sel = Record<string, { marcado: boolean; qtd: string }>;
@@ -22,30 +22,15 @@ export function ComprasEstoque() {
   const mudar = (pid: string, padrao: number, campo: 'marcado' | 'qtd', v: boolean | string) =>
     setSel((s) => ({ ...s, [pid]: { ...estado(pid, padrao), [campo]: v } }));
 
-  const total = soma(itens, (i) => qtdDe(i.produto.id, i.comprar) * i.precoUnit);
   const marcados = itens.filter((i) => estado(i.produto.id, i.comprar).marcado);
-  const totalSel = soma(marcados, (i) => qtdDe(i.produto.id, i.comprar) * i.precoUnit);
-  const gasto = gastoNoMes(dados, hojeISO().slice(0, 7));
-  const saldo = Math.max(dados.config.orc_max - gasto, 0);
+  const zerados = itens.filter((i) => statusProduto(dados, i.produto) === 'red').length;
 
   function marcarTodos() {
     const todos = itens.every((i) => estado(i.produto.id, i.comprar).marcado);
     setSel(Object.fromEntries(itens.map((i) => [i.produto.id, { ...estado(i.produto.id, i.comprar), marcado: !todos }])));
   }
-  function marcarNoOrcamento() {
-    let resto = saldo;
-    const novo: Sel = {};
-    for (const i of itens) {
-      const c = qtdDe(i.produto.id, i.comprar) * i.precoUnit;
-      const cabe = c > 0 && c <= resto;
-      if (cabe) resto -= c;
-      novo[i.produto.id] = { ...estado(i.produto.id, i.comprar), marcado: cabe };
-    }
-    setSel(novo);
-    avisar('Marcados os itens mais críticos que cabem no saldo do orçamento.');
-  }
   function darEntrada() {
-    const lista = marcados.map((i) => ({ produtoId: i.produto.id, qtd: qtdDe(i.produto.id, i.comprar), precoUnit: i.precoUnit })).filter((i) => i.qtd > 0);
+    const lista = marcados.map((i) => ({ produtoId: i.produto.id, qtd: qtdDe(i.produto.id, i.comprar) })).filter((i) => i.qtd > 0);
     if (!lista.length) return avisar('Marque ao menos um item com quantidade maior que zero.', true);
     abrir({ tipo: 'entradaCompras', itens: lista });
     setSel({});
@@ -54,36 +39,27 @@ export function ComprasEstoque() {
     const linhas = itens
       .map((i) => {
         const q = qtdDe(i.produto.id, i.comprar);
-        return `<tr><td>☐</td><td>${i.produto.nome}</td><td class="n">${fmtQtd(i.produto.meta)}</td><td class="n">${fmtQtd(estoqueAtual(dados, i.produto))}</td><td class="n"><b>${fmtQtd(q)} ${i.produto.unidade}</b></td><td class="n">${fmtMoeda(i.precoUnit)}</td><td class="n">${fmtMoeda(q * i.precoUnit)}</td></tr>`;
+        return `<tr><td>☐</td><td>${i.produto.nome}</td><td>${i.produto.categoria}</td><td class="n">${fmtQtd(i.produto.meta)}</td><td class="n">${fmtQtd(estoqueAtual(dados, i.produto))}</td><td class="n"><b>${fmtQtd(q)} ${i.produto.unidade}</b></td></tr>`;
       })
       .join('');
     imprimirHtml(
       'Lista de compras',
-      ` · estimativa ${fmtMoeda(total)}`,
-      `<table><thead><tr><th>✓</th><th>Produto</th><th class="n">Meta</th><th class="n">Atual</th><th class="n">Comprar</th><th class="n">Preço un. est.</th><th class="n">Subtotal</th></tr></thead><tbody>${linhas}</tbody><tfoot><tr><td colspan="6">Total estimado</td><td class="n">${fmtMoeda(total)}</td></tr></tfoot></table>`
+      ` · ${itens.length} produto(s)`,
+      `<table><thead><tr><th>✓</th><th>Produto</th><th>Categoria</th><th class="n">Meta</th><th class="n">Atual</th><th class="n">Comprar</th></tr></thead><tbody>${linhas}</tbody></table>`
     );
   }
 
   return (
     <div>
       <CabecalhoEstoque titulo="Lista de compras" descricao="Gerada automaticamente com os produtos abaixo da meta, dos mais críticos aos menos" />
-      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Kpi titulo="Custo estimado da lista" valor={fmtMoeda(total)} tom="azul" sub="quantidades até a meta" />
-        <Kpi titulo="Itens marcados" valor={fmtMoeda(totalSel)} tom="verde" sub={`${marcados.length} item(ns)`} />
-        <Kpi titulo="Gasto neste mês" valor={fmtMoeda(gasto)} sub={`orçamento ${fmtMoeda(dados.config.orc_min)} – ${fmtMoeda(dados.config.orc_max)}`} />
-        <Kpi
-          titulo="Saldo do orçamento (máx.)"
-          valor={fmtMoeda(saldo)}
-          tom={totalSel > saldo ? 'vermelho' : 'verde'}
-          sub={totalSel > saldo ? <span className="text-negative">seleção ultrapassa o saldo</span> : 'disponível este mês'}
-        />
+      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3">
+        <Kpi titulo="Produtos para comprar" valor={itens.length} tom="azul" sub="abaixo da meta" />
+        <Kpi titulo="Sem estoque" valor={zerados} tom="vermelho" sub="prioridade" />
+        <Kpi titulo="Itens marcados" valor={marcados.length} tom="verde" sub="para dar entrada" />
       </div>
       <div className="mb-4 flex flex-wrap gap-2">
         <button type="button" className="btn-secondary" onClick={marcarTodos}>
           <IconCheck className="h-4 w-4" /> Marcar todos
-        </button>
-        <button type="button" className="btn-secondary" onClick={marcarNoOrcamento} title="Marca do mais crítico ao menos até o saldo do orçamento">
-          Marcar dentro do orçamento
         </button>
         <div className="flex-1" />
         <button type="button" className="btn-secondary" onClick={() => baixarArquivo(`${nomeArquivo('lista-de-compras')}.xlsx`, relatorioXlsx('Lista de compras', gerarRelatorio(dados, 'reposicao')))}>
@@ -98,7 +74,7 @@ export function ComprasEstoque() {
       </div>
       <Secao semPadding>
         {itens.length ? (
-          <Tabela minW={820}>
+          <Tabela minW={700}>
             <thead>
               <tr>
                 <th className={`${TH} w-10`} />
@@ -107,8 +83,6 @@ export function ComprasEstoque() {
                 <th className={THN}>Atual</th>
                 <th className={THN}>Comprar</th>
                 <th className={TH}>Un.</th>
-                <th className={THN}>Preço un. est.</th>
-                <th className={THN}>Subtotal</th>
                 <th className={TH}>Status</th>
               </tr>
             </thead>
@@ -135,8 +109,6 @@ export function ComprasEstoque() {
                       <input className="input-field !w-24 !py-1 text-right" inputMode="decimal" value={e.qtd} onChange={(ev) => mudar(p.id, i.comprar, 'qtd', ev.target.value)} aria-label={`Quantidade de ${p.nome}`} />
                     </td>
                     <td className={TD}>{p.unidade}</td>
-                    <td className={TDN}>{i.precoUnit ? fmtMoeda(i.precoUnit) : <span className="text-gray-400">defina</span>}</td>
-                    <td className={TDN}>{fmtMoeda(q * i.precoUnit)}</td>
                     <td className={TD}>
                       <StatusBadge status={statusProduto(dados, p)} />
                     </td>
@@ -149,7 +121,7 @@ export function ComprasEstoque() {
           <Vazio>Tudo certo! Todos os produtos estão na meta.</Vazio>
         )}
       </Secao>
-      <p className="mt-3 text-xs text-gray-400">O preço estimado usa o último valor pago (ou o preço de referência do produto).</p>
+      <p className="mt-3 text-xs text-gray-400">Ajuste a quantidade se quiser comprar mais ou menos que o necessário para a meta, marque o que comprou e dê entrada.</p>
     </div>
   );
 }
