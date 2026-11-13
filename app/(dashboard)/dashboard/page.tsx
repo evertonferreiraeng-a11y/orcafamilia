@@ -10,20 +10,16 @@ import {
 } from '@/lib/utils';
 import { indexarSubcategoriasPorCategoria, orcadoEfetivoCategoria } from '@/lib/orcamentos';
 import { gerarInsights, type DadosGerente } from '@/lib/gerente';
-import { MinhasContasCarousel } from '@/components/dashboard/MinhasContasCarousel';
-import { BalancoMensalChart, type PontoBalanco } from '@/components/dashboard/BalancoMensalChart';
-import { DespesasPorTipoCard, type CategoriaExecutadoOrcado } from '@/components/dashboard/DespesasPorTipoCard';
+import type { PontoBalanco } from '@/components/dashboard/BalancoMensalChart';
+import type { CategoriaExecutadoOrcado } from '@/components/dashboard/DespesasPorTipoCard';
 import type { VencimentoItem } from '@/components/dashboard/ProximosVencimentosCard';
 import type { DetalhesSinais } from '@/components/dashboard/SinaisVitais';
 import { SaudeFinanceiraCard } from '@/components/dashboard/SaudeFinanceiraCard';
 import { MesNumaLinhaCard } from '@/components/dashboard/MesNumaLinhaCard';
 import { AcoesAgoraCard, type Acao } from '@/components/dashboard/AcoesAgoraCard';
 import { TendenciaSobraCard, type PontoTendencia } from '@/components/dashboard/TendenciaSobraCard';
-import { DetalhesRecolhiveis } from '@/components/dashboard/DetalhesRecolhiveis';
 import { calcularSaude } from '@/lib/saudeFinanceira';
 import { emojiCategoria } from '@/lib/emojiCategoria';
-import { ParaOndeFoiCard } from '@/components/dashboard/ParaOndeFoiCard';
-import { IconTrendUp, IconRecorrente, IconCompras } from '@/components/icons';
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -677,58 +673,6 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      <DetalhesRecolhiveis>
-        <ParaOndeFoiCard categorias={fatiasGasto} baseHrefDetalhe={baseHrefDetalhe} />
-
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <DespesasPorTipoCard
-            titulo="Receitas"
-            icon={IconTrendUp}
-            tom="receita"
-            categorias={categoriasReceitaDetalhe}
-            totalExecutado={totalReceitaCategorias}
-            totalOrcado={orcadoReceitaTotal}
-            totalGeral={totalReceitaCategorias}
-            mensagemVazio="Nenhuma receita registrada neste mês."
-            hrefDetalhe={hrefDetalhe}
-          />
-          <DespesasPorTipoCard
-            titulo="Despesas Fixas"
-            icon={IconRecorrente}
-            tom="fixa"
-            categorias={categoriasFixasDetalhe}
-            totalExecutado={despesaFixaMes}
-            totalOrcado={orcadoFixasTotal}
-            totalGeral={totalGastoCategorias}
-            hrefDetalhe={hrefDetalhe}
-          />
-          <DespesasPorTipoCard
-            titulo="Despesas Variáveis"
-            icon={IconCompras}
-            tom="variavel"
-            categorias={categoriasVariaveisDetalhe}
-            totalExecutado={gastoVariavelMes}
-            totalOrcado={orcadoVariaveisTotal}
-            totalGeral={totalGastoCategorias}
-            hrefDetalhe={hrefDetalhe}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
-          <div className="card flex flex-col p-4 lg:col-span-3 lg:min-h-[440px]">
-            <BalancoMensalChart diario={fluxo} mensal={balancoAnual} ano={anoAtual} mesSelecionado={mesSelecionado.getMonth()} />
-          </div>
-          <MinhasContasCarousel
-            contas={(contas ?? []).map((conta) => ({
-              id: conta.id,
-              nome: conta.nome,
-              tipo: conta.tipo,
-              saldo: saldoPorConta.get(conta.id) ?? 0,
-              cor: conta.cor,
-            }))}
-          />
-        </div>
-      </DetalhesRecolhiveis>
     </div>
   );
 }
