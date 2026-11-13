@@ -29,7 +29,7 @@ export interface DetalhesSinais {
     receita: number;
     totalMes: number;
     lancamentos: { id: string; descricao: string; valor: number; pago: boolean; data: string; sub: string }[];
-    ativas: { id: string; descricao: string; credor: string | null; restante: number; total: number; parcelas: string | null; vencimento: string }[];
+    ativas: { id: string; descricao: string; credor: string | null; restante: number; total: number; parcelas: string | null; vencimento: string | null }[];
   };
   contas: {
     contas: { id: string; nome: string; tipo: string; cor: string | null; saldo: number }[];
@@ -37,7 +37,7 @@ export interface DetalhesSinais {
   };
 }
 
-const dataCurta = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
+const dataCurta = (d: string | null | undefined) => (d && d.length >= 10 ? `${d.slice(8, 10)}/${d.slice(5, 7)}` : '—');
 
 function Linha({ rotulo, valor, forte, cor, sinal }: { rotulo: React.ReactNode; valor: number; forte?: boolean; cor?: string; sinal?: '+' | '−' | '=' }) {
   return (
@@ -190,7 +190,7 @@ function DetalheDividas({ d }: { d: DetalhesSinais['dividas'] }) {
                     <span className="anim-crescer block h-full rounded-full bg-emerald-500" style={{ width: `${pagoPct}%` }} />
                   </span>
                   <p className="mt-1 text-[11px] text-gray-400">
-                    {Math.round(pagoPct)}% quitado{x.parcelas && ` · parcelas ${x.parcelas}`} · próxima {dataCurta(x.vencimento)}
+                    {Math.round(pagoPct)}% quitado{x.parcelas && ` · parcelas ${x.parcelas}`} · {x.vencimento ? `próxima ${dataCurta(x.vencimento)}` : 'sem vencimento'}
                   </p>
                 </li>
               );

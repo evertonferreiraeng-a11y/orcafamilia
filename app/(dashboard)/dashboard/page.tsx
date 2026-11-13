@@ -628,7 +628,7 @@ export default async function DashboardPage({
         restante: Math.max(0, Number(d.valor_total) - Number(d.valor_pago)),
         total: Number(d.valor_total),
         parcelas: d.parcelas_total ? `${d.parcelas_pagas ?? 0}/${d.parcelas_total}` : null,
-        vencimento: d.data_vencimento as string,
+        vencimento: (d.data_vencimento as string | null) ?? null,
       })),
     },
     contas: {
