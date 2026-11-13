@@ -32,17 +32,17 @@ export function mediaTresMeses(l: Linha, mes: number): number {
   return valores.reduce((a, v) => a + v, 0) / valores.length;
 }
 
-function orcadoMesAnterior(l: Linha, mes: number): number | null {
+export function orcadoMesAnterior(l: Linha, mes: number): number | null {
   return mes > 0 ? l.valoresPorMes[mes - 1] : l.orcadoDezAnterior ?? null;
 }
 
-function arredondar(v: number): number {
+export function arredondar(v: number): number {
   // sugestões arredondadas para dezenas — ninguém planeja R$ 2.637,41
   return v >= 100 ? Math.round(v / 10) * 10 : Math.round(v);
 }
 
 /** Aceita "1.234,56", "1234,56", "1234.56", "R$ 1.234". Vazio = sem orçamento. */
-function parseValor(texto: string): number | null {
+export function parseValor(texto: string): number | null {
   let t = texto.replace(/R\$|\s/g, '');
   if (!t) return null;
   if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.');
@@ -51,7 +51,7 @@ function parseValor(texto: string): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-function formatarEntrada(v: number | null): string {
+export function formatarEntrada(v: number | null): string {
   if (v == null || v <= 0) return '';
   return v.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
@@ -60,7 +60,7 @@ const chave = (categoriaId: string, subcategoriaId: string | null) => `${categor
 
 /* ---------- campo de valor ---------- */
 
-function CampoValor({
+export function CampoValor({
   valor,
   onChange,
   alterado,
@@ -98,7 +98,7 @@ function CampoValor({
   );
 }
 
-function ChipSugestao({ rotulo, valor, ativo, onClick }: { rotulo: string; valor: number; ativo: boolean; onClick: () => void }) {
+export function ChipSugestao({ rotulo, valor, ativo, onClick }: { rotulo: string; valor: number; ativo: boolean; onClick: () => void }) {
   if (valor <= 0) return null;
   return (
     <button
@@ -257,7 +257,7 @@ export function PlanejarMes({
     return m;
   }, [receitas, despesas, mes]);
 
-  const [rascunho, setRascunho] = useState(original);
+  const [rascunho, setRascunho] = useState<Map<string, string>>(original);
   const [ateDezembro, setAteDezembro] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [mensagem, setMensagem] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);

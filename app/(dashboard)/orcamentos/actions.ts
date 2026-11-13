@@ -206,3 +206,42 @@ export async function salvarOrcamentosLote(itens: ItemOrcamentoLote[]): Promise<
   revalidatePath('/indicadores');
   return {};
 }
+
+export interface LancamentoCategoria {
+  id: string;
+  descricao: string;
+  valor: number;
+  data: string;
+  subcategoria_id: string | null;
+  pago: boolean | null;
+}
+
+/** Lançamentos de uma categoria num mês — usado no detalhe do card de orçamento. */
+export async function buscarLancamentosCategoria(
+  categoriaId: string,
+  ano: number,
+  mesIndex: number
+): Promise<{ error?: string; lancamentos?: LancamentoCategoria[] }> {
+  const supabase = createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Sessão expirada.' };
+
+  const inicio = `${ano}-${String(mesIndex + 1).padStart(2, '0')}-01`;
+  const ultimoDia = new Date(ano, mesIndex + 1, 0).getDate();
+  const fim = `${ano}-${String(mesIndex + 1).padStart(2, '0')}-${String(ultimoDia).padStart(2, '0')}`;
+
+  const { data, error } = await supabase
+    .from('transacoes')
+    .select('id, descricao, valor, data, subcategoria_id, pago')
+    .eq('user_id', user.id)
+    .eq('categoria_id', categoriaId)
+    .eq('eh_transferencia', false)
+    .gte('data', inicio)
+    .lte('data', fim)
+    .order('data', { ascending: false });
+
+  if (error) return { error: error.message };
+  return { lancamentos: (data ?? []).map((t) => ({ ...t, valor: Number(t.valor) })) };
+}
