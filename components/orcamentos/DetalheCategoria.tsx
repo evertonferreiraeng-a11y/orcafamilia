@@ -144,7 +144,7 @@ export function DetalheCategoria({
       subcategoriaId: k || null,
       valor: parseValor(rascunho.get(k) ?? ''),
     }));
-    const meses = ateDezembro ? Array.from({ length: 12 - mes }, (_, i) => mes + i) : [mes];
+    const meses = ateDezembro && mes < 11 ? Array.from({ length: 12 - mes }, (_, i) => mes + i) : [mes];
     setSalvando(true);
     setMensagem(null);
     const erro = await onSalvar(itens, meses);
@@ -304,10 +304,12 @@ export function DetalheCategoria({
 
         {/* salvar */}
         <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-gray-50 px-4 py-3">
-          <label className="flex cursor-pointer items-center gap-2 text-xs text-gray-600">
-            <input type="checkbox" checked={ateDezembro} onChange={(e) => setAteDezembro(e.target.checked)} className="rounded border-gray-300 text-brand-600" />
-            Aplicar também de {MESES_ABREV[Math.min(mes + 1, 11)].toLowerCase()} até dezembro
-          </label>
+          {mes < 11 && (
+            <label className="flex cursor-pointer items-center gap-2 text-xs text-gray-600" title="Grava o mesmo valor nos meses seguintes deste ano">
+              <input type="checkbox" checked={ateDezembro} onChange={(e) => setAteDezembro(e.target.checked)} className="rounded border-gray-300 text-brand-600" />
+              {mes === 10 ? 'Repetir este valor em dezembro também' : `Repetir este valor nos próximos meses (${MESES_ABREV[mes + 1].toLowerCase()} a dez)`}
+            </label>
+          )}
           {mensagem && <span className={cn('text-xs', mensagem.tipo === 'erro' ? 'text-negative' : 'text-positive')}>{mensagem.texto}</span>}
           <span className="ml-auto flex gap-2">
             {alteradas.length > 0 && (
