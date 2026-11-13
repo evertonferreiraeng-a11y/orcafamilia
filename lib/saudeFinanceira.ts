@@ -1,14 +1,15 @@
 import { formatCurrency } from '@/lib/utils';
 
 /**
- * Saúde financeira do mês: 5 sinais vitais, cada um vale até 20 pontos (nota 0–100).
+ * Saúde financeira do mês: 4 sinais vitais (sobra, orçamento, dívidas, contas em dia).
+ * Cada sinal é avaliado de 0 a 20 internamente; a nota é a soma convertida para 0–100.
  * Regras simples e explicáveis — o tooltip da nota mostra a conta.
  */
 
 export type CorSinal = 'verde' | 'amarelo' | 'vermelho';
 
 export interface Sinal {
-  chave: 'sobra' | 'orcamento' | 'dividas' | 'reserva' | 'contas';
+  chave: 'sobra' | 'orcamento' | 'dividas' | 'contas';
   emoji: string;
   rotulo: string;
   valor: string;
@@ -33,8 +34,6 @@ export interface EntradaSaude {
   categoriasComOrcamento: number;
   categoriasEstouradas: { nome: string; pct: number }[];
   categoriasPerto: number;
-  reserva: number;
-  mediaDespesaMensal: number;
   contasNegativas: { nome: string; saldo: number }[];
   contasAtrasadas: number;
   hrefOrcamentos: string;
@@ -42,7 +41,6 @@ export interface EntradaSaude {
 
 export const META_SOBRA = 0.2;
 export const LIMITE_DIVIDAS = 0.3;
-export const META_RESERVA_MESES = 6;
 
 const clamp = (v: number, min = 0, max = 20) => Math.max(min, Math.min(max, v));
 
@@ -100,22 +98,6 @@ function sinalDividas(e: EntradaSaude): Sinal {
   };
 }
 
-function sinalReserva(e: EntradaSaude): Sinal {
-  const base = { chave: 'reserva' as const, emoji: '🛟', rotulo: 'Reserva', href: '/cofre' };
-  if (e.mediaDespesaMensal <= 0) {
-    return { ...base, valor: formatCurrency(e.reserva), detalhe: 'no Cofre', pontos: e.reserva > 0 ? 20 : 0, cor: e.reserva > 0 ? 'verde' : 'vermelho' };
-  }
-  const meses = e.reserva / e.mediaDespesaMensal;
-  const fmt = meses >= 10 || meses === 0 ? meses.toFixed(0) : meses.toFixed(1).replace('.', ',');
-  return {
-    ...base,
-    valor: `${fmt} ${meses >= 0.95 && meses < 1.05 ? 'mês' : 'meses'}`,
-    detalhe: e.reserva > 0 ? `${formatCurrency(e.reserva)} no Cofre · meta ${META_RESERVA_MESES}` : `meta: ${META_RESERVA_MESES} meses`,
-    pontos: clamp((meses / META_RESERVA_MESES) * 20),
-    cor: meses >= META_RESERVA_MESES ? 'verde' : meses >= 3 ? 'amarelo' : 'vermelho',
-  };
-}
-
 function sinalContas(e: EntradaSaude): Sinal {
   const base = { chave: 'contas' as const, emoji: '✅', rotulo: 'Contas em dia', href: '/transacoes?status=pendente' };
   const problemas = e.contasNegativas.length + (e.contasAtrasadas > 0 ? 1 : 0);
@@ -138,8 +120,8 @@ function sinalContas(e: EntradaSaude): Sinal {
 }
 
 export function calcularSaude(e: EntradaSaude): SaudeFinanceira {
-  const sinais = [sinalSobra(e), sinalOrcamento(e), sinalDividas(e), sinalReserva(e), sinalContas(e)];
-  const nota = Math.round(sinais.reduce((a, s) => a + s.pontos, 0));
+  const sinais = [sinalSobra(e), sinalOrcamento(e), sinalDividas(e), sinalContas(e)];
+  const nota = Math.round((sinais.reduce((a, s) => a + s.pontos, 0) * 100) / (sinais.length * 20));
 
   const { emoji, titulo } =
     nota >= 80
@@ -175,7 +157,6 @@ const DESCRICAO_PROBLEMA: Record<Sinal['chave'], string> = {
   sobra: 'sobra baixa no mês',
   orcamento: 'categorias acima do orçado',
   dividas: 'parcelas pesando na renda',
-  reserva: 'reserva de emergência curta',
   contas: 'conta no negativo ou atrasada',
 };
 
@@ -186,5 +167,6 @@ function juntar(itens: string[]): string {
 
 /** Explica a nota (tooltip). */
 export function explicarNota(s: SaudeFinanceira): string {
-  return s.sinais.map((x) => `${x.emoji} ${x.rotulo}: ${Math.round(x.pontos)}/20`).join('\n') + `\n= ${s.nota}/100`;
+  const max = 100 / s.sinais.length;
+  return s.sinais.map((x) => `${x.emoji} ${x.rotulo}: ${Math.round((x.pontos / 20) * max)}/${max}`).join('\n') + `\n= ${s.nota}/100`;
 }

@@ -19,7 +19,7 @@ import { MesNumaLinhaCard } from '@/components/dashboard/MesNumaLinhaCard';
 import { AcoesAgoraCard, type Acao } from '@/components/dashboard/AcoesAgoraCard';
 import { TendenciaSobraCard, type PontoTendencia } from '@/components/dashboard/TendenciaSobraCard';
 import { DetalhesRecolhiveis } from '@/components/dashboard/DetalhesRecolhiveis';
-import { calcularSaude, META_RESERVA_MESES } from '@/lib/saudeFinanceira';
+import { calcularSaude } from '@/lib/saudeFinanceira';
 import { emojiCategoria } from '@/lib/emojiCategoria';
 import { ParaOndeFoiCard } from '@/components/dashboard/ParaOndeFoiCard';
 import { IconTrendUp, IconRecorrente, IconCompras } from '@/components/icons';
@@ -66,7 +66,6 @@ export default async function DashboardPage({
     { data: dividasProximas },
     { data: dividasAtivasTodas },
     { data: pendentesProximas },
-    { data: cofres },
     { data: transacoesTendencia },
   ] = await Promise.all([
     supabase.from('contas').select('*').eq('user_id', user.id).eq('ativa', true).order('nome'),
@@ -140,7 +139,6 @@ export default async function DashboardPage({
       .lte('data', em45DiasStr)
       .order('data', { ascending: true })
       .limit(300),
-    supabase.from('cofres').select('saldo').eq('user_id', user.id),
     supabase
       .from('transacoes')
       .select('data, tipo, valor')
@@ -505,8 +503,6 @@ export default async function DashboardPage({
     return g >= o * 0.8 && g <= o + 0.01;
   }).length;
 
-  const reserva = (cofres ?? []).reduce((a, c) => a + Number(c.saldo), 0);
-
   const tendencia: PontoTendencia[] = Array.from({ length: 6 }, (_, i) => {
     const d = addMeses(mesSelecionado, i - 5);
     const mesParam = format(d, 'yyyy-MM');
@@ -524,11 +520,6 @@ export default async function DashboardPage({
     if (t.tipo === 'receita') tendencia[i].receita += Number(t.valor);
     else tendencia[i].despesa += Number(t.valor);
   }
-  const mesesComGasto = tendencia.filter((p) => p.despesa > 0);
-  const mediaDespesaMensal = mesesComGasto.length
-    ? mesesComGasto.reduce((a, p) => a + p.despesa, 0) / mesesComGasto.length
-    : totalGastoCategorias;
-
   const contasNegativas = (contas ?? [])
     .map((c) => ({ nome: c.nome as string, saldo: saldoPorConta.get(c.id) ?? 0 }))
     .filter((c) => c.saldo < -0.005)
@@ -545,8 +536,6 @@ export default async function DashboardPage({
     categoriasComOrcamento: categoriasOrcadas.length,
     categoriasEstouradas: estouradas.map((c) => ({ nome: c.nome, pct: c.pct })),
     categoriasPerto: perto,
-    reserva,
-    mediaDespesaMensal,
     contasNegativas,
     contasAtrasadas: atrasadasDespesa.length,
     hrefOrcamentos: `/orcamentos?ano=${anoAtual}&mes=${mesSelecionado.getMonth() + 1}`,
@@ -582,20 +571,9 @@ export default async function DashboardPage({
       href: hrefDetalhe(c.id),
     });
   }
-  const metaReserva = mediaDespesaMensal * META_RESERVA_MESES;
-  if (mediaDespesaMensal > 0 && reserva < metaReserva && sobraMes > 0) {
-    acoes.push({
-      tipo: 'link',
-      id: 'reserva',
-      emoji: '🛟',
-      texto: 'Mandar parte da sobra para a reserva',
-      sub: `faltam ${formatCurrency(metaReserva - reserva)} para ${META_RESERVA_MESES} meses de gastos`,
-      href: '/cofre',
-    });
-  }
   // Dicas do gerente que não repetem os sinais vitais nem as ações acima.
   insights.forEach((ins, i) => {
-    if (/saldo total|reserva|vence|superaram|guardou|em dia/i.test(ins.mensagem)) return;
+    if (/saldo total|reserva|vence|superaram|guardou|em dia|ultrapass/i.test(ins.mensagem)) return;
     if (ins.severidade === 'elogio') return;
     acoes.push({ tipo: 'dica', id: `dica-${i}`, emoji: ins.severidade === 'alerta' ? '⚠️' : '💡', texto: ins.mensagem });
   });

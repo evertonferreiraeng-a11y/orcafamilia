@@ -63,7 +63,7 @@ export function SaudeFinanceiraCard({ saude, mesNome, mesParam }: { saude: Saude
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         {saude.sinais.map((s, i) => (
           <Link
             key={s.chave}
@@ -73,7 +73,7 @@ export function SaudeFinanceiraCard({ saude, mesNome, mesParam }: { saude: Saude
               COR_BORDA[s.cor]
             )}
             style={{ animationDelay: `${120 + i * 60}ms` }}
-            title={`${Math.round(s.pontos)} de 20 pontos`}
+            title={`${Math.round((s.pontos / 20) * (100 / saude.sinais.length))} de ${100 / saude.sinais.length} pontos`}
           >
             <p className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
               <span className="text-sm">{s.emoji}</span>
