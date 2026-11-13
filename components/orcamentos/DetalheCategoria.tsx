@@ -114,7 +114,23 @@ export function DetalheCategoria({
   }, [c, mes]);
   const [rascunho, setRascunho] = useState<Map<string, string>>(original);
   useEffect(() => setRascunho(original), [original]);
-  const [ateDezembro, setAteDezembro] = useState(false);
+  // Meses extras (além do aberto) para onde o valor será replicado ao salvar.
+  const [mesesExtras, setMesesExtras] = useState<Set<number>>(new Set());
+  useEffect(() => setMesesExtras(new Set()), [mes]);
+  function alternarMes(i: number) {
+    if (i === mes) return;
+    setMensagem(null);
+    setMesesExtras((prev) => {
+      const novo = new Set(prev);
+      if (novo.has(i)) novo.delete(i);
+      else novo.add(i);
+      return novo;
+    });
+  }
+  function marcarMeses(lista: number[]) {
+    setMensagem(null);
+    setMesesExtras(new Set(lista.filter((i) => i !== mes)));
+  }
   const [salvando, setSalvando] = useState(false);
   const [mensagem, setMensagem] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);
 
@@ -137,15 +153,21 @@ export function DetalheCategoria({
     onFechar();
   }
 
+  const replicando = mesesExtras.size > 0;
+  const podeSalvar = alteradas.length > 0 || replicando;
+
   async function salvar() {
-    if (!alteradas.length) return;
-    const itens: ItemPlanejado[] = alteradas.map((k) => ({
+    if (!podeSalvar) return;
+    // Replicando: leva a configuração completa do mês (todas as subcategorias, inclusive zeradas)
+    // para que os meses escolhidos fiquem iguais a este. Senão, só o que mudou.
+    const chaves = replicando ? (temSub ? c.subcategorias.map((sc) => sc.id) : ['']) : alteradas;
+    const itens: ItemPlanejado[] = chaves.map((k) => ({
       tipo: receita ? 'receita' : 'despesa',
       categoriaId: c.id,
       subcategoriaId: k || null,
       valor: parseValor(rascunho.get(k) ?? ''),
     }));
-    const meses = ateDezembro && mes < 11 ? Array.from({ length: 12 - mes }, (_, i) => mes + i) : [mes];
+    const meses = [mes, ...Array.from(mesesExtras)].sort((a, b) => a - b);
     setSalvando(true);
     setMensagem(null);
     const erro = await onSalvar(itens, meses);
@@ -153,8 +175,12 @@ export function DetalheCategoria({
     setMensagem(
       erro
         ? { tipo: 'erro', texto: erro }
-        : { tipo: 'sucesso', texto: meses.length > 1 ? `Salvo de ${MESES_ABREV[mes].toLowerCase()} a dez.` : 'Orçamento salvo.' }
+        : {
+            tipo: 'sucesso',
+            texto: meses.length > 1 ? `Salvo em ${meses.map((i) => MESES_ABREV[i].toLowerCase()).join(', ')}.` : 'Orçamento salvo.',
+          }
     );
+    if (!erro) setMesesExtras(new Set());
   }
 
   /* ---- números do mês (com o rascunho, para ver o efeito antes de salvar) ---- */
@@ -314,13 +340,55 @@ export function DetalheCategoria({
         )}
 
         {/* salvar */}
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-gray-50 px-4 py-3">
-          {mes < 11 && (
-            <label className="flex cursor-pointer items-center gap-2 text-xs text-gray-600" title="Grava o mesmo valor nos meses seguintes deste ano">
-              <input type="checkbox" checked={ateDezembro} onChange={(e) => setAteDezembro(e.target.checked)} className="rounded border-gray-300 text-brand-600" />
-              {mes === 10 ? 'Repetir este valor em dezembro também' : `Repetir este valor nos próximos meses (${MESES_ABREV[mes + 1].toLowerCase()} a dez)`}
-            </label>
-          )}
+        <div className="space-y-3 rounded-2xl bg-gray-50 px-4 py-3">
+          <div>
+            <div className="mb-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="text-xs font-semibold text-gray-700">🔁 Replicar para os meses:</span>
+              <button type="button" onClick={() => marcarMeses(Array.from({ length: 11 - mes }, (_, i) => mes + 1 + i))} className="text-[11px] font-semibold text-brand-600 hover:underline">
+                próximos
+              </button>
+              <button type="button" onClick={() => marcarMeses(Array.from({ length: 12 }, (_, i) => i))} className="text-[11px] font-semibold text-brand-600 hover:underline">
+                ano todo
+              </button>
+              {replicando && (
+                <button type="button" onClick={() => marcarMeses([])} className="text-[11px] font-semibold text-gray-500 hover:underline">
+                  limpar
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1" role="group" aria-label={`Meses de ${ano} para replicar`}>
+              {MESES_ABREV.map((m, i) => {
+                const atual = i === mes;
+                const marcado = atual || mesesExtras.has(i);
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => alternarMes(i)}
+                    aria-pressed={marcado}
+                    title={atual ? 'Mês aberto — sempre incluído' : marcado ? `Desmarcar ${m}` : `Replicar também em ${m}`}
+                    className={cn(
+                      'min-w-[44px] rounded-lg px-2 py-1.5 text-xs font-semibold transition',
+                      atual
+                        ? 'cursor-default bg-gray-900 text-white'
+                        : marcado
+                        ? 'bg-brand-500 text-white shadow-sm hover:bg-brand-600'
+                        : 'bg-white text-gray-500 ring-1 ring-inset ring-gray-200 hover:text-gray-800 hover:ring-gray-300'
+                    )}
+                  >
+                    {marcado && !atual ? '✓ ' : ''}
+                    {m}
+                  </button>
+                );
+              })}
+            </div>
+            {replicando && (
+              <p className="mt-1.5 text-[11px] text-gray-500">
+                Ao salvar, {MESES_ABREV[mes].toLowerCase()} e {mesesExtras.size} outro(s) mês(es) ficam com {temSub ? 'os mesmos valores em cada subcategoria' : 'o mesmo valor'} ({formatCurrency(orcado)}).
+              </p>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-2 border-t border-gray-200/70 pt-3">
           {mensagem && <span className={cn('text-xs', mensagem.tipo === 'erro' ? 'text-negative' : 'text-positive')}>{mensagem.texto}</span>}
           <span className="ml-auto flex gap-2">
             {alteradas.length > 0 && (
@@ -328,11 +396,12 @@ export function DetalheCategoria({
                 <IconDesfazer className="h-3.5 w-3.5" /> Desfazer
               </button>
             )}
-            <button type="button" onClick={salvar} disabled={salvando || !alteradas.length} className="btn-primary px-3 py-1.5 text-xs">
+            <button type="button" onClick={salvar} disabled={salvando || !podeSalvar} className="btn-primary px-3 py-1.5 text-xs">
               <IconCheck className="h-3.5 w-3.5" />
-              {salvando ? 'Salvando...' : alteradas.length ? 'Salvar' : 'Salvo'}
+              {salvando ? 'Salvando...' : replicando ? `Salvar em ${mesesExtras.size + 1} meses` : alteradas.length ? 'Salvar' : 'Salvo'}
             </button>
           </span>
+          </div>
         </div>
 
         <div className="grid gap-5 md:grid-cols-2">
