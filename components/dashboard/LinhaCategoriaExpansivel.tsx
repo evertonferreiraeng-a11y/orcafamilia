@@ -97,7 +97,26 @@ export function LinhaCategoriaExpansivel({
               >
                 {emojiCategoria(categoria.nome, categoria.icone)}
               </span>
-              <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-900 group-hover:text-brand-700">{categoria.nome}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium text-gray-900 group-hover:text-brand-700">{categoria.nome}</span>
+                {categoria.orcado > 0 && (
+                  <span className="mt-1 block h-1 overflow-hidden rounded-full bg-gray-100" title={`${Math.round((categoria.executado / categoria.orcado) * 100)}% do orçado`}>
+                    <span
+                      className={cn(
+                        'anim-crescer block h-full rounded-full',
+                        isReceita
+                          ? 'bg-emerald-500'
+                          : categoria.executado > categoria.orcado + TOLERANCIA
+                          ? 'bg-red-500'
+                          : categoria.executado >= categoria.orcado * 0.8
+                          ? 'bg-amber-500'
+                          : 'bg-emerald-500'
+                      )}
+                      style={{ width: `${Math.min(100, (categoria.executado / categoria.orcado) * 100)}%` }}
+                    />
+                  </span>
+                )}
+              </span>
             </>
           );
           return hrefDetalhe ? (

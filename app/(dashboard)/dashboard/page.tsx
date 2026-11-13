@@ -494,7 +494,7 @@ export default async function DashboardPage({
 
       <div className="anim-subir grid grid-cols-1 gap-4 lg:grid-cols-4" style={{ animationDelay: '200ms' }}>
         <div className="card flex flex-col p-4 lg:col-span-3 lg:min-h-[440px]">
-          <BalancoMensalChart diario={fluxo} mensal={balancoAnual} />
+          <BalancoMensalChart diario={fluxo} mensal={balancoAnual} ano={anoAtual} mesSelecionado={mesSelecionado.getMonth()} />
         </div>
 
         <div className="flex flex-col gap-4">
