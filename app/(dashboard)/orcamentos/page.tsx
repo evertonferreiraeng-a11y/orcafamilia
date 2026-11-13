@@ -17,7 +17,7 @@ export default async function OrcamentosPage({
 
   const [{ data: categoriasTodas }, { data: subcategoriasTodas }, { data: orcamentosAno }, { data: transacoesAno }] =
     await Promise.all([
-      supabase.from('categorias').select('id, nome, tipo, cor').eq('user_id', user.id).order('nome'),
+      supabase.from('categorias').select('id, nome, tipo, cor, icone').eq('user_id', user.id).order('nome'),
       supabase.from('subcategorias').select('id, nome, categoria_id').eq('user_id', user.id).order('nome'),
       supabase
         .from('orcamentos')
@@ -66,7 +66,7 @@ export default async function OrcamentosPage({
     return mapa.get(chave) ?? 0;
   }
 
-  function construirCategoria(categoria: { id: string; nome: string; cor: string | null }): CategoriaAnual {
+  function construirCategoria(categoria: { id: string; nome: string; cor: string | null; icone?: string | null }): CategoriaAnual {
     const valoresPorMes = Array.from({ length: 12 }, (_, i) => buscarLimite(categoria.id, null, i));
     const valoresExecutadosPorMes = Array.from({ length: 12 }, (_, i) => buscarExecutado(categoria.id, null, i));
     const executadoAnterior = [-3, -2, -1].map((i) => buscarExecutado(categoria.id, null, i));
@@ -85,6 +85,7 @@ export default async function OrcamentosPage({
       id: categoria.id,
       nome: categoria.nome,
       cor: categoria.cor,
+      icone: categoria.icone ?? null,
       valoresPorMes,
       valoresExecutadosPorMes,
       executadoAnterior,

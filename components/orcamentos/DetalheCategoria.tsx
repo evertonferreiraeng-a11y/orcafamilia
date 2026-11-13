@@ -18,6 +18,7 @@ import { buscarLancamentosCategoria, type LancamentoCategoria } from '@/app/(das
 import { Modal } from '@/components/ui/Modal';
 import { IconCheck, IconChevronLeft, IconChevronRight, IconDesfazer } from '@/components/icons';
 import { resolverValorEfetivo } from '@/lib/orcamentos';
+import { emojiCategoria, humorOrcamento } from '@/lib/emojiCategoria';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -208,7 +209,9 @@ export function DetalheCategoria({
       <div className="space-y-5">
         {/* navegação de mês */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="h-6 w-1.5 rounded-full" style={{ backgroundColor: c.cor ?? '#94a3b8' }} />
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl text-xl" style={{ backgroundColor: `${c.cor ?? '#94a3b8'}22` }} aria-hidden>
+            {emojiCategoria(c.nome, c.icone)}
+          </span>
           <div className="flex items-center rounded-xl bg-gray-100 p-0.5">
             <button type="button" onClick={() => trocarMes(mes - 1)} disabled={mes === 0} className="rounded-lg p-1.5 text-gray-500 hover:bg-white disabled:opacity-30" aria-label="Mês anterior">
               <IconChevronLeft className="h-4 w-4" />
@@ -251,7 +254,12 @@ export function DetalheCategoria({
             </p>
           </div>
           <div className={cn('rounded-2xl border p-4', !receita && resto < 0 && orcado > 0 ? 'border-red-100 bg-red-50/50' : 'border-gray-100 bg-white')}>
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Situação</p>
+            <p className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+              Situação
+              <span className="text-xl normal-case" title={humorOrcamento({ orcado, exec, receita }).dica}>
+                {humorOrcamento({ orcado, exec, receita }).emoji}
+              </span>
+            </p>
             <p className={cn('mt-1 text-xl font-bold tabular-nums', !receita && resto < 0 && orcado > 0 ? 'text-negative' : 'text-gray-900')}>{statusTexto}</p>
             <p className="mt-1 text-[11px] text-gray-500">
               {dias != null && !receita && orcado > 0 && resto > 0
@@ -278,7 +286,10 @@ export function DetalheCategoria({
                   <li key={s.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:flex-nowrap">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-2">
-                        <span className="truncate text-sm font-medium text-gray-800">{s.nome}</span>
+                        <span className="truncate text-sm font-medium text-gray-800">
+                          <span className="mr-1.5" aria-hidden>{emojiCategoria(s.nome)}</span>
+                          {s.nome}
+                        </span>
                         <span className="shrink-0 text-xs tabular-nums text-gray-500">
                           <b className="text-gray-800">{formatCurrency(se)}</b>
                           {so > 0 && ` de ${formatCurrency(so)} · ${Math.round(sp)}%`}

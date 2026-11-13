@@ -10,6 +10,7 @@ import { Abertura, botaoAbertura } from '@/components/ui/Abertura';
 import { IconChevronDown, IconChevronRight, IconCheck } from '@/components/icons';
 import { cn, formatCurrency, formatPercent0 } from '@/lib/utils';
 import { resolverValorEfetivo } from '@/lib/orcamentos';
+import { emojiCategoria, humorOrcamento } from '@/lib/emojiCategoria';
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 const MESES_COMPLETOS = [
@@ -42,6 +43,7 @@ export interface CategoriaAnual {
   id: string;
   nome: string;
   cor: string | null;
+  icone?: string | null;
   valoresPorMes: (number | null)[];
   valoresExecutadosPorMes: number[];
   executadoAnterior?: number[];
@@ -533,6 +535,7 @@ function CartaoCategoriaMes({
   const hoje = new Date();
   const diasRestantes = ritmo != null ? new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate() - hoje.getDate() + 1 : null;
   const verbo = receita ? 'Recebido' : 'Executado';
+  const humor = humorOrcamento({ orcado, exec, receita, adiantado });
 
   return (
     <button
@@ -544,7 +547,13 @@ function CartaoCategoriaMes({
       )}
     >
       <div className="flex items-center gap-3">
-        <span className="h-8 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: c.cor ?? '#94a3b8' }} />
+        <span
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl transition group-hover:scale-110"
+          style={{ backgroundColor: `${c.cor ?? '#94a3b8'}22` }}
+          aria-hidden
+        >
+          {emojiCategoria(c.nome, c.icone)}
+        </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-semibold text-gray-900">{c.nome}</span>
           {c.subcategorias.length > 0 && <span className="block text-[11px] text-gray-400">{c.subcategorias.length} subcategoria(s)</span>}
@@ -561,6 +570,9 @@ function CartaoCategoriaMes({
             {Math.round(pct)}%
           </span>
         )}
+        <span className="shrink-0 text-lg leading-none" title={humor.dica} aria-label={humor.dica}>
+          {humor.emoji}
+        </span>
         <IconChevronRight className="h-4 w-4 shrink-0 text-gray-300 transition group-hover:translate-x-0.5 group-hover:text-brand-500" />
       </div>
 
@@ -586,7 +598,7 @@ function CartaoCategoriaMes({
 
       <p className={cn('mt-1.5 text-[11px]', estourou ? 'font-semibold text-red-600' : 'text-gray-500')}>
         {semOrcamento
-          ? 'Clique para planejar o mês'
+          ? '✍️ Clique para planejar o mês'
           : receita
           ? resto > 0
             ? `Faltam ${formatCurrency(resto)}`
@@ -665,10 +677,10 @@ function VisaoMes({
       <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-soft">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
-            ['Receita prevista', receitaPrevista, 'text-gray-900'],
-            ['Gastos orçados', gastosOrcados, 'text-gray-900'],
-            [sobra >= 0 ? 'Sobra planejada' : 'Orçado acima da receita', Math.abs(sobra), sobra >= 0 ? 'text-positive' : 'text-negative'],
-            ['Gasto até agora', gastoReal, gastosOrcados > 0 && gastoReal > gastosOrcados ? 'text-negative' : 'text-gray-900'],
+            ['💵 Receita prevista', receitaPrevista, 'text-gray-900'],
+            ['📝 Gastos orçados', gastosOrcados, 'text-gray-900'],
+            [sobra >= 0 ? '🐷 Sobra planejada' : '⚠️ Orçado acima da receita', Math.abs(sobra), sobra >= 0 ? 'text-positive' : 'text-negative'],
+            ['🛍️ Gasto até agora', gastoReal, gastosOrcados > 0 && gastoReal > gastosOrcados ? 'text-negative' : 'text-gray-900'],
           ].map(([rotulo, valor, cor]) => (
             <div key={rotulo as string}>
               <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">{rotulo as string}</p>
@@ -710,7 +722,7 @@ function VisaoMes({
               className={cn('rounded-full px-2.5 py-1 text-xs font-semibold transition hover:brightness-95', pct > 100 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800')}
               title={`${formatCurrency(e)} de ${formatCurrency(o)}`}
             >
-              {c.nome} {Math.round(pct)}%
+              {pct > 100 ? '🔥' : '😬'} {emojiCategoria(c.nome, c.icone)} {c.nome} {Math.round(pct)}%
             </button>
           ))}
         </div>
