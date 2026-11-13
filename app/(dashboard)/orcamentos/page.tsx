@@ -23,19 +23,20 @@ export default async function OrcamentosPage({
         .from('orcamentos')
         .select('categoria_id, subcategoria_id, valor_limite, mes_referencia')
         .eq('user_id', user.id)
-        .gte('mes_referencia', `${ano}-01-01`)
+        .gte('mes_referencia', `${ano - 1}-12-01`)
         .lte('mes_referencia', `${ano}-12-01`),
       supabase
         .from('transacoes')
         .select('categoria_id, subcategoria_id, valor, data')
         .eq('user_id', user.id)
         .eq('eh_transferencia', false)
-        .gte('data', `${ano}-01-01`)
+        .gte('data', `${ano - 1}-10-01`)
         .lte('data', `${ano}-12-31`),
     ]);
 
+  // mesIndex -1 = dezembro do ano anterior (usado para "copiar mês anterior" em janeiro)
   function buscarLimite(categoriaId: string, subcategoriaId: string | null, mesIndex: number): number | null {
-    const mesRef = `${ano}-${String(mesIndex + 1).padStart(2, '0')}-01`;
+    const mesRef = mesIndex < 0 ? `${ano - 1}-12-01` : `${ano}-${String(mesIndex + 1).padStart(2, '0')}-01`;
     const linha = (orcamentosAno ?? []).find(
       (o) =>
         o.categoria_id === categoriaId &&
@@ -49,7 +50,8 @@ export default async function OrcamentosPage({
   const execPorSubcategoriaMes = new Map<string, number>();
   for (const t of transacoesAno ?? []) {
     if (!t.categoria_id) continue;
-    const mesIndex = Number(t.data.slice(5, 7)) - 1;
+    // Índices -3..-1 = out..dez do ano anterior (histórico para média de 3 meses)
+    const mesIndex = Number(t.data.slice(0, 4)) < ano ? Number(t.data.slice(5, 7)) - 13 : Number(t.data.slice(5, 7)) - 1;
     const chaveCategoria = `${t.categoria_id}-${mesIndex}`;
     execPorCategoriaMes.set(chaveCategoria, (execPorCategoriaMes.get(chaveCategoria) ?? 0) + Number(t.valor));
     if (t.subcategoria_id) {
@@ -67,6 +69,8 @@ export default async function OrcamentosPage({
   function construirCategoria(categoria: { id: string; nome: string; cor: string | null }): CategoriaAnual {
     const valoresPorMes = Array.from({ length: 12 }, (_, i) => buscarLimite(categoria.id, null, i));
     const valoresExecutadosPorMes = Array.from({ length: 12 }, (_, i) => buscarExecutado(categoria.id, null, i));
+    const executadoAnterior = [-3, -2, -1].map((i) => buscarExecutado(categoria.id, null, i));
+    const orcadoDezAnterior = buscarLimite(categoria.id, null, -1);
     const subcategorias = (subcategoriasTodas ?? [])
       .filter((s) => s.categoria_id === categoria.id)
       .map((s) => ({
@@ -74,8 +78,19 @@ export default async function OrcamentosPage({
         nome: s.nome,
         valoresPorMes: Array.from({ length: 12 }, (_, i) => buscarLimite(categoria.id, s.id, i)),
         valoresExecutadosPorMes: Array.from({ length: 12 }, (_, i) => buscarExecutado(categoria.id, s.id, i)),
+        executadoAnterior: [-3, -2, -1].map((i) => buscarExecutado(categoria.id, s.id, i)),
+        orcadoDezAnterior: buscarLimite(categoria.id, s.id, -1),
       }));
-    return { id: categoria.id, nome: categoria.nome, cor: categoria.cor, valoresPorMes, valoresExecutadosPorMes, subcategorias };
+    return {
+      id: categoria.id,
+      nome: categoria.nome,
+      cor: categoria.cor,
+      valoresPorMes,
+      valoresExecutadosPorMes,
+      executadoAnterior,
+      orcadoDezAnterior,
+      subcategorias,
+    };
   }
 
   const categoriasReceita = (categoriasTodas ?? []).filter((c) => c.tipo === 'receita').map(construirCategoria);
