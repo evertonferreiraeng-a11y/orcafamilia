@@ -1,8 +1,9 @@
 'use client';
 
-import { Fragment, useEffect, useMemo, useState, useTransition } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { salvarOrcamento, limparOrcamentos, copiarOrcamentoAno } from '@/app/(dashboard)/orcamentos/actions';
+import { salvarOrcamento, salvarOrcamentosLote, limparOrcamentos, copiarOrcamentoAno } from '@/app/(dashboard)/orcamentos/actions';
+import { PlanejarMes, type ItemPlanejado } from '@/components/orcamentos/PlanejarMes';
 import { Modal } from '@/components/ui/Modal';
 import { Abertura, botaoAbertura } from '@/components/ui/Abertura';
 import { IconChevronDown, IconChevronRight, IconCheck } from '@/components/icons';
@@ -30,6 +31,10 @@ export interface SubcategoriaAnual {
   nome: string;
   valoresPorMes: (number | null)[];
   valoresExecutadosPorMes: number[];
+  /** Executado em out, nov e dez do ano anterior (para média de 3 meses). */
+  executadoAnterior?: number[];
+  /** Orçamento de dezembro do ano anterior (para "copiar mês anterior" em janeiro). */
+  orcadoDezAnterior?: number | null;
 }
 
 export interface CategoriaAnual {
@@ -38,7 +43,17 @@ export interface CategoriaAnual {
   cor: string | null;
   valoresPorMes: (number | null)[];
   valoresExecutadosPorMes: number[];
+  executadoAnterior?: number[];
+  orcadoDezAnterior?: number | null;
   subcategorias: SubcategoriaAnual[];
+}
+
+/** Fração do mês já decorrida (0–1) — só faz sentido para o mês corrente. */
+function fracaoDoMes(ano: number, mes: number): number | null {
+  const hoje = new Date();
+  if (hoje.getFullYear() !== ano || hoje.getMonth() !== mes) return null;
+  const diasNoMes = new Date(ano, mes + 1, 0).getDate();
+  return hoje.getDate() / diasNoMes;
 }
 
 function valorEfetivoCategoria(c: CategoriaAnual, mesIndex: number): number {
@@ -484,7 +499,7 @@ function TabelaSecao({
 }
 
 /* ---------- visão do mês em cartões ---------- */
-function CartaoCategoriaMes({ c, mes, receita }: { c: CategoriaAnual; mes: number; receita?: boolean }) {
+function CartaoCategoriaMes({ c, mes, receita, ritmo }: { c: CategoriaAnual; mes: number; receita?: boolean; ritmo: number | null }) {
   const [aberto, setAberto] = useState(false);
   const orcado = valorEfetivoCategoria(c, mes);
   const exec = c.valoresExecutadosPorMes[mes] ?? 0;
@@ -492,6 +507,10 @@ function CartaoCategoriaMes({ c, mes, receita }: { c: CategoriaAnual; mes: numbe
   const estourou = !receita && orcado > 0 && exec > orcado;
   const cor = receita ? 'bg-emerald-500' : estourou ? 'bg-red-500' : pct >= 80 ? 'bg-amber-500' : 'bg-emerald-500';
   const resto = orcado - exec;
+  const esperadoAteHoje = ritmo != null && orcado > 0 ? orcado * ritmo : null;
+  const adiantado = !receita && !estourou && esperadoAteHoje != null && exec > esperadoAteHoje * 1.1 && exec - esperadoAteHoje > 20;
+  const hoje = new Date();
+  const diasRestantes = ritmo != null ? new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate() - hoje.getDate() + 1 : null;
   const subs = c.subcategorias.filter((s) => (s.valoresPorMes[mes] ?? 0) > 0 || (s.valoresExecutadosPorMes[mes] ?? 0) > 0);
   return (
     <div className={cn('rounded-2xl border bg-white p-4 shadow-soft transition hover:shadow-card', estourou ? 'border-red-200' : 'border-gray-100')}>
@@ -508,8 +527,17 @@ function CartaoCategoriaMes({ c, mes, receita }: { c: CategoriaAnual; mes: numbe
         </span>
         {subs.length > 0 && <IconChevronRight className={cn('h-4 w-4 shrink-0 text-gray-400 transition-transform', aberto && 'rotate-90')} />}
       </button>
-      <div className="mt-3 h-2 overflow-hidden rounded-full bg-gray-100">
-        <div className={cn('h-full rounded-full transition-all duration-700', cor)} style={{ width: `${Math.min(100, pct)}%` }} />
+      <div className="relative mt-3">
+        <div className="h-2 overflow-hidden rounded-full bg-gray-100">
+          <div className={cn('h-full rounded-full transition-all duration-700', adiantado ? 'bg-amber-500' : cor)} style={{ width: `${Math.min(100, pct)}%` }} />
+        </div>
+        {esperadoAteHoje != null && !receita && (
+          <span
+            className="absolute -top-1 h-4 w-0.5 rounded-full bg-gray-800/70"
+            style={{ left: `calc(${Math.min(100, ritmo! * 100)}% - 1px)` }}
+            title={`Ritmo ideal até hoje: ${formatCurrency(esperadoAteHoje)}`}
+          />
+        )}
       </div>
       {orcado > 0 && (
         <p className={cn('mt-1.5 text-[11px]', receita ? 'text-gray-500' : estourou ? 'font-semibold text-red-600' : 'text-gray-500')}>
@@ -519,7 +547,10 @@ function CartaoCategoriaMes({ c, mes, receita }: { c: CategoriaAnual; mes: numbe
               : 'Receita prevista atingida ✓'
             : estourou
             ? `Passou ${formatCurrency(-resto)} do orçado`
+            : diasRestantes != null
+            ? `Restam ${formatCurrency(resto)} · ${formatCurrency(resto / diasRestantes)}/dia`
             : `Restam ${formatCurrency(resto)}`}
+          {adiantado && <span className="ml-1 font-semibold text-amber-600">· acima do ritmo</span>}
         </p>
       )}
       {aberto && (
@@ -549,7 +580,20 @@ function CartaoCategoriaMes({ c, mes, receita }: { c: CategoriaAnual; mes: numbe
   );
 }
 
-function VisaoMes({ receitas, despesas, mes }: { receitas: CategoriaAnual[]; despesas: CategoriaAnual[]; mes: number }) {
+function VisaoMes({
+  receitas,
+  despesas,
+  mes,
+  ano,
+  onPlanejar,
+}: {
+  receitas: CategoriaAnual[];
+  despesas: CategoriaAnual[];
+  mes: number;
+  ano: number;
+  onPlanejar: () => void;
+}) {
+  const ritmo = fracaoDoMes(ano, mes);
   const ativas = (l: CategoriaAnual[]) =>
     l
       .filter((c) => valorEfetivoCategoria(c, mes) > 0 || (c.valoresExecutadosPorMes[mes] ?? 0) > 0)
@@ -560,21 +604,49 @@ function VisaoMes({ receitas, despesas, mes }: { receitas: CategoriaAnual[]; des
       });
   const d = ativas(despesas);
   const r = ativas(receitas);
+  const emAlerta = d
+    .map((c) => {
+      const o = valorEfetivoCategoria(c, mes);
+      const e = c.valoresExecutadosPorMes[mes] ?? 0;
+      return { c, pct: o > 0 ? (e / o) * 100 : 0, o, e };
+    })
+    .filter((x) => x.o > 0 && x.pct >= 80);
   return (
     <div className="space-y-6">
+      {emAlerta.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-amber-100 bg-amber-50/60 px-4 py-3">
+          <span className="text-xs font-semibold text-amber-800">⚠️ Atenção em {MESES_ABREV[mes].toLowerCase()}:</span>
+          {emAlerta.map(({ c, pct, o, e }) => (
+            <span
+              key={c.id}
+              className={cn('rounded-full px-2.5 py-1 text-xs font-semibold', pct > 100 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800')}
+              title={`${formatCurrency(e)} de ${formatCurrency(o)}`}
+            >
+              {c.nome} {Math.round(pct)}%
+            </span>
+          ))}
+        </div>
+      )}
       <section>
         <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
           📉 Gastos de {MESES_COMPLETOS[mes].toLowerCase()} <span className="rounded-full bg-gray-100 px-2 text-xs font-medium text-gray-500">{d.length}</span>
-          <span className="ml-auto text-xs font-normal text-gray-400">os mais próximos do limite primeiro</span>
+          <span className="ml-auto text-xs font-normal text-gray-400">
+            {ritmo != null ? 'a linha escura na barra marca o ritmo ideal até hoje' : 'os mais próximos do limite primeiro'}
+          </span>
         </h3>
         {d.length ? (
           <div className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {d.map((c) => (
-              <CartaoCategoriaMes key={c.id} c={c} mes={mes} />
+              <CartaoCategoriaMes key={c.id} c={c} mes={mes} ritmo={ritmo} />
             ))}
           </div>
         ) : (
-          <p className="rounded-2xl border border-dashed border-gray-200 bg-white/60 px-4 py-6 text-center text-sm text-gray-500">Nenhum gasto ou orçamento neste mês. Defina os valores na tabela anual.</p>
+          <div className="rounded-2xl border border-dashed border-gray-200 bg-white/60 px-4 py-6 text-center text-sm text-gray-500">
+            <p>Nenhum gasto ou orçamento neste mês.</p>
+            <button type="button" onClick={onPlanejar} className="btn-primary mt-3 px-3 py-1.5 text-xs">
+              Planejar {MESES_COMPLETOS[mes].toLowerCase()}
+            </button>
+          </div>
         )}
       </section>
       <section>
@@ -584,7 +656,7 @@ function VisaoMes({ receitas, despesas, mes }: { receitas: CategoriaAnual[]; des
         {r.length ? (
           <div className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {r.map((c) => (
-              <CartaoCategoriaMes key={c.id} c={c} mes={mes} receita />
+              <CartaoCategoriaMes key={c.id} c={c} mes={mes} receita ritmo={ritmo} />
             ))}
           </div>
         ) : (
@@ -609,14 +681,22 @@ export function OrcamentosClient({
   const searchParams = useSearchParams();
 
   const [dadosReceita, setDadosReceita] = useState(categoriasReceita);
-  const [visao, setVisao] = useState<'mes' | 'tabela'>('mes');
+  const [visao, setVisao] = useState<'mes' | 'planejar' | 'tabela'>('mes');
+  const [planejamentoPendente, setPlanejamentoPendente] = useState(false);
+  const marcarPendente = useCallback((v: boolean) => setPlanejamentoPendente(v), []);
   const [mesFoco, setMesFoco] = useState(ano === new Date().getFullYear() ? new Date().getMonth() : 0);
   useEffect(() => {
     try {
-      if (localStorage.getItem('life-orcamentos-visao') === 'tabela') setVisao('tabela');
+      const salva = localStorage.getItem('life-orcamentos-visao');
+      if (salva === 'tabela' || salva === 'planejar') setVisao(salva);
     } catch {}
   }, []);
-  function trocarVisao(v: 'mes' | 'tabela') {
+  function confirmarDescarte(): boolean {
+    return !planejamentoPendente || window.confirm('Há valores não salvos no planejamento. Descartar?');
+  }
+  function trocarVisao(v: 'mes' | 'planejar' | 'tabela') {
+    if (visao === 'planejar' && v !== 'planejar' && !confirmarDescarte()) return;
+    if (v !== 'planejar') setPlanejamentoPendente(false);
     setVisao(v);
     try {
       localStorage.setItem('life-orcamentos-visao', v);
@@ -737,6 +817,17 @@ export function OrcamentosClient({
     atualizarLocal(setDadosDespesa, categoriaId, subcategoriaId, novoValor, mesesAlvo);
   }
 
+  async function salvarPlanejamento(itens: ItemPlanejado[], meses: number[]) {
+    const mesesReferencia = meses.map((i) => `${ano}-${String(i + 1).padStart(2, '0')}-01`);
+    const resultado = await salvarOrcamentosLote(
+      itens.map((it) => ({ categoriaId: it.categoriaId, subcategoriaId: it.subcategoriaId, mesesReferencia, valorLimite: it.valor }))
+    );
+    if (resultado.error) return resultado.error;
+    for (const it of itens) {
+      atualizarLocal(it.tipo === 'receita' ? setDadosReceita : setDadosDespesa, it.categoriaId, it.subcategoriaId, it.valor, meses);
+    }
+  }
+
   const totalReceitasPorMes = useMemo(
     () => Array.from({ length: 12 }, (_, i) => dadosReceita.reduce((a, c) => a + valorEfetivoCategoria(c, i), 0)),
     [dadosReceita]
@@ -781,7 +872,7 @@ export function OrcamentosClient({
       <Abertura
         sobretitulo={`Orçamentos · ${ano}`}
         titulo={`${MESES_COMPLETOS[mesFoco]} de ${ano}`}
-        subtitulo={orcadoMes > 0 ? `${formatCurrency(gastoMes)} gastos de ${formatCurrency(orcadoMes)} orçados no mês` : 'Defina os valores do mês na tabela anual'}
+        subtitulo={orcadoMes > 0 ? `${formatCurrency(gastoMes)} gastos de ${formatCurrency(orcadoMes)} orçados no mês` : 'Use “Planejar mês” para definir os valores'}
         anel={{ pct: orcadoMes > 0 ? (gastoMes / orcadoMes) * 100 : 0, rotulo: 'do orçado', alerta: orcadoMes > 0 && gastoMes > orcadoMes }}
         cartoes={[
           { rotulo: '📈 Receitas no ano', valor: formatCurrency(totalAnoReceitas), sub: `recebido: ${formatCurrency(totalAnoReceitasExec)}` },
@@ -814,8 +905,9 @@ export function OrcamentosClient({
         <div className="flex rounded-xl bg-gray-100 p-1 text-xs font-semibold" role="group" aria-label="Forma de exibição">
           {(
             [
-              ['mes', 'Mês em cartões'],
-              ['tabela', 'Tabela anual (editar)'],
+              ['mes', 'Acompanhar'],
+              ['planejar', 'Planejar mês'],
+              ['tabela', 'Tabela anual'],
             ] as const
           ).map(([v, rotulo]) => (
             <button
@@ -829,7 +921,7 @@ export function OrcamentosClient({
             </button>
           ))}
         </div>
-        {visao === 'mes' && (
+        {visao !== 'tabela' && (
           <div className="flex flex-wrap gap-1">
             {MESES_ABREV.map((m, i) => {
               const o = totalGastosPorMes[i] ?? 0;
@@ -839,7 +931,11 @@ export function OrcamentosClient({
                 <button
                   key={m}
                   type="button"
-                  onClick={() => setMesFoco(i)}
+                  onClick={() => {
+                    if (i === mesFoco || (visao === 'planejar' && !confirmarDescarte())) return;
+                    setPlanejamentoPendente(false);
+                    setMesFoco(i);
+                  }}
                   className={cn(
                     'relative rounded-lg px-2.5 py-1.5 text-xs font-semibold transition',
                     mesFoco === i ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 ring-1 ring-inset ring-gray-200 hover:bg-gray-50',
@@ -966,7 +1062,16 @@ export function OrcamentosClient({
       </Modal>
 
       {visao === 'mes' ? (
-        <VisaoMes receitas={dadosReceita} despesas={dadosDespesa} mes={mesFoco} />
+        <VisaoMes receitas={dadosReceita} despesas={dadosDespesa} mes={mesFoco} ano={ano} onPlanejar={() => trocarVisao('planejar')} />
+      ) : visao === 'planejar' ? (
+        <PlanejarMes
+          ano={ano}
+          mes={mesFoco}
+          receitas={dadosReceita}
+          despesas={dadosDespesa}
+          onSalvar={salvarPlanejamento}
+          onAlteracoesPendentes={marcarPendente}
+        />
       ) : (
       <div className="card overflow-x-auto p-0">
         <table className="w-full border-collapse">

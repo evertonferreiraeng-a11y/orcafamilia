@@ -159,3 +159,50 @@ export async function limparOrcamentos(ano: number, mesIndex: number | null): Pr
   revalidatePath('/indicadores');
   return {};
 }
+
+export interface ItemOrcamentoLote {
+  categoriaId: string;
+  subcategoriaId: string | null;
+  mesesReferencia: string[];
+  valorLimite: number | null;
+}
+
+/**
+ * Salva vários valores de uma vez (usado pela aba "Planejar mês").
+ * Os totais de categoria com subcategorias são ressincronizados uma única
+ * vez por categoria/mês no final, em vez de a cada subcategoria.
+ */
+export async function salvarOrcamentosLote(itens: ItemOrcamentoLote[]): Promise<{ error?: string }> {
+  const supabase = createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Sessão expirada.' };
+
+  const paraSincronizar = new Set<string>();
+  for (const item of itens) {
+    for (const mesAlvo of item.mesesReferencia) {
+      const resultado = await salvarOrcamentoMes(
+        supabase,
+        user.id,
+        item.categoriaId,
+        item.subcategoriaId,
+        mesAlvo,
+        item.valorLimite
+      );
+      if (resultado.error) return resultado;
+      if (item.subcategoriaId) paraSincronizar.add(`${item.categoriaId}|${mesAlvo}`);
+    }
+  }
+
+  for (const chave of Array.from(paraSincronizar)) {
+    const [categoriaId, mesAlvo] = chave.split('|');
+    const sincronizacao = await sincronizarTotalCategoria(supabase, user.id, categoriaId, mesAlvo);
+    if (sincronizacao.error) return sincronizacao;
+  }
+
+  revalidatePath('/orcamentos');
+  revalidatePath('/dashboard');
+  revalidatePath('/indicadores');
+  return {};
+}
