@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { IconOrcamentos, IconPlus, IconTransacoes, IconMetas } from '@/components/icons';
 import { NotaAnimada } from '@/components/dashboard/NotaAnimada';
-import { SinaisVitais, type CategoriaOrcamentoResumo } from '@/components/dashboard/SinaisVitais';
+import { SinaisVitais, type CategoriaOrcamentoResumo, type DetalhesSinais } from '@/components/dashboard/SinaisVitais';
 import { explicarNota, type SaudeFinanceira } from '@/lib/saudeFinanceira';
 
 const COR_ANEL = (nota: number) => (nota >= 80 ? '#4ade80' : nota >= 60 ? '#a3e635' : nota >= 40 ? '#fbbf24' : '#f87171');
@@ -13,6 +13,7 @@ export function SaudeFinanceiraCard({
   estouradas,
   perto,
   baseHrefDetalhe,
+  detalhes,
 }: {
   saude: SaudeFinanceira;
   mesNome: string;
@@ -20,6 +21,7 @@ export function SaudeFinanceiraCard({
   estouradas: CategoriaOrcamentoResumo[];
   perto: CategoriaOrcamentoResumo[];
   baseHrefDetalhe: string;
+  detalhes: DetalhesSinais;
 }) {
   const q = (extra: string) => `${extra}${mesParam ? `${extra.includes('?') ? '&' : '?'}mes=${mesParam}` : ''}`;
   const botaoClaro =
@@ -67,7 +69,7 @@ export function SaudeFinanceiraCard({
         </div>
       </div>
 
-      <SinaisVitais sinais={saude.sinais} estouradas={estouradas} perto={perto} baseHrefDetalhe={baseHrefDetalhe} />
+      <SinaisVitais sinais={saude.sinais} estouradas={estouradas} perto={perto} baseHrefDetalhe={baseHrefDetalhe} detalhes={detalhes} />
     </section>
   );
 }

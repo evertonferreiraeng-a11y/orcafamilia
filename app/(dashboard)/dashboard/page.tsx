@@ -14,6 +14,7 @@ import { MinhasContasCarousel } from '@/components/dashboard/MinhasContasCarouse
 import { BalancoMensalChart, type PontoBalanco } from '@/components/dashboard/BalancoMensalChart';
 import { DespesasPorTipoCard, type CategoriaExecutadoOrcado } from '@/components/dashboard/DespesasPorTipoCard';
 import type { VencimentoItem } from '@/components/dashboard/ProximosVencimentosCard';
+import type { DetalhesSinais } from '@/components/dashboard/SinaisVitais';
 import { SaudeFinanceiraCard } from '@/components/dashboard/SaudeFinanceiraCard';
 import { MesNumaLinhaCard } from '@/components/dashboard/MesNumaLinhaCard';
 import { AcoesAgoraCard, type Acao } from '@/components/dashboard/AcoesAgoraCard';
@@ -77,7 +78,7 @@ export default async function DashboardPage({
       .not('conta_id', 'is', null),
     supabase
       .from('transacoes')
-      .select('valor, data, data_vencimento, tipo, pago, tipo_despesa, descricao, parcela_atual, parcela_total')
+      .select('id, valor, data, data_vencimento, tipo, pago, tipo_despesa, descricao, parcela_atual, parcela_total, categoria_id, subcategoria_id')
       .eq('user_id', user.id)
       .eq('eh_transferencia', false)
       .gte('data', inicio)
@@ -127,7 +128,12 @@ export default async function DashboardPage({
       .eq('status', 'ativa')
       .gte('data_vencimento', hojeStr)
       .lte('data_vencimento', em7DiasStr),
-    supabase.from('dividas').select('valor_total, valor_pago').eq('user_id', user.id).eq('status', 'ativa'),
+    supabase
+      .from('dividas')
+      .select('id, descricao, credor, valor_total, valor_pago, parcelas_total, parcelas_pagas, data_vencimento')
+      .eq('user_id', user.id)
+      .eq('status', 'ativa')
+      .order('data_vencimento'),
     // Pendentes para "Próximos vencimentos" (atrasadas + até 15 dias). Busca com folga pela data
     // de lançamento porque o vencimento pode ser depois dela.
     supabase
@@ -582,6 +588,61 @@ export default async function DashboardPage({
     acoes.push({ tipo: 'dica', id: `dica-${i}`, emoji: ins.severidade === 'alerta' ? '⚠️' : '💡', texto: ins.mensagem });
   });
 
+  /* ---------- detalhes dos sinais (janelas ao clicar) ---------- */
+  const nomeSubPorId = new Map((subcategoriasTodas ?? []).map((sc) => [sc.id as string, sc.nome as string]));
+  const detalhesSinais: DetalhesSinais = {
+    sobra: {
+      receita: receitaTotalMes,
+      aReceber: pendenteReceita,
+      partes: [
+        { rotulo: 'Fixas', emoji: '🏠', valor: fixasMes, cor: '#6366f1' },
+        { rotulo: 'Dívidas', emoji: '🧾', valor: dividasMes, cor: '#f97316' },
+        { rotulo: 'Variáveis', emoji: '🛒', valor: variaveisMes, cor: '#ec4899' },
+      ],
+      aPagar: pendenteDespesa,
+      topGastos: fatiasGasto
+        .filter((f) => f.executado > 0)
+        .sort((a, b) => b.executado - a.executado)
+        .slice(0, 5)
+        .map((f) => ({ id: f.id, nome: f.nome, icone: f.icone, cor: f.cor, valor: f.executado })),
+    },
+    dividas: {
+      receita: receitaTotalMes,
+      totalMes: dividasMes,
+      lancamentos: periodo
+        .filter((t) => t.tipo === 'despesa' && t.categoria_id && idsDivida.has(t.categoria_id))
+        .map((t) => ({
+          id: t.id as string,
+          descricao: t.descricao as string,
+          valor: Number(t.valor),
+          pago: !!t.pago,
+          data: (t.data_vencimento ?? t.data) as string,
+          sub: [
+            t.subcategoria_id ? nomeSubPorId.get(t.subcategoria_id) : null,
+            t.parcela_total ? `parcela ${t.parcela_atual}/${t.parcela_total}` : null,
+          ]
+            .filter(Boolean)
+            .join(' · '),
+        }))
+        .sort((a, b) => a.data.localeCompare(b.data)),
+      ativas: (dividasAtivasTodas ?? []).map((d) => ({
+        id: d.id as string,
+        descricao: d.descricao as string,
+        credor: (d.credor as string | null) ?? null,
+        restante: Math.max(0, Number(d.valor_total) - Number(d.valor_pago)),
+        total: Number(d.valor_total),
+        parcelas: d.parcelas_total ? `${d.parcelas_pagas ?? 0}/${d.parcelas_total}` : null,
+        vencimento: d.data_vencimento as string,
+      })),
+    },
+    contas: {
+      contas: (contas ?? [])
+        .map((c) => ({ id: c.id as string, nome: c.nome as string, tipo: c.tipo as string, cor: (c.cor as string | null) ?? null, saldo: saldoPorConta.get(c.id) ?? 0 }))
+        .sort((a, b) => a.saldo - b.saldo),
+      atrasadas: atrasadasDespesa.map((v) => ({ id: v.id, descricao: v.descricao, valor: v.valor, vencimento: v.vencimento, categoria: v.categoriaNome })),
+    },
+  };
+
   return (
     <div className="space-y-5">
       <SaudeFinanceiraCard
@@ -591,6 +652,7 @@ export default async function DashboardPage({
         estouradas={estouradas}
         perto={pertoLista}
         baseHrefDetalhe={baseHrefDetalhe}
+        detalhes={detalhesSinais}
       />
 
       <div className="anim-subir" style={{ animationDelay: '200ms' }}>
