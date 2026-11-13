@@ -6,15 +6,21 @@ import {
   ultimoDiaMes,
   addMeses,
   nomeMes,
+  formatCurrency,
 } from '@/lib/utils';
 import { indexarSubcategoriasPorCategoria, orcadoEfetivoCategoria } from '@/lib/orcamentos';
 import { gerarInsights, type DadosGerente } from '@/lib/gerente';
-import { HeroOrcamento } from '@/components/dashboard/HeroOrcamento';
 import { MinhasContasCarousel } from '@/components/dashboard/MinhasContasCarousel';
 import { BalancoMensalChart, type PontoBalanco } from '@/components/dashboard/BalancoMensalChart';
-import { GerenteFinanceiroCard } from '@/components/dashboard/GerenteFinanceiroCard';
 import { DespesasPorTipoCard, type CategoriaExecutadoOrcado } from '@/components/dashboard/DespesasPorTipoCard';
-import { ProximosVencimentosCard, type VencimentoItem } from '@/components/dashboard/ProximosVencimentosCard';
+import type { VencimentoItem } from '@/components/dashboard/ProximosVencimentosCard';
+import { SaudeFinanceiraCard } from '@/components/dashboard/SaudeFinanceiraCard';
+import { MesNumaLinhaCard } from '@/components/dashboard/MesNumaLinhaCard';
+import { AcoesAgoraCard, type Acao } from '@/components/dashboard/AcoesAgoraCard';
+import { TendenciaSobraCard, type PontoTendencia } from '@/components/dashboard/TendenciaSobraCard';
+import { DetalhesRecolhiveis } from '@/components/dashboard/DetalhesRecolhiveis';
+import { calcularSaude, META_RESERVA_MESES } from '@/lib/saudeFinanceira';
+import { emojiCategoria } from '@/lib/emojiCategoria';
 import { ParaOndeFoiCard } from '@/components/dashboard/ParaOndeFoiCard';
 import { IconTrendUp, IconRecorrente, IconCompras } from '@/components/icons';
 
@@ -44,6 +50,7 @@ export default async function DashboardPage({
   const em7DiasStr = format(addDays(new Date(), 7), 'yyyy-MM-dd');
   const em15DiasStr = format(addDays(new Date(), 15), 'yyyy-MM-dd');
   const em45DiasStr = format(addDays(new Date(), 45), 'yyyy-MM-dd');
+  const inicioTendencia = primeiroDiaMes(addMeses(mesSelecionado, -5));
 
   const [
     { data: contas },
@@ -59,6 +66,8 @@ export default async function DashboardPage({
     { data: dividasProximas },
     { data: dividasAtivasTodas },
     { data: pendentesProximas },
+    { data: cofres },
+    { data: transacoesTendencia },
   ] = await Promise.all([
     supabase.from('contas').select('*').eq('user_id', user.id).eq('ativa', true).order('nome'),
     supabase
@@ -131,6 +140,14 @@ export default async function DashboardPage({
       .lte('data', em45DiasStr)
       .order('data', { ascending: true })
       .limit(300),
+    supabase.from('cofres').select('saldo').eq('user_id', user.id),
+    supabase
+      .from('transacoes')
+      .select('data, tipo, valor')
+      .eq('user_id', user.id)
+      .eq('eh_transferencia', false)
+      .gte('data', inicioTendencia)
+      .lte('data', fim),
   ]);
 
   const subcategoriaIdsPorCategoria = indexarSubcategoriasPorCategoria(subcategoriasTodas ?? []);
@@ -457,47 +474,199 @@ export default async function DashboardPage({
   const baseHrefDetalhe = `/orcamentos?ano=${anoAtual}&mes=${mesSelecionado.getMonth() + 1}&categoria=`;
   const hrefDetalhe = (id: string) => `${baseHrefDetalhe}${id}`;
 
+  /* ---------- saúde financeira ---------- */
+  const ehCategoriaDivida = (nome: string) => /d[ií]vida|empr[eé]stimo|financiamento|consignado/i.test(nome);
+  const idsDivida = new Set(categoriasDespesa.filter((c) => ehCategoriaDivida(c.nome)).map((c) => c.id));
+  let dividasMes = 0;
+  let fixasMes = 0;
+  for (const t of despesasPorCategoriaMes ?? []) {
+    const v = Number(t.valor);
+    if (t.categoria_id && idsDivida.has(t.categoria_id)) dividasMes += v;
+    else if (t.tipo_despesa === 'fixa') fixasMes += v;
+  }
+  const variaveisMes = Math.max(0, totalGastoCategorias - dividasMes - fixasMes);
+  const receitaTotalMes = totalReceitaCategorias;
+  const sobraMes = receitaTotalMes - totalGastoCategorias;
+
+  const orcadoDe = (id: string) => Number(orcadoPorCategoria.get(id) ?? 0);
+  const gastoDe = (id: string) => Number(gastoPorCategoria.get(id) ?? 0);
+  const categoriasOrcadas = categoriasDespesa.filter((c) => orcadoDe(c.id) > 0);
+  const estouradas = categoriasOrcadas
+    .map((c) => {
+      const o = orcadoDe(c.id);
+      const g = gastoDe(c.id);
+      return { id: c.id, nome: c.nome, icone: c.icone, orcado: o, gasto: g, pct: (g / o) * 100 };
+    })
+    .filter((c) => c.gasto > c.orcado + 0.01)
+    .sort((a, b) => b.pct - a.pct);
+  const perto = categoriasOrcadas.filter((c) => {
+    const o = orcadoDe(c.id);
+    const g = gastoDe(c.id);
+    return g >= o * 0.8 && g <= o + 0.01;
+  }).length;
+
+  const reserva = (cofres ?? []).reduce((a, c) => a + Number(c.saldo), 0);
+
+  const tendencia: PontoTendencia[] = Array.from({ length: 6 }, (_, i) => {
+    const d = addMeses(mesSelecionado, i - 5);
+    const mesParam = format(d, 'yyyy-MM');
+    return {
+      mesParam,
+      rotulo: d.getFullYear() === anoAtual ? MESES_ABREV[d.getMonth()] : `${MESES_ABREV[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`,
+      receita: 0,
+      despesa: 0,
+    };
+  });
+  const idxTendencia = new Map(tendencia.map((p, i) => [p.mesParam, i]));
+  for (const t of transacoesTendencia ?? []) {
+    const i = idxTendencia.get(t.data.slice(0, 7));
+    if (i == null) continue;
+    if (t.tipo === 'receita') tendencia[i].receita += Number(t.valor);
+    else tendencia[i].despesa += Number(t.valor);
+  }
+  const mesesComGasto = tendencia.filter((p) => p.despesa > 0);
+  const mediaDespesaMensal = mesesComGasto.length
+    ? mesesComGasto.reduce((a, p) => a + p.despesa, 0) / mesesComGasto.length
+    : totalGastoCategorias;
+
+  const contasNegativas = (contas ?? [])
+    .map((c) => ({ nome: c.nome as string, saldo: saldoPorConta.get(c.id) ?? 0 }))
+    .filter((c) => c.saldo < -0.005)
+    .sort((a, b) => a.saldo - b.saldo);
+
+  const diasAte = (data: string) =>
+    differenceInCalendarDays(new Date(`${data}T00:00:00`), new Date(`${hojeStr}T00:00:00`));
+  const atrasadasDespesa = vencimentos.filter((v) => v.tipo === 'despesa' && v.vencimento < hojeStr);
+
+  const saude = calcularSaude({
+    receita: receitaTotalMes,
+    despesa: totalGastoCategorias,
+    dividasMes,
+    categoriasComOrcamento: categoriasOrcadas.length,
+    categoriasEstouradas: estouradas.map((c) => ({ nome: c.nome, pct: c.pct })),
+    categoriasPerto: perto,
+    reserva,
+    mediaDespesaMensal,
+    contasNegativas,
+    contasAtrasadas: atrasadasDespesa.length,
+    hrefOrcamentos: `/orcamentos?ano=${anoAtual}&mes=${mesSelecionado.getMonth() + 1}`,
+  });
+
+  /* ---------- o que fazer agora ---------- */
+  const acoes: Acao[] = [];
+  for (const c of contasNegativas) {
+    acoes.push({ tipo: 'link', id: `neg-${c.nome}`, emoji: '🚨', texto: `Cobrir o negativo da ${c.nome}`, sub: 'conta abaixo de zero', valor: -c.saldo, href: '/transacoes', urgente: true });
+  }
+  for (const v of vencimentos.filter((x) => diasAte(x.vencimento) <= 7).slice(0, 6)) {
+    const dias = diasAte(v.vencimento);
+    const quando =
+      dias < 0 ? `venceu há ${-dias} dia(s)` : dias === 0 ? 'vence hoje' : dias === 1 ? 'vence amanhã' : `vence em ${dias} dias`;
+    acoes.push({
+      tipo: 'pagar',
+      id: v.id,
+      emoji: dias < 0 ? '🚨' : dias === 0 ? '📌' : v.categoriaNome ? emojiCategoria(v.categoriaNome, v.categoriaIcone) : '⏰',
+      texto: v.descricao,
+      sub: `${quando}${v.categoriaNome ? ` · ${v.categoriaNome}` : ''}`,
+      valor: v.valor,
+      receita: v.tipo === 'receita',
+      urgente: dias < 0,
+    });
+  }
+  for (const c of estouradas) {
+    acoes.push({
+      tipo: 'link',
+      id: `est-${c.id}`,
+      emoji: '🔥',
+      texto: `${c.nome} passou ${formatCurrency(c.gasto - c.orcado)} do orçado`,
+      sub: `${Math.round(c.pct)}% de ${formatCurrency(c.orcado)}`,
+      href: hrefDetalhe(c.id),
+    });
+  }
+  const metaReserva = mediaDespesaMensal * META_RESERVA_MESES;
+  if (mediaDespesaMensal > 0 && reserva < metaReserva && sobraMes > 0) {
+    acoes.push({
+      tipo: 'link',
+      id: 'reserva',
+      emoji: '🛟',
+      texto: 'Mandar parte da sobra para a reserva',
+      sub: `faltam ${formatCurrency(metaReserva - reserva)} para ${META_RESERVA_MESES} meses de gastos`,
+      href: '/cofre',
+    });
+  }
+  // Dicas do gerente que não repetem os sinais vitais nem as ações acima.
+  insights.forEach((ins, i) => {
+    if (/saldo total|reserva|vence|superaram|guardou|em dia/i.test(ins.mensagem)) return;
+    if (ins.severidade === 'elogio') return;
+    acoes.push({ tipo: 'dica', id: `dica-${i}`, emoji: ins.severidade === 'alerta' ? '⚠️' : '💡', texto: ins.mensagem });
+  });
+
   return (
     <div className="space-y-5">
-      <HeroOrcamento
-        mesNome={nomeMes(mesSelecionado)}
-        mesParam={searchParams.mes}
-        saldoContas={saldoTotalContas}
-        saldoPrevisto={saldoPrevistoAcumulado}
-        saldoAnterior={saldoInicioMes}
-        receita={receitaMes}
-        aReceber={pendenteReceita}
-        despesa={despesaMes}
-        aPagar={pendenteDespesa}
-        resultadoMes={saldoMesExecutado}
-        previsaoMes={previsaoSaldoMesTotal}
-        orcado={orcadoFixasTotal + orcadoVariaveisTotal}
-        gastoOrcavel={totalGastoCategorias}
-        atrasadas={{ qtd: despesasAtrasadas.length, valor: despesasAtrasadas.reduce((a, t) => a + Number(t.valor), 0) }}
-        pendentes={{ qtd: despesasPendentes.length, valor: pendenteDespesa }}
-        categoriasAcima={categoriasAcimaDetalhe.length}
-        dividasVencendo={dividasVencendo.length}
-      />
+      <SaudeFinanceiraCard saude={saude} mesNome={nomeMes(mesSelecionado)} mesParam={searchParams.mes} />
 
-      <div className="anim-subir" style={{ animationDelay: '80ms' }}>
-        <GerenteFinanceiroCard insights={insights} />
+      <div className="anim-subir" style={{ animationDelay: '200ms' }}>
+        <MesNumaLinhaCard
+          receita={receitaTotalMes}
+          aReceber={pendenteReceita}
+          sobra={sobraMes}
+          partes={[
+            { chave: 'fixas', rotulo: 'Fixas', emoji: '🏠', valor: fixasMes, cor: '#6366f1' },
+            { chave: 'dividas', rotulo: 'Dívidas', emoji: '🧾', valor: dividasMes, cor: '#f97316', href: '/dividas' },
+            { chave: 'variaveis', rotulo: 'Variáveis', emoji: '🛒', valor: variaveisMes, cor: '#ec4899' },
+          ]}
+        />
       </div>
 
-      <div className="anim-subir grid grid-cols-1 gap-4 lg:grid-cols-5" style={{ animationDelay: '140ms' }}>
-        <div className="lg:col-span-2">
-          <ProximosVencimentosCard itens={vencimentos} hoje={hojeStr} />
-        </div>
+      <div className="anim-subir grid grid-cols-1 gap-4 lg:grid-cols-5" style={{ animationDelay: '260ms' }}>
         <div className="lg:col-span-3">
-          <ParaOndeFoiCard categorias={fatiasGasto} baseHrefDetalhe={baseHrefDetalhe} />
+          <AcoesAgoraCard acoes={acoes} />
+        </div>
+        <div className="lg:col-span-2">
+          <TendenciaSobraCard pontos={tendencia} mesAtual={format(mesSelecionado, 'yyyy-MM')} />
         </div>
       </div>
 
-      <div className="anim-subir grid grid-cols-1 gap-4 lg:grid-cols-4" style={{ animationDelay: '200ms' }}>
-        <div className="card flex flex-col p-4 lg:col-span-3 lg:min-h-[440px]">
-          <BalancoMensalChart diario={fluxo} mensal={balancoAnual} ano={anoAtual} mesSelecionado={mesSelecionado.getMonth()} />
+      <DetalhesRecolhiveis>
+        <ParaOndeFoiCard categorias={fatiasGasto} baseHrefDetalhe={baseHrefDetalhe} />
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <DespesasPorTipoCard
+            titulo="Receitas"
+            icon={IconTrendUp}
+            tom="receita"
+            categorias={categoriasReceitaDetalhe}
+            totalExecutado={totalReceitaCategorias}
+            totalOrcado={orcadoReceitaTotal}
+            totalGeral={totalReceitaCategorias}
+            mensagemVazio="Nenhuma receita registrada neste mês."
+            hrefDetalhe={hrefDetalhe}
+          />
+          <DespesasPorTipoCard
+            titulo="Despesas Fixas"
+            icon={IconRecorrente}
+            tom="fixa"
+            categorias={categoriasFixasDetalhe}
+            totalExecutado={despesaFixaMes}
+            totalOrcado={orcadoFixasTotal}
+            totalGeral={totalGastoCategorias}
+            hrefDetalhe={hrefDetalhe}
+          />
+          <DespesasPorTipoCard
+            titulo="Despesas Variáveis"
+            icon={IconCompras}
+            tom="variavel"
+            categorias={categoriasVariaveisDetalhe}
+            totalExecutado={gastoVariavelMes}
+            totalOrcado={orcadoVariaveisTotal}
+            totalGeral={totalGastoCategorias}
+            hrefDetalhe={hrefDetalhe}
+          />
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+          <div className="card flex flex-col p-4 lg:col-span-3 lg:min-h-[440px]">
+            <BalancoMensalChart diario={fluxo} mensal={balancoAnual} ano={anoAtual} mesSelecionado={mesSelecionado.getMonth()} />
+          </div>
           <MinhasContasCarousel
             contas={(contas ?? []).map((conta) => ({
               id: conta.id,
@@ -508,42 +677,7 @@ export default async function DashboardPage({
             }))}
           />
         </div>
-      </div>
-
-      <div className="anim-subir grid grid-cols-1 gap-4 lg:grid-cols-3" style={{ animationDelay: '260ms' }}>
-        <DespesasPorTipoCard
-          titulo="Receitas"
-          icon={IconTrendUp}
-          tom="receita"
-          categorias={categoriasReceitaDetalhe}
-          totalExecutado={totalReceitaCategorias}
-          totalOrcado={orcadoReceitaTotal}
-          totalGeral={totalReceitaCategorias}
-          mostrarPercentualTitulo={false}
-          mensagemVazio="Nenhuma receita registrada neste mês."
-          hrefDetalhe={hrefDetalhe}
-        />
-        <DespesasPorTipoCard
-          titulo="Despesas Fixas"
-          icon={IconRecorrente}
-          tom="fixa"
-          categorias={categoriasFixasDetalhe}
-          totalExecutado={despesaFixaMes}
-          totalOrcado={orcadoFixasTotal}
-          totalGeral={totalGastoCategorias}
-          hrefDetalhe={hrefDetalhe}
-        />
-        <DespesasPorTipoCard
-          titulo="Despesas Variáveis"
-          icon={IconCompras}
-          tom="variavel"
-          categorias={categoriasVariaveisDetalhe}
-          totalExecutado={gastoVariavelMes}
-          totalOrcado={orcadoVariaveisTotal}
-          totalGeral={totalGastoCategorias}
-          hrefDetalhe={hrefDetalhe}
-        />
-      </div>
+      </DetalhesRecolhiveis>
     </div>
   );
 }
