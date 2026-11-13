@@ -317,7 +317,7 @@ function LinhaCategoria({ c, href, estourou }: { c: CategoriaOrcamentoResumo; hr
   );
 }
 
-/** Os 4 sinais vitais. O de Orçamento abre a lista de categorias estouradas / perto do limite. */
+/** Os 4 sinais vitais. O de Orçamento abre a lista de categorias estouradas. */
 export function SinaisVitais({
   sinais,
   estouradas,
@@ -332,7 +332,7 @@ export function SinaisVitais({
   detalhes: DetalhesSinais;
 }) {
   const [aberto, setAberto] = useState<Sinal['chave'] | null>(null);
-  const temLista = (chave: Sinal['chave']) => chave !== 'orcamento' || estouradas.length > 0 || perto.length > 0;
+  const temLista = (chave: Sinal['chave']) => chave !== 'orcamento' || estouradas.length > 0;
   const sinalAberto = sinais.find((s) => s.chave === aberto);
   const max = 100 / sinais.length;
   const totalPassou = estouradas.reduce((a, c) => a + (c.gasto - c.orcado), 0);
@@ -393,16 +393,6 @@ export function SinaisVitais({
               <ul className="divide-y divide-gray-100">
                 {estouradas.map((c) => (
                   <LinhaCategoria key={c.id} c={c} href={`${baseHrefDetalhe}${c.id}`} estourou />
-                ))}
-              </ul>
-            </section>
-          )}
-          {perto.length > 0 && (
-            <section>
-              <h4 className="mb-1 px-1 text-sm font-semibold text-amber-700">😬 Perto do limite ({perto.length})</h4>
-              <ul className="divide-y divide-gray-100">
-                {perto.map((c) => (
-                  <LinhaCategoria key={c.id} c={c} href={`${baseHrefDetalhe}${c.id}`} estourou={false} />
                 ))}
               </ul>
             </section>
