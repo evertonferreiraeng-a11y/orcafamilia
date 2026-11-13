@@ -24,13 +24,28 @@ type Props = {
   dividasVencendo: number;
 };
 
-function Mini({ rotulo, valor, sub, tom, href }: { rotulo: string; valor: number; sub: string; tom?: 'pos' | 'neg'; href?: string }) {
+function Mini({
+  rotulo,
+  valor,
+  sub,
+  tom,
+  href,
+  extra,
+}: {
+  rotulo: string;
+  valor: number;
+  sub: string;
+  tom?: 'pos' | 'neg';
+  href?: string;
+  extra?: React.ReactNode;
+}) {
   const corpo = (
     <>
       <p className="truncate text-[11px] font-medium text-white/75">{rotulo}</p>
       <p className={`truncate text-lg font-bold tabular-nums ${tom === 'neg' ? 'text-red-100' : ''}`}>
         <ValorAnimado valor={valor} />
       </p>
+      {extra}
       <p className="truncate text-[11px] text-white/75">{sub}</p>
     </>
   );
@@ -77,11 +92,26 @@ export function HeroOrcamento(p: Props) {
               </p>
             </div>
           </div>
-          <div className="grid flex-1 grid-cols-2 gap-2 lg:grid-cols-4 xl:ml-auto xl:max-w-3xl">
-            <Mini rotulo="🏦 Saldo em conta" valor={p.saldoContas} sub={`previsto: ${formatCurrency(p.saldoPrevisto)}`} tom={p.saldoContas < 0 ? 'neg' : 'pos'} />
+          <div className="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-3 xl:ml-auto xl:max-w-3xl">
+            <Mini
+              rotulo="🏦 Saldo em conta"
+              valor={p.saldoContas}
+              sub={`fim do mês previsto: ${formatCurrency(p.saldoPrevisto)}`}
+              tom={p.saldoContas < 0 ? 'neg' : 'pos'}
+              extra={
+                <p className="flex items-center gap-1 truncate text-[11px] font-semibold" title={`Previsão do resultado do mês: ${formatCurrency(p.previsaoMes)}`}>
+                  <span
+                    className={`rounded-md px-1.5 py-0.5 ${p.resultadoMes >= 0 ? 'bg-emerald-400/25 text-emerald-50' : 'bg-red-400/30 text-red-50'}`}
+                  >
+                    {p.resultadoMes >= 0 ? '▲ +' : '▼ −'}
+                    {formatCurrency(Math.abs(p.resultadoMes))}
+                  </span>
+                  <span className="font-normal text-white/75">resultado do mês</span>
+                </p>
+              }
+            />
             <Mini rotulo="📈 Receitas" valor={p.receita} sub={`a receber: ${formatCurrency(p.aReceber)}`} href={q('/transacoes')} />
             <Mini rotulo="📉 Despesas" valor={p.despesa} sub={`a pagar: ${formatCurrency(p.aPagar)}`} href={q('/transacoes?status=pendente')} />
-            <Mini rotulo="⚖️ Resultado do mês" valor={p.resultadoMes} sub={`previsão: ${formatCurrency(p.previsaoMes)}`} tom={p.resultadoMes < 0 ? 'neg' : 'pos'} />
           </div>
         </div>
         <div className="relative mt-5 flex flex-wrap items-center gap-2">
