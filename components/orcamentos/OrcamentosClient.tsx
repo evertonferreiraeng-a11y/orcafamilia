@@ -774,9 +774,20 @@ export function OrcamentosClient({
 
   const [dadosReceita, setDadosReceita] = useState(categoriasReceita);
   const [visao, setVisao] = useState<'mes' | 'tabela'>('mes');
-  const [detalhe, setDetalhe] = useState<{ id: string; receita: boolean } | null>(null);
-  const [mesFoco, setMesFoco] = useState(ano === new Date().getFullYear() ? new Date().getMonth() : 0);
+  // Links vindos do Dashboard: ?mes=1..12 abre o mês, ?categoria=<id> abre o detalhe.
+  const mesParam = Number(searchParams.get('mes'));
+  const categoriaParam = searchParams.get('categoria');
+  const [detalhe, setDetalhe] = useState<{ id: string; receita: boolean } | null>(() => {
+    if (!categoriaParam) return null;
+    if (categoriasDespesa.some((c) => c.id === categoriaParam)) return { id: categoriaParam, receita: false };
+    if (categoriasReceita.some((c) => c.id === categoriaParam)) return { id: categoriaParam, receita: true };
+    return null;
+  });
+  const [mesFoco, setMesFoco] = useState(
+    mesParam >= 1 && mesParam <= 12 ? mesParam - 1 : ano === new Date().getFullYear() ? new Date().getMonth() : 0
+  );
   useEffect(() => {
+    if (categoriaParam) return;
     try {
       const salva = localStorage.getItem('life-orcamentos-visao');
       if (salva === 'tabela') setVisao('tabela');

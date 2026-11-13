@@ -14,7 +14,8 @@ import { MinhasContasCarousel } from '@/components/dashboard/MinhasContasCarouse
 import { BalancoMensalChart, type PontoBalanco } from '@/components/dashboard/BalancoMensalChart';
 import { GerenteFinanceiroCard } from '@/components/dashboard/GerenteFinanceiroCard';
 import { DespesasPorTipoCard, type CategoriaExecutadoOrcado } from '@/components/dashboard/DespesasPorTipoCard';
-import { SaldoDoMesCard } from '@/components/dashboard/SaldoDoMesCard';
+import { ProximosVencimentosCard, type VencimentoItem } from '@/components/dashboard/ProximosVencimentosCard';
+import { ParaOndeFoiCard } from '@/components/dashboard/ParaOndeFoiCard';
 import { IconTrendUp, IconRecorrente, IconCompras } from '@/components/icons';
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -41,6 +42,8 @@ export default async function DashboardPage({
   const anoAtual = mesSelecionado.getFullYear();
   const hojeStr = format(new Date(), 'yyyy-MM-dd');
   const em7DiasStr = format(addDays(new Date(), 7), 'yyyy-MM-dd');
+  const em15DiasStr = format(addDays(new Date(), 15), 'yyyy-MM-dd');
+  const em45DiasStr = format(addDays(new Date(), 45), 'yyyy-MM-dd');
 
   const [
     { data: contas },
@@ -55,6 +58,7 @@ export default async function DashboardPage({
     { data: transacoesMultiAno },
     { data: dividasProximas },
     { data: dividasAtivasTodas },
+    { data: pendentesProximas },
   ] = await Promise.all([
     supabase.from('contas').select('*').eq('user_id', user.id).eq('ativa', true).order('nome'),
     supabase
@@ -116,6 +120,17 @@ export default async function DashboardPage({
       .gte('data_vencimento', hojeStr)
       .lte('data_vencimento', em7DiasStr),
     supabase.from('dividas').select('valor_total, valor_pago').eq('user_id', user.id).eq('status', 'ativa'),
+    // Pendentes para "Próximos vencimentos" (atrasadas + até 15 dias). Busca com folga pela data
+    // de lançamento porque o vencimento pode ser depois dela.
+    supabase
+      .from('transacoes')
+      .select('id, descricao, valor, tipo, data, data_vencimento, categoria_id')
+      .eq('user_id', user.id)
+      .eq('pago', false)
+      .eq('eh_transferencia', false)
+      .lte('data', em45DiasStr)
+      .order('data', { ascending: true })
+      .limit(300),
   ]);
 
   const subcategoriaIdsPorCategoria = indexarSubcategoriasPorCategoria(subcategoriasTodas ?? []);
@@ -410,6 +425,38 @@ export default async function DashboardPage({
     }
   }
 
+  const categoriaPorId = new Map<string, { nome: string; icone: string | null; cor: string | null }>(
+    (categoriasTodas ?? []).map((c) => [c.id, { nome: c.nome, icone: c.icone, cor: c.cor }])
+  );
+  const vencimentos: VencimentoItem[] = (pendentesProximas ?? [])
+    .map((t) => {
+      const cat = t.categoria_id ? categoriaPorId.get(t.categoria_id) : undefined;
+      return {
+        id: t.id,
+        descricao: t.descricao,
+        valor: Number(t.valor),
+        tipo: t.tipo as 'receita' | 'despesa',
+        vencimento: t.data_vencimento ?? t.data,
+        categoriaNome: cat?.nome ?? null,
+        categoriaIcone: cat?.icone ?? null,
+        categoriaCor: cat?.cor ?? null,
+      };
+    })
+    .filter((v) => v.vencimento <= em15DiasStr)
+    .sort((a, b) => a.vencimento.localeCompare(b.vencimento));
+
+  const fatiasGasto = categoriasDespesa.map((c) => ({
+    id: c.id,
+    nome: c.nome,
+    cor: c.cor,
+    icone: c.icone,
+    executado: gastoPorCategoria.get(c.id) ?? 0,
+    orcado: orcadoPorCategoria.get(c.id) ?? 0,
+  }));
+
+  const baseHrefDetalhe = `/orcamentos?ano=${anoAtual}&mes=${mesSelecionado.getMonth() + 1}&categoria=`;
+  const hrefDetalhe = (id: string) => `${baseHrefDetalhe}${id}`;
+
   return (
     <div className="space-y-5">
       <HeroOrcamento
@@ -432,9 +479,20 @@ export default async function DashboardPage({
         dividasVencendo={dividasVencendo.length}
       />
 
-      <GerenteFinanceiroCard insights={insights} />
+      <div className="anim-subir" style={{ animationDelay: '80ms' }}>
+        <GerenteFinanceiroCard insights={insights} />
+      </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+      <div className="anim-subir grid grid-cols-1 gap-4 lg:grid-cols-5" style={{ animationDelay: '140ms' }}>
+        <div className="lg:col-span-2">
+          <ProximosVencimentosCard itens={vencimentos} hoje={hojeStr} />
+        </div>
+        <div className="lg:col-span-3">
+          <ParaOndeFoiCard categorias={fatiasGasto} baseHrefDetalhe={baseHrefDetalhe} />
+        </div>
+      </div>
+
+      <div className="anim-subir grid grid-cols-1 gap-4 lg:grid-cols-4" style={{ animationDelay: '200ms' }}>
         <div className="card flex flex-col p-4 lg:col-span-3 lg:min-h-[440px]">
           <BalancoMensalChart diario={fluxo} mensal={balancoAnual} />
         </div>
@@ -452,9 +510,7 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      <SaldoDoMesCard receita={totalReceitaCategorias} despesaFixa={despesaFixaMes} despesaVariavel={gastoVariavelMes} />
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="anim-subir grid grid-cols-1 gap-4 lg:grid-cols-3" style={{ animationDelay: '260ms' }}>
         <DespesasPorTipoCard
           titulo="Receitas"
           icon={IconTrendUp}
@@ -465,6 +521,7 @@ export default async function DashboardPage({
           totalGeral={totalReceitaCategorias}
           mostrarPercentualTitulo={false}
           mensagemVazio="Nenhuma receita registrada neste mês."
+          hrefDetalhe={hrefDetalhe}
         />
         <DespesasPorTipoCard
           titulo="Despesas Fixas"
@@ -474,6 +531,7 @@ export default async function DashboardPage({
           totalExecutado={despesaFixaMes}
           totalOrcado={orcadoFixasTotal}
           totalGeral={totalGastoCategorias}
+          hrefDetalhe={hrefDetalhe}
         />
         <DespesasPorTipoCard
           titulo="Despesas Variáveis"
@@ -483,6 +541,7 @@ export default async function DashboardPage({
           totalExecutado={gastoVariavelMes}
           totalOrcado={orcadoVariaveisTotal}
           totalGeral={totalGastoCategorias}
+          hrefDetalhe={hrefDetalhe}
         />
       </div>
     </div>

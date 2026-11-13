@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { emojiCategoria, humorOrcamento } from '@/lib/emojiCategoria';
 import { ValorMonetario } from '@/components/ui/ValorMonetario';
 import { cn, formatPercent0 } from '@/lib/utils';
 import { IconChevronDown, IconChevronRight } from '@/components/icons';
@@ -60,43 +62,58 @@ export function LinhaCategoriaExpansivel({
   categoria,
   totalGeral,
   isReceita = false,
+  hrefDetalhe,
 }: {
   categoria: CategoriaExecutadoOrcado;
   totalGeral: number;
   isReceita?: boolean;
+  hrefDetalhe?: string;
 }) {
   const [aberta, setAberta] = useState(false);
   const cor = categoria.cor ?? CINZA_PADRAO;
   const temSubcategorias = (categoria.subcategorias?.length ?? 0) > 0;
   const subcategoriasOrdenadas = [...(categoria.subcategorias ?? [])].sort((a, b) => b.executado - a.executado);
+  const humor = humorOrcamento({ orcado: categoria.orcado, exec: categoria.executado, receita: isReceita });
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => temSubcategorias && setAberta((v) => !v)}
-        className={cn(
-          'flex w-full items-center gap-2 rounded-lg px-1 py-2.5 text-left transition-colors sm:gap-3',
-          temSubcategorias && 'cursor-pointer hover:bg-gray-200'
-        )}
-      >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center">
-          {temSubcategorias ? (
-            aberta ? (
-              <IconChevronDown className="h-4 w-4 text-gray-400" />
-            ) : (
-              <IconChevronRight className="h-4 w-4 text-gray-400" />
-            )
+      <div className="group flex w-full items-center gap-2 rounded-lg px-1 py-2 transition-colors hover:bg-gray-50 sm:gap-3">
+        <button
+          type="button"
+          onClick={() => temSubcategorias && setAberta((v) => !v)}
+          disabled={!temSubcategorias}
+          aria-expanded={temSubcategorias ? aberta : undefined}
+          aria-label={temSubcategorias ? (aberta ? 'Recolher subcategorias' : 'Ver subcategorias') : undefined}
+          className={cn('flex h-8 w-4 shrink-0 items-center justify-center', temSubcategorias ? 'text-gray-400 hover:text-gray-700' : 'invisible')}
+        >
+          {aberta ? <IconChevronDown className="h-4 w-4" /> : <IconChevronRight className="h-4 w-4" />}
+        </button>
+        {(() => {
+          const conteudo = (
+            <>
+              <span
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base transition group-hover:scale-110"
+                style={{ backgroundColor: `${cor}22` }}
+                aria-hidden
+              >
+                {emojiCategoria(categoria.nome, categoria.icone)}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-900 group-hover:text-brand-700">{categoria.nome}</span>
+              {categoria.orcado > 0 && (
+                <span className="shrink-0 text-sm" title={humor.dica} aria-label={humor.dica}>
+                  {humor.emoji}
+                </span>
+              )}
+            </>
+          );
+          return hrefDetalhe ? (
+            <Link href={hrefDetalhe} className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3" title={`Abrir ${categoria.nome}`}>
+              {conteudo}
+            </Link>
           ) : (
-            <span
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base"
-              style={{ backgroundColor: `${cor}22` }}
-            >
-              {categoria.icone ?? <span className="h-2 w-2 rounded-full" style={{ backgroundColor: cor }} />}
-            </span>
-          )}
-        </span>
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-900">{categoria.nome}</span>
+            <span className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">{conteudo}</span>
+          );
+        })()}
         <LinhaValores
           executado={categoria.executado}
           orcado={categoria.orcado}
@@ -104,17 +121,20 @@ export function LinhaCategoriaExpansivel({
           destaque
           isReceita={isReceita}
         />
-      </button>
+      </div>
 
       {temSubcategorias && aberta && (
-        <div className="ml-8 border-l border-gray-100 pl-3">
+        <div className="anim-subir ml-8 border-l border-gray-100 pl-3">
           {subcategoriasOrdenadas.map((s) => (
             <div
               key={s.id}
               className="flex items-center gap-2 rounded-lg px-1 py-2 transition-colors hover:bg-gray-200 sm:gap-3"
             >
               <span className="w-4 shrink-0" />
-              <span className="min-w-0 flex-1 truncate text-sm text-gray-600">{s.nome}</span>
+              <span className="min-w-0 flex-1 truncate text-sm text-gray-600">
+                <span className="mr-1.5" aria-hidden>{emojiCategoria(s.nome)}</span>
+                {s.nome}
+              </span>
               <LinhaValores executado={s.executado} orcado={s.orcado} totalGeral={totalGeral} isReceita={isReceita} />
             </div>
           ))}

@@ -1,5 +1,6 @@
 import type { SVGProps } from 'react';
 import { ValorMonetario } from '@/components/ui/ValorMonetario';
+import { ValorAnimado } from '@/components/ui/ValorAnimado';
 import { cn, formatPercent0 } from '@/lib/utils';
 import { LinhaCategoriaExpansivel } from './LinhaCategoriaExpansivel';
 
@@ -52,6 +53,7 @@ export function DespesasPorTipoCard({
   mostrarPercentualTitulo = true,
   mensagemVazio = 'Nenhuma categoria com valores neste mês.',
   className,
+  hrefDetalhe,
 }: {
   titulo: string;
   icon: (props: SVGProps<SVGSVGElement>) => React.ReactElement;
@@ -63,13 +65,15 @@ export function DespesasPorTipoCard({
   mostrarPercentualTitulo?: boolean;
   mensagemVazio?: string;
   className?: string;
+  /** Monta o link para o detalhe da categoria em Orçamentos. */
+  hrefDetalhe?: (categoriaId: string) => string;
 }) {
   const classes = TOM_CLASSES[tom];
   const ordenadas = [...categorias].sort((a, b) => b.executado - a.executado);
   const percentualDoGeral = mostrarPercentualTitulo && totalGeral > 0 ? (totalExecutado / totalGeral) * 100 : null;
 
   return (
-    <div className={cn('card flex flex-col overflow-hidden p-0', className)}>
+    <div className={cn('card flex flex-col overflow-hidden p-0 transition hover:shadow-card', className)}>
       <div className={cn('flex items-center gap-3 px-4 py-4', classes.fundo)}>
         <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', classes.iconeFundo)}>
           <Icon className="h-5 w-5" />
@@ -84,7 +88,7 @@ export function DespesasPorTipoCard({
             )}
           </p>
           <p className={cn('text-xl font-bold', classes.texto)}>
-            <ValorMonetario valor={totalExecutado} />
+            <ValorAnimado valor={totalExecutado} />
           </p>
         </div>
       </div>
@@ -93,7 +97,7 @@ export function DespesasPorTipoCard({
         {ordenadas.length > 0 ? (
           <div className="flex flex-col">
             <div className="flex items-center gap-2 px-1 pb-2 text-xs font-medium uppercase text-gray-400 sm:gap-3">
-              <span className="w-8 shrink-0" />
+              <span className="w-4 shrink-0" />
               <span className="flex-1">Categoria</span>
               <span className="w-16 shrink-0 text-right sm:w-24">Executado</span>
               <span className="w-16 shrink-0 text-right sm:w-24">Orçado</span>
@@ -107,6 +111,7 @@ export function DespesasPorTipoCard({
                   categoria={c}
                   totalGeral={totalGeral}
                   isReceita={tom === 'receita'}
+                  hrefDetalhe={hrefDetalhe?.(c.id)}
                 />
               ))}
             </div>
