@@ -493,10 +493,14 @@ export default async function DashboardPage({
     .map((c) => {
       const o = orcadoDe(c.id);
       const g = gastoDe(c.id);
-      return { id: c.id, nome: c.nome, icone: c.icone, orcado: o, gasto: g, pct: (g / o) * 100 };
+      return { id: c.id, nome: c.nome, icone: c.icone, cor: c.cor, orcado: o, gasto: g, pct: (g / o) * 100 };
     })
     .filter((c) => c.gasto > c.orcado + 0.01)
     .sort((a, b) => b.pct - a.pct);
+  const pertoLista = categoriasOrcadas
+    .map((c) => ({ id: c.id, nome: c.nome, icone: c.icone, cor: c.cor, orcado: orcadoDe(c.id), gasto: gastoDe(c.id) }))
+    .filter((c) => c.gasto >= c.orcado * 0.8 && c.gasto <= c.orcado + 0.01)
+    .sort((a, b) => b.gasto / b.orcado - a.gasto / a.orcado);
   const perto = categoriasOrcadas.filter((c) => {
     const o = orcadoDe(c.id);
     const g = gastoDe(c.id);
@@ -580,7 +584,14 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-5">
-      <SaudeFinanceiraCard saude={saude} mesNome={nomeMes(mesSelecionado)} mesParam={searchParams.mes} />
+      <SaudeFinanceiraCard
+        saude={saude}
+        mesNome={nomeMes(mesSelecionado)}
+        mesParam={searchParams.mes}
+        estouradas={estouradas}
+        perto={pertoLista}
+        baseHrefDetalhe={baseHrefDetalhe}
+      />
 
       <div className="anim-subir" style={{ animationDelay: '200ms' }}>
         <MesNumaLinhaCard

@@ -1,22 +1,26 @@
 import Link from 'next/link';
 import { IconOrcamentos, IconPlus, IconTransacoes, IconMetas } from '@/components/icons';
 import { NotaAnimada } from '@/components/dashboard/NotaAnimada';
-import { explicarNota, type CorSinal, type SaudeFinanceira } from '@/lib/saudeFinanceira';
-import { cn } from '@/lib/utils';
+import { SinaisVitais, type CategoriaOrcamentoResumo } from '@/components/dashboard/SinaisVitais';
+import { explicarNota, type SaudeFinanceira } from '@/lib/saudeFinanceira';
 
-const COR_BORDA: Record<CorSinal, string> = {
-  verde: 'border-t-emerald-500',
-  amarelo: 'border-t-amber-400',
-  vermelho: 'border-t-red-500',
-};
-const COR_PONTO: Record<CorSinal, string> = {
-  verde: 'bg-emerald-500',
-  amarelo: 'bg-amber-400',
-  vermelho: 'bg-red-500',
-};
 const COR_ANEL = (nota: number) => (nota >= 80 ? '#4ade80' : nota >= 60 ? '#a3e635' : nota >= 40 ? '#fbbf24' : '#f87171');
 
-export function SaudeFinanceiraCard({ saude, mesNome, mesParam }: { saude: SaudeFinanceira; mesNome: string; mesParam?: string }) {
+export function SaudeFinanceiraCard({
+  saude,
+  mesNome,
+  mesParam,
+  estouradas,
+  perto,
+  baseHrefDetalhe,
+}: {
+  saude: SaudeFinanceira;
+  mesNome: string;
+  mesParam?: string;
+  estouradas: CategoriaOrcamentoResumo[];
+  perto: CategoriaOrcamentoResumo[];
+  baseHrefDetalhe: string;
+}) {
   const q = (extra: string) => `${extra}${mesParam ? `${extra.includes('?') ? '&' : '?'}mes=${mesParam}` : ''}`;
   const botaoClaro =
     'inline-flex items-center gap-1.5 rounded-xl bg-white/15 px-3.5 py-2 text-sm font-semibold text-white ring-1 ring-inset ring-white/25 transition hover:bg-white/25';
@@ -63,28 +67,7 @@ export function SaudeFinanceiraCard({ saude, mesNome, mesParam }: { saude: Saude
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-        {saude.sinais.map((s, i) => (
-          <Link
-            key={s.chave}
-            href={s.href}
-            className={cn(
-              'anim-subir group rounded-2xl border border-t-4 border-gray-100 bg-white px-3.5 py-3 shadow-soft transition hover:-translate-y-0.5 hover:shadow-card',
-              COR_BORDA[s.cor]
-            )}
-            style={{ animationDelay: `${120 + i * 60}ms` }}
-            title={`${Math.round((s.pontos / 20) * (100 / saude.sinais.length))} de ${100 / saude.sinais.length} pontos`}
-          >
-            <p className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
-              <span className="text-sm">{s.emoji}</span>
-              {s.rotulo}
-              <span className={cn('ml-auto h-2 w-2 rounded-full', COR_PONTO[s.cor])} />
-            </p>
-            <p className="mt-1 truncate text-lg font-bold text-gray-900 group-hover:text-brand-700">{s.valor}</p>
-            <p className="truncate text-[11px] text-gray-400">{s.detalhe}</p>
-          </Link>
-        ))}
-      </div>
+      <SinaisVitais sinais={saude.sinais} estouradas={estouradas} perto={perto} baseHrefDetalhe={baseHrefDetalhe} />
     </section>
   );
 }
