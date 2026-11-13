@@ -13,7 +13,7 @@ import {
   orcadoMesAnterior,
   parseValor,
   type ItemPlanejado,
-} from '@/components/orcamentos/PlanejarMes';
+} from '@/components/orcamentos/edicaoOrcamento';
 import { buscarLancamentosCategoria, type LancamentoCategoria } from '@/app/(dashboard)/orcamentos/actions';
 import { Modal } from '@/components/ui/Modal';
 import { IconCheck, IconChevronLeft, IconChevronRight, IconDesfazer } from '@/components/icons';

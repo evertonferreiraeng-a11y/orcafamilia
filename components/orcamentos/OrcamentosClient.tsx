@@ -1,9 +1,9 @@
 'use client';
 
-import { Fragment, useCallback, useEffect, useMemo, useState, useTransition } from 'react';
+import { Fragment, useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { salvarOrcamento, salvarOrcamentosLote, limparOrcamentos, copiarOrcamentoAno } from '@/app/(dashboard)/orcamentos/actions';
-import { PlanejarMes, type ItemPlanejado } from '@/components/orcamentos/PlanejarMes';
+import type { ItemPlanejado } from '@/components/orcamentos/edicaoOrcamento';
 import { DetalheCategoria } from '@/components/orcamentos/DetalheCategoria';
 import { Modal } from '@/components/ui/Modal';
 import { Abertura, botaoAbertura } from '@/components/ui/Abertura';
@@ -607,14 +607,12 @@ function VisaoMes({
   despesas,
   mes,
   ano,
-  onPlanejar,
   onAbrir,
 }: {
   receitas: CategoriaAnual[];
   despesas: CategoriaAnual[];
   mes: number;
   ano: number;
-  onPlanejar: () => void;
   onAbrir: (id: string, receita: boolean) => void;
 }) {
   const ritmo = fracaoDoMes(ano, mes);
@@ -672,12 +670,9 @@ function VisaoMes({
         {d.length ? (
           grade(d, false)
         ) : (
-          <div className="rounded-2xl border border-dashed border-gray-200 bg-white/60 px-4 py-6 text-center text-sm text-gray-500">
-            <p>Nenhum gasto ou orçamento neste mês.</p>
-            <button type="button" onClick={onPlanejar} className="btn-primary mt-3 px-3 py-1.5 text-xs">
-              Planejar {MESES_COMPLETOS[mes].toLowerCase()}
-            </button>
-          </div>
+          <p className="rounded-2xl border border-dashed border-gray-200 bg-white/60 px-4 py-6 text-center text-sm text-gray-500">
+            Nenhum gasto ou orçamento neste mês. Escolha uma categoria abaixo para definir o valor.
+          </p>
         )}
       </section>
       <section>
@@ -723,23 +718,16 @@ export function OrcamentosClient({
   const searchParams = useSearchParams();
 
   const [dadosReceita, setDadosReceita] = useState(categoriasReceita);
-  const [visao, setVisao] = useState<'mes' | 'planejar' | 'tabela'>('mes');
-  const [planejamentoPendente, setPlanejamentoPendente] = useState(false);
-  const marcarPendente = useCallback((v: boolean) => setPlanejamentoPendente(v), []);
+  const [visao, setVisao] = useState<'mes' | 'tabela'>('mes');
   const [detalhe, setDetalhe] = useState<{ id: string; receita: boolean } | null>(null);
   const [mesFoco, setMesFoco] = useState(ano === new Date().getFullYear() ? new Date().getMonth() : 0);
   useEffect(() => {
     try {
       const salva = localStorage.getItem('life-orcamentos-visao');
-      if (salva === 'tabela' || salva === 'planejar') setVisao(salva);
+      if (salva === 'tabela') setVisao('tabela');
     } catch {}
   }, []);
-  function confirmarDescarte(): boolean {
-    return !planejamentoPendente || window.confirm('Há valores não salvos no planejamento. Descartar?');
-  }
-  function trocarVisao(v: 'mes' | 'planejar' | 'tabela') {
-    if (visao === 'planejar' && v !== 'planejar' && !confirmarDescarte()) return;
-    if (v !== 'planejar') setPlanejamentoPendente(false);
+  function trocarVisao(v: 'mes' | 'tabela') {
     setVisao(v);
     try {
       localStorage.setItem('life-orcamentos-visao', v);
@@ -860,7 +848,7 @@ export function OrcamentosClient({
     atualizarLocal(setDadosDespesa, categoriaId, subcategoriaId, novoValor, mesesAlvo);
   }
 
-  async function salvarPlanejamento(itens: ItemPlanejado[], meses: number[]) {
+  async function salvarDetalhe(itens: ItemPlanejado[], meses: number[]) {
     const mesesReferencia = meses.map((i) => `${ano}-${String(i + 1).padStart(2, '0')}-01`);
     const resultado = await salvarOrcamentosLote(
       itens.map((it) => ({ categoriaId: it.categoriaId, subcategoriaId: it.subcategoriaId, mesesReferencia, valorLimite: it.valor }))
@@ -915,7 +903,7 @@ export function OrcamentosClient({
       <Abertura
         sobretitulo={`Orçamentos · ${ano}`}
         titulo={`${MESES_COMPLETOS[mesFoco]} de ${ano}`}
-        subtitulo={orcadoMes > 0 ? `${formatCurrency(gastoMes)} gastos de ${formatCurrency(orcadoMes)} orçados no mês` : 'Use “Planejar mês” para definir os valores'}
+        subtitulo={orcadoMes > 0 ? `${formatCurrency(gastoMes)} gastos de ${formatCurrency(orcadoMes)} orçados no mês` : 'Clique numa categoria para definir os valores'}
         anel={{ pct: orcadoMes > 0 ? (gastoMes / orcadoMes) * 100 : 0, rotulo: 'do orçado', alerta: orcadoMes > 0 && gastoMes > orcadoMes }}
         cartoes={[
           { rotulo: '📈 Receitas no ano', valor: formatCurrency(totalAnoReceitas), sub: `recebido: ${formatCurrency(totalAnoReceitasExec)}` },
@@ -949,7 +937,6 @@ export function OrcamentosClient({
           {(
             [
               ['mes', 'Acompanhar'],
-              ['planejar', 'Planejar mês'],
               ['tabela', 'Tabela anual'],
             ] as const
           ).map(([v, rotulo]) => (
@@ -964,7 +951,7 @@ export function OrcamentosClient({
             </button>
           ))}
         </div>
-        {visao !== 'tabela' && (
+        {visao === 'mes' && (
           <div className="flex flex-wrap gap-1">
             {MESES_ABREV.map((m, i) => {
               const o = totalGastosPorMes[i] ?? 0;
@@ -974,11 +961,7 @@ export function OrcamentosClient({
                 <button
                   key={m}
                   type="button"
-                  onClick={() => {
-                    if (i === mesFoco || (visao === 'planejar' && !confirmarDescarte())) return;
-                    setPlanejamentoPendente(false);
-                    setMesFoco(i);
-                  }}
+                  onClick={() => setMesFoco(i)}
                   className={cn(
                     'relative rounded-lg px-2.5 py-1.5 text-xs font-semibold transition',
                     mesFoco === i ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 ring-1 ring-inset ring-gray-200 hover:bg-gray-50',
@@ -1115,7 +1098,7 @@ export function OrcamentosClient({
               ano={ano}
               mesInicial={mesFoco}
               onFechar={() => setDetalhe(null)}
-              onSalvar={salvarPlanejamento}
+              onSalvar={salvarDetalhe}
             />
           ) : null;
         })()}
@@ -1126,17 +1109,7 @@ export function OrcamentosClient({
           despesas={dadosDespesa}
           mes={mesFoco}
           ano={ano}
-          onPlanejar={() => trocarVisao('planejar')}
           onAbrir={(id, receita) => setDetalhe({ id, receita })}
-        />
-      ) : visao === 'planejar' ? (
-        <PlanejarMes
-          ano={ano}
-          mes={mesFoco}
-          receitas={dadosReceita}
-          despesas={dadosDespesa}
-          onSalvar={salvarPlanejamento}
-          onAlteracoesPendentes={marcarPendente}
         />
       ) : (
       <div className="card overflow-x-auto p-0">
