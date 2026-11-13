@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { emojiCategoria, humorOrcamento } from '@/lib/emojiCategoria';
+import { emojiCategoria } from '@/lib/emojiCategoria';
 import { ValorMonetario } from '@/components/ui/ValorMonetario';
 import { cn, formatPercent0 } from '@/lib/utils';
 import { IconChevronDown, IconChevronRight } from '@/components/icons';
@@ -73,7 +73,6 @@ export function LinhaCategoriaExpansivel({
   const cor = categoria.cor ?? CINZA_PADRAO;
   const temSubcategorias = (categoria.subcategorias?.length ?? 0) > 0;
   const subcategoriasOrdenadas = [...(categoria.subcategorias ?? [])].sort((a, b) => b.executado - a.executado);
-  const humor = humorOrcamento({ orcado: categoria.orcado, exec: categoria.executado, receita: isReceita });
 
   return (
     <div>
@@ -99,11 +98,6 @@ export function LinhaCategoriaExpansivel({
                 {emojiCategoria(categoria.nome, categoria.icone)}
               </span>
               <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-900 group-hover:text-brand-700">{categoria.nome}</span>
-              {categoria.orcado > 0 && (
-                <span className="shrink-0 text-sm" title={humor.dica} aria-label={humor.dica}>
-                  {humor.emoji}
-                </span>
-              )}
             </>
           );
           return hrefDetalhe ? (
