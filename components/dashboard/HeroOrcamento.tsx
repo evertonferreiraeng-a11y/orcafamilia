@@ -97,7 +97,6 @@ export function HeroOrcamento(p: Props) {
           <Link href="/metas" className={botaoClaro}>
             <IconMetas className="h-4 w-4" /> Metas
           </Link>
-          <span className="ml-auto text-xs text-white/70">Saldo do mês anterior: {formatCurrency(p.saldoAnterior)}</span>
         </div>
       </section>
 

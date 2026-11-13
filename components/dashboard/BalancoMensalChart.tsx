@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ValorAnimado } from '@/components/ui/ValorAnimado';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -60,20 +59,6 @@ function BalancoTooltip({ active, payload, label, clicavel }: TooltipProps<numbe
         </div>
       )}
       {clicavel && <p className="mt-2 text-[11px] text-sky-300">Clique para abrir este mês →</p>}
-    </div>
-  );
-}
-
-function Indicador({ emoji, rotulo, valor, cor }: { emoji: string; rotulo: string; valor: number; cor: string }) {
-  return (
-    <div className="min-w-0 rounded-2xl bg-gray-50 px-3 py-2 transition hover:bg-gray-100">
-      <p className="truncate text-[11px] font-medium text-gray-500">
-        <span className="mr-1">{emoji}</span>
-        {rotulo}
-      </p>
-      <p className={cn('truncate text-base font-bold tabular-nums', cor)}>
-        <ValorAnimado valor={valor} />
-      </p>
     </div>
   );
 }
@@ -204,13 +189,6 @@ export function BalancoMensalChart({
             Incluir pendentes
           </label>
         </div>
-      </div>
-
-      <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <Indicador emoji="📈" rotulo="Receitas" valor={totais.receita} cor="text-positive" />
-        <Indicador emoji="📉" rotulo="Despesas" valor={totais.despesa} cor="text-negative" />
-        <Indicador emoji={totais.saldo >= 0 ? '🐷' : '⚠️'} rotulo={totais.saldo >= 0 ? 'Sobrou' : 'Faltou'} valor={Math.abs(totais.saldo)} cor={totais.saldo >= 0 ? 'text-brand-600' : 'text-negative'} />
-        <Indicador emoji="〰️" rotulo={`Média de gastos/${modo === 'ano' ? 'mês' : 'dia'}`} valor={totais.mediaDespesa} cor="text-gray-800" />
       </div>
 
       <div className="min-h-[280px] flex-1">

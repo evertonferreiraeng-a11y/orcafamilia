@@ -14,7 +14,6 @@ const TOLERANCIA = 0.01;
 function LinhaValores({
   executado,
   orcado,
-  totalGeral,
   destaque = false,
   isReceita = false,
 }: {
@@ -27,7 +26,6 @@ function LinhaValores({
   const acimaDoOrcado = orcado > 0 && executado > orcado + TOLERANCIA;
   const corDestaque = isReceita ? 'text-positive' : 'text-negative';
   const percentualOrcado = orcado > 0 ? (executado / orcado) * 100 : null;
-  const percentualGeral = totalGeral > 0 ? (executado / totalGeral) * 100 : null;
 
   return (
     <>
@@ -50,9 +48,6 @@ function LinhaValores({
         )}
       >
         {percentualOrcado !== null ? formatPercent0(percentualOrcado) : '—'}
-      </span>
-      <span className="hidden w-16 shrink-0 text-center text-xs font-medium text-gray-400 sm:block">
-        {percentualGeral !== null ? formatPercent0(percentualGeral) : '—'}
       </span>
     </>
   );

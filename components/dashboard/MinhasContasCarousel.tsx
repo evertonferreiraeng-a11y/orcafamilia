@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { ValorMonetario } from '@/components/ui/ValorMonetario';
-import { ValorAnimado } from '@/components/ui/ValorAnimado';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { IconPlus, IconLandmark, IconPiggyBank, IconTrendUp, IconWallet } from '@/components/icons';
 import { cn } from '@/lib/utils';
@@ -28,7 +27,6 @@ export interface ContaResumo {
 }
 
 export function MinhasContasCarousel({ contas }: { contas: ContaResumo[] }) {
-  const total = contas.reduce((a, c) => a + c.saldo, 0);
   const positivo = contas.reduce((a, c) => a + Math.max(0, c.saldo), 0);
   const negativas = contas.filter((c) => c.saldo < 0).length;
   const ordenadas = [...contas].sort((a, b) => Math.abs(b.saldo) - Math.abs(a.saldo));
@@ -39,7 +37,9 @@ export function MinhasContasCarousel({ contas }: { contas: ContaResumo[] }) {
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-xl">🏦</span>
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold text-gray-900">Minhas contas</h2>
-          <p className="text-xs text-gray-500">{contas.length} conta(s)</p>
+          <p className={cn('text-xs', negativas > 0 ? 'font-medium text-red-600' : 'text-gray-500')}>
+            {negativas > 0 ? `⚠️ ${negativas} conta(s) no negativo` : `${contas.length} conta(s)`}
+          </p>
         </div>
         <Link
           href="/cadastro"
@@ -57,14 +57,6 @@ export function MinhasContasCarousel({ contas }: { contas: ContaResumo[] }) {
         </div>
       ) : (
         <>
-          <div className={cn('mt-3 rounded-2xl px-3.5 py-3', total < 0 ? 'bg-red-50' : 'bg-gray-50')}>
-            <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">Saldo somado</p>
-            <p className={cn('text-xl font-bold tabular-nums', total < 0 ? 'text-negative' : 'text-gray-900')}>
-              <ValorAnimado valor={total} />
-            </p>
-            {negativas > 0 && <p className="mt-0.5 text-[11px] font-medium text-red-600">⚠️ {negativas} conta(s) no negativo</p>}
-          </div>
-
           <ul className="mt-3 space-y-2">
             {ordenadas.map((conta, i) => {
               const Icone = ICONE_POR_TIPO[conta.tipo] ?? IconWallet;

@@ -50,7 +50,6 @@ export function DespesasPorTipoCard({
   totalExecutado,
   totalOrcado,
   totalGeral,
-  mostrarPercentualTitulo = true,
   mensagemVazio = 'Nenhuma categoria com valores neste mês.',
   className,
   hrefDetalhe,
@@ -70,7 +69,6 @@ export function DespesasPorTipoCard({
 }) {
   const classes = TOM_CLASSES[tom];
   const ordenadas = [...categorias].sort((a, b) => b.executado - a.executado);
-  const percentualDoGeral = mostrarPercentualTitulo && totalGeral > 0 ? (totalExecutado / totalGeral) * 100 : null;
 
   return (
     <div className={cn('card flex flex-col overflow-hidden p-0 transition hover:shadow-card', className)}>
@@ -81,15 +79,15 @@ export function DespesasPorTipoCard({
         <div>
           <p className={cn('text-sm font-semibold uppercase tracking-wide', classes.texto)}>
             {titulo}
-            {percentualDoGeral !== null && (
-              <span className={cn('ml-1.5 font-normal normal-case', classes.textoSecundario)}>
-                · {formatPercent0(percentualDoGeral)} do total
-              </span>
-            )}
           </p>
           <p className={cn('text-xl font-bold', classes.texto)}>
             <ValorAnimado valor={totalExecutado} />
           </p>
+          {totalOrcado > 0 && (
+            <p className={cn('text-xs', classes.textoSecundario)}>
+              de <ValorMonetario valor={totalOrcado} /> {tom === 'receita' ? 'previsto' : 'orçado'} · {formatPercent0((totalExecutado / totalOrcado) * 100)}
+            </p>
+          )}
         </div>
       </div>
 
@@ -102,7 +100,6 @@ export function DespesasPorTipoCard({
               <span className="w-16 shrink-0 text-right sm:w-24">Executado</span>
               <span className="w-16 shrink-0 text-right sm:w-24">Orçado</span>
               <span className="w-12 shrink-0 whitespace-nowrap text-center sm:w-16">% Orç.</span>
-              <span className="hidden w-16 shrink-0 whitespace-nowrap text-center sm:block">% Geral</span>
             </div>
             <div className="divide-y divide-gray-50">
               {ordenadas.map((c) => (
@@ -121,27 +118,6 @@ export function DespesasPorTipoCard({
         )}
       </div>
 
-      <div
-        className={cn(
-          'flex items-center gap-2 border-t border-gray-100 px-4 py-3 text-sm font-semibold sm:gap-3',
-          classes.fundo,
-          classes.texto
-        )}
-      >
-        <span className="flex-1 uppercase tracking-wide">Total</span>
-        <span className="w-16 shrink-0 text-right sm:w-24">
-          <ValorMonetario valor={totalExecutado} />
-        </span>
-        <span className={cn('w-16 shrink-0 text-right text-xs font-medium sm:w-24', classes.textoSecundario)}>
-          {totalOrcado > 0 ? <ValorMonetario valor={totalOrcado} /> : '—'}
-        </span>
-        <span className={cn('w-12 shrink-0 text-center text-xs font-medium sm:w-16', classes.textoSecundario)}>
-          {totalOrcado > 0 ? formatPercent0((totalExecutado / totalOrcado) * 100) : '—'}
-        </span>
-        <span className={cn('hidden w-16 shrink-0 text-center text-xs font-medium sm:block', classes.textoSecundario)}>
-          {totalGeral > 0 ? formatPercent0((totalExecutado / totalGeral) * 100) : '—'}
-        </span>
-      </div>
     </div>
   );
 }
