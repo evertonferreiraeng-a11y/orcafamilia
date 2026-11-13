@@ -586,7 +586,7 @@ function CartaoCategoriaMes({
 
       <p className={cn('mt-1.5 text-[11px]', estourou ? 'font-semibold text-red-600' : 'text-gray-500')}>
         {semOrcamento
-          ? 'Toque para definir o valor do mês'
+          ? 'Clique para planejar o mês'
           : receita
           ? resto > 0
             ? `Faltam ${formatCurrency(resto)}`
@@ -616,16 +616,34 @@ function VisaoMes({
   onAbrir: (id: string, receita: boolean) => void;
 }) {
   const ritmo = fracaoDoMes(ano, mes);
-  const temMovimento = (c: CategoriaAnual) => valorEfetivoCategoria(c, mes) > 0 || (c.valoresExecutadosPorMes[mes] ?? 0) > 0;
-  const ativas = (l: CategoriaAnual[]) =>
-    l.filter(temMovimento).sort((a, b) => {
-      const pa = valorEfetivoCategoria(a, mes) > 0 ? (a.valoresExecutadosPorMes[mes] ?? 0) / valorEfetivoCategoria(a, mes) : 0;
-      const pb = valorEfetivoCategoria(b, mes) > 0 ? (b.valoresExecutadosPorMes[mes] ?? 0) / valorEfetivoCategoria(b, mes) : 0;
-      return pb - pa;
+  // Todas as categorias aparecem: primeiro as orçadas (mais perto do limite primeiro),
+  // depois as com gasto sem orçamento, por fim as ainda não planejadas.
+  const grupo = (c: CategoriaAnual) => (valorEfetivoCategoria(c, mes) > 0 ? 0 : (c.valoresExecutadosPorMes[mes] ?? 0) > 0 ? 1 : 2);
+  const ordenar = (l: CategoriaAnual[]) =>
+    [...l].sort((a, b) => {
+      const ga = grupo(a);
+      const gb = grupo(b);
+      if (ga !== gb) return ga - gb;
+      if (ga === 0) {
+        const pa = (a.valoresExecutadosPorMes[mes] ?? 0) / valorEfetivoCategoria(a, mes);
+        const pb = (b.valoresExecutadosPorMes[mes] ?? 0) / valorEfetivoCategoria(b, mes);
+        return pb - pa;
+      }
+      return a.nome.localeCompare(b.nome, 'pt-BR');
     });
-  const d = ativas(despesas);
-  const r = ativas(receitas);
-  const paradas = [...despesas.map((c) => ({ c, receita: false })), ...receitas.map((c) => ({ c, receita: true }))].filter((x) => !temMovimento(x.c));
+  const d = ordenar(despesas);
+  const r = ordenar(receitas);
+  const naoPlanejadas = d.filter((c) => valorEfetivoCategoria(c, mes) <= 0).length;
+
+  const receitaPrevista = receitas.reduce((a, c) => a + valorEfetivoCategoria(c, mes), 0);
+  const gastosOrcados = despesas.reduce((a, c) => a + valorEfetivoCategoria(c, mes), 0);
+  const gastoReal = despesas.reduce((a, c) => a + (c.valoresExecutadosPorMes[mes] ?? 0), 0);
+  const sobra = receitaPrevista - gastosOrcados;
+  const fatias = despesas
+    .map((c) => ({ c, v: valorEfetivoCategoria(c, mes) }))
+    .filter((f) => f.v > 0)
+    .sort((a, b) => b.v - a.v);
+  const base = Math.max(receitaPrevista, gastosOrcados, 1);
   const emAlerta = d
     .map((c) => {
       const o = valorEfetivoCategoria(c, mes);
@@ -644,6 +662,43 @@ function VisaoMes({
 
   return (
     <div className="space-y-6">
+      <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-soft">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            ['Receita prevista', receitaPrevista, 'text-gray-900'],
+            ['Gastos orçados', gastosOrcados, 'text-gray-900'],
+            [sobra >= 0 ? 'Sobra planejada' : 'Orçado acima da receita', Math.abs(sobra), sobra >= 0 ? 'text-positive' : 'text-negative'],
+            ['Gasto até agora', gastoReal, gastosOrcados > 0 && gastoReal > gastosOrcados ? 'text-negative' : 'text-gray-900'],
+          ].map(([rotulo, valor, cor]) => (
+            <div key={rotulo as string}>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">{rotulo as string}</p>
+              <p className={cn('text-lg font-bold tabular-nums', cor as string)}>{formatCurrency(valor as number)}</p>
+            </div>
+          ))}
+        </div>
+        {fatias.length > 0 && (
+          <>
+            <div className="mt-3 flex h-2 gap-0.5 overflow-hidden rounded-full bg-gray-100">
+              {fatias.map(({ c, v }) => (
+                <div
+                  key={c.id}
+                  title={`${c.nome}: ${formatCurrency(v)} (${Math.round((v / base) * 100)}%)`}
+                  className="h-full transition-all duration-500"
+                  style={{ width: `${(v / base) * 100}%`, backgroundColor: c.cor ?? '#94a3b8' }}
+                />
+              ))}
+            </div>
+            <p className="mt-1.5 truncate text-[11px] text-gray-500">
+              {fatias
+                .slice(0, 5)
+                .map(({ c, v }) => `${c.nome} ${Math.round((v / base) * 100)}%`)
+                .join(' · ')}
+              {fatias.length > 5 && ` · +${fatias.length - 5}`}
+              {receitaPrevista > 0 && sobra > 0 && ` · livre ${Math.round((sobra / receitaPrevista) * 100)}%`}
+            </p>
+          </>
+        )}
+      </div>
       {emAlerta.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-amber-100 bg-amber-50/60 px-4 py-3">
           <span className="text-xs font-semibold text-amber-800">⚠️ Atenção em {MESES_ABREV[mes].toLowerCase()}:</span>
@@ -662,44 +717,32 @@ function VisaoMes({
       )}
       <section>
         <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
-          📉 Gastos de {MESES_COMPLETOS[mes].toLowerCase()} <span className="rounded-full bg-gray-100 px-2 text-xs font-medium text-gray-500">{d.length}</span>
+          📉 Gastos de {MESES_COMPLETOS[mes].toLowerCase()}
+          {naoPlanejadas > 0 && (
+            <span className="rounded-full bg-brand-50 px-2 text-xs font-medium text-brand-700">{naoPlanejadas} sem orçamento</span>
+          )}
           <span className="ml-auto text-xs font-normal text-gray-400">
-            {ritmo != null ? 'clique no card para detalhes · linha escura = ritmo ideal até hoje' : 'clique no card para ver detalhes e editar'}
+            {ritmo != null ? 'clique no card para planejar ou ver detalhes · linha escura = ritmo ideal até hoje' : 'clique no card para planejar ou ver detalhes'}
           </span>
         </h3>
         {d.length ? (
           grade(d, false)
         ) : (
           <p className="rounded-2xl border border-dashed border-gray-200 bg-white/60 px-4 py-6 text-center text-sm text-gray-500">
-            Nenhum gasto ou orçamento neste mês. Escolha uma categoria abaixo para definir o valor.
+            Nenhuma categoria de despesa cadastrada. Crie em Cadastro.
           </p>
         )}
       </section>
       <section>
         <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
-          📈 Receitas de {MESES_COMPLETOS[mes].toLowerCase()} <span className="rounded-full bg-gray-100 px-2 text-xs font-medium text-gray-500">{r.length}</span>
+          📈 Receitas de {MESES_COMPLETOS[mes].toLowerCase()}
         </h3>
         {r.length ? (
           grade(r, true)
         ) : (
-          <p className="rounded-2xl border border-dashed border-gray-200 bg-white/60 px-4 py-6 text-center text-sm text-gray-500">Nenhuma receita prevista ou recebida neste mês.</p>
+          <p className="rounded-2xl border border-dashed border-gray-200 bg-white/60 px-4 py-6 text-center text-sm text-gray-500">Nenhuma categoria de receita cadastrada. Crie em Cadastro.</p>
         )}
       </section>
-      {paradas.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-dashed border-gray-200 px-4 py-3">
-          <span className="text-xs text-gray-500">Sem orçamento nem lançamentos em {MESES_ABREV[mes].toLowerCase()}:</span>
-          {paradas.map(({ c, receita }) => (
-            <button
-              type="button"
-              key={c.id}
-              onClick={() => onAbrir(c.id, receita)}
-              className="flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200 transition hover:text-brand-700 hover:ring-brand-300"
-            >
-              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: c.cor ?? '#94a3b8' }} />+ {c.nome}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -936,7 +979,7 @@ export function OrcamentosClient({
         <div className="flex rounded-xl bg-gray-100 p-1 text-xs font-semibold" role="group" aria-label="Forma de exibição">
           {(
             [
-              ['mes', 'Acompanhar'],
+              ['mes', 'Planejar e acompanhar'],
               ['tabela', 'Tabela anual'],
             ] as const
           ).map(([v, rotulo]) => (
