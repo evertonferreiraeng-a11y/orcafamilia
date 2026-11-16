@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createServerSupabase } from '@/lib/supabase-server';
+import { resolverValorEfetivo } from '@/lib/orcamentos';
 
 type SupabaseClient = ReturnType<typeof createServerSupabase>;
 
@@ -244,4 +245,76 @@ export async function buscarLancamentosCategoria(
 
   if (error) return { error: error.message };
   return { lancamentos: (data ?? []).map((t) => ({ ...t, valor: Number(t.valor) })) };
+}
+
+export interface ResumoOrcamentoLancamento {
+  categoria: { orcado: number; usado: number; temSubcategorias: boolean };
+  subcategoria: { orcado: number; usado: number } | null;
+}
+
+/**
+ * Orçado e utilizado de uma categoria (e subcategoria) num mês — usado no formulário
+ * de transação para mostrar quanto ainda está disponível antes de lançar.
+ * `excluirTransacaoId` tira a própria transação da conta ao editar.
+ */
+export async function resumoOrcamentoLancamento(
+  categoriaId: string,
+  subcategoriaId: string | null,
+  mesRef: string, // yyyy-MM
+  excluirTransacaoId?: string
+): Promise<{ error?: string; resumo?: ResumoOrcamentoLancamento }> {
+  const supabase = createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Sessão expirada.' };
+
+  const [ano, mes] = mesRef.split('-').map(Number);
+  if (!ano || !mes) return { error: 'Mês inválido.' };
+  const inicio = `${ano}-${String(mes).padStart(2, '0')}-01`;
+  const fim = `${ano}-${String(mes).padStart(2, '0')}-${String(new Date(ano, mes, 0).getDate()).padStart(2, '0')}`;
+
+  const [{ data: orcs, error: e1 }, { data: subs, error: e2 }, { data: trans, error: e3 }] = await Promise.all([
+    supabase
+      .from('orcamentos')
+      .select('subcategoria_id, valor_limite')
+      .eq('user_id', user.id)
+      .eq('categoria_id', categoriaId)
+      .eq('mes_referencia', inicio),
+    supabase.from('subcategorias').select('id').eq('categoria_id', categoriaId),
+    supabase
+      .from('transacoes')
+      .select('id, valor, subcategoria_id')
+      .eq('user_id', user.id)
+      .eq('categoria_id', categoriaId)
+      .eq('eh_transferencia', false)
+      .gte('data', inicio)
+      .lte('data', fim),
+  ]);
+  const erro = e1 ?? e2 ?? e3;
+  if (erro) return { error: erro.message };
+
+  const temSub = (subs ?? []).length > 0;
+  const linhaCategoria = (orcs ?? []).find((o) => !o.subcategoria_id);
+  const somaSubs = (orcs ?? []).filter((o) => o.subcategoria_id).reduce((a, o) => a + Number(o.valor_limite ?? 0), 0);
+  const orcadoCategoria = resolverValorEfetivo(temSub, linhaCategoria ? Number(linhaCategoria.valor_limite ?? 0) : null, somaSubs);
+
+  const validas = (trans ?? []).filter((t) => t.id !== excluirTransacaoId);
+  const usadoCategoria = validas.reduce((a, t) => a + Number(t.valor), 0);
+
+  let subcategoria: ResumoOrcamentoLancamento['subcategoria'] = null;
+  if (subcategoriaId) {
+    const linhaSub = (orcs ?? []).find((o) => o.subcategoria_id === subcategoriaId);
+    subcategoria = {
+      orcado: linhaSub ? Number(linhaSub.valor_limite ?? 0) : 0,
+      usado: validas.filter((t) => t.subcategoria_id === subcategoriaId).reduce((a, t) => a + Number(t.valor), 0),
+    };
+  }
+
+  return {
+    resumo: {
+      categoria: { orcado: orcadoCategoria, usado: usadoCategoria, temSubcategorias: temSub },
+      subcategoria,
+    },
+  };
 }

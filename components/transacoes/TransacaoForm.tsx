@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import type { Categoria, Subcategoria, Conta, Cartao, Transacao, TipoDespesa } from '@/types/database';
 import type { TransacaoFormState } from '@/app/(dashboard)/transacoes/actions';
+import { OrcamentoDisponivel } from '@/components/transacoes/OrcamentoDisponivel';
 
 function BotaoSalvar({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -72,6 +73,9 @@ export function TransacaoForm({
   const [aba, setAba] = useState<Aba>(transacao?.eh_transferencia ? 'transferencia' : (transacao?.tipo ?? 'despesa'));
   const [formaPagamento, setFormaPagamento] = useState<'debito' | 'credito'>(transacao?.cartao_id ? 'credito' : 'debito');
   const [categoriaId, setCategoriaId] = useState(transacao?.categoria_id ?? '');
+  const [subcategoriaId, setSubcategoriaId] = useState(transacao?.subcategoria_id ?? '');
+  const [valorDigitado, setValorDigitado] = useState(transacao?.valor != null ? String(transacao.valor) : '');
+  const [dataPagamento, setDataPagamento] = useState(transacao?.pago ? transacao?.data ?? '' : '');
   const [pago, setPago] = useState(transacao?.pago ?? false);
   const [tipoDespesa, setTipoDespesa] = useState<TipoDespesa>(transacao?.tipo_despesa ?? 'variavel');
   const [parcelado, setParcelado] = useState(false);
@@ -168,6 +172,7 @@ export function TransacaoForm({
           min="0.01"
           required
           defaultValue={transacao?.valor}
+          onChange={(e) => setValorDigitado(e.target.value)}
           className="input-field"
           placeholder="0,00"
         />
@@ -206,7 +211,10 @@ export function TransacaoForm({
               name="data"
               type="date"
               defaultValue={transacao?.pago ? transacao?.data ?? '' : ''}
-              onChange={(e) => setPago(e.target.value !== '')}
+              onChange={(e) => {
+                setPago(e.target.value !== '');
+                setDataPagamento(e.target.value);
+              }}
               className="input-field"
               placeholder="Preencher ao pagar"
             />
@@ -317,7 +325,10 @@ export function TransacaoForm({
               name="categoria_id"
               required
               value={categoriaId}
-              onChange={(e) => setCategoriaId(e.target.value)}
+              onChange={(e) => {
+                setCategoriaId(e.target.value);
+                setSubcategoriaId('');
+              }}
               className="input-field"
             >
               <option value="">Selecione...</option>
@@ -331,7 +342,8 @@ export function TransacaoForm({
             <select
               id="subcategoria_id"
               name="subcategoria_id"
-              defaultValue={transacao?.subcategoria_id ?? ''}
+              value={subcategoriaId}
+              onChange={(e) => setSubcategoriaId(e.target.value)}
               disabled={subcategoriasFiltradas.length === 0}
               className="input-field disabled:bg-gray-50 disabled:text-gray-400"
             >
@@ -348,6 +360,20 @@ export function TransacaoForm({
             </select>
           </div>
         </div>
+      )}
+
+      {aba !== 'transferencia' && categoriaId && categoriasFiltradas.some((c) => c.id === categoriaId) && (
+        <OrcamentoDisponivel
+          categoriaId={categoriaId}
+          categoriaNome={categorias.find((c) => c.id === categoriaId)?.nome ?? 'Categoria'}
+          categoriaIcone={categorias.find((c) => c.id === categoriaId)?.icone ?? null}
+          subcategoriaId={subcategoriaId || null}
+          subcategoriaNome={subcategorias.find((sc) => sc.id === subcategoriaId)?.nome ?? null}
+          mesRef={(dataPagamento || dataVencimento).slice(0, 7)}
+          valor={Number(valorDigitado.replace(',', '.'))}
+          receita={aba === 'receita'}
+          excluirTransacaoId={transacao?.id}
+        />
       )}
 
       {aba === 'despesa' && (
