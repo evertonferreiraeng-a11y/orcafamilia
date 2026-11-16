@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import type { Categoria, Subcategoria, Conta, Cartao, Transacao, TipoDespesa } from '@/types/database';
 import type { TransacaoFormState } from '@/app/(dashboard)/transacoes/actions';
 import { OrcamentoDisponivel } from '@/components/transacoes/OrcamentoDisponivel';
+import { cn, formatCurrency } from '@/lib/utils';
 
 function BotaoSalvar({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -111,9 +112,112 @@ export function TransacaoForm({
   const categoriasFiltradas = categorias.filter((c) => c.tipo === tipoLancamento);
   const subcategoriasFiltradas = subcategorias.filter((s) => s.categoria_id === categoriaId);
 
+  /* ---------- etapas ---------- */
+  const temEtapaRepeticao = aba !== 'transferencia' && (!transacao || ehParteDeParcelamento);
+  const etapas: { n: number; titulo: string; emoji: string }[] = [
+    { n: 1, titulo: 'O que é', emoji: '📝' },
+    { n: 2, titulo: aba === 'transferencia' ? 'Quando e contas' : 'Quando e onde', emoji: '📅' },
+    ...(aba !== 'transferencia' ? [{ n: 3, titulo: 'Categoria', emoji: '🏷️' }] : []),
+    ...(temEtapaRepeticao ? [{ n: 4, titulo: transacao ? 'Aplicar em' : 'Repetição', emoji: '🔁' }] : []),
+  ];
+  const [etapa, setEtapa] = useState(1);
+  const [maxVisitada, setMaxVisitada] = useState(transacao ? 4 : 1);
+  const formRef = useRef<HTMLFormElement>(null);
+  const idx = Math.max(0, etapas.findIndex((e) => e.n === etapa));
+  const ultima = idx === etapas.length - 1;
+
+  // Se a etapa atual deixar de existir (ex.: mudou para Transferência), volta para a última válida.
+  useEffect(() => {
+    if (!etapas.some((e) => e.n === etapa)) setEtapa(etapas[etapas.length - 1].n);
+  }, [etapas, etapa]);
+
+  // Foca o primeiro campo da etapa ao entrar nela.
+  useEffect(() => {
+    const el = formRef.current?.querySelector<HTMLElement>(`[data-etapa="${etapa}"] input:not([type=hidden]):not([type=checkbox]), [data-etapa="${etapa}"] select`);
+    el?.focus({ preventScroll: true });
+  }, [etapa]);
+
+  function etapaValida(n: number): boolean {
+    const box = formRef.current?.querySelector(`[data-etapa="${n}"]`);
+    if (!box) return true;
+    const campos = Array.from(box.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select')).filter((c) => !c.disabled);
+    for (const c of campos) {
+      if (!c.checkValidity()) {
+        c.reportValidity();
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function irPara(n: number) {
+    // Para avançar, todas as etapas anteriores precisam estar válidas.
+    for (const e of etapas) {
+      if (e.n >= n) break;
+      if (e.n >= etapa && !etapaValida(e.n)) {
+        setEtapa(e.n);
+        return;
+      }
+    }
+    setEtapa(n);
+    setMaxVisitada((m) => Math.max(m, n));
+  }
+
+  const proxima = () => !ultima && irPara(etapas[idx + 1].n);
+  const anterior = () => idx > 0 && setEtapa(etapas[idx - 1].n);
+
+  const categoriaNome = categorias.find((c) => c.id === categoriaId)?.nome;
+  const subNome = subcategorias.find((sc) => sc.id === subcategoriaId)?.nome;
+  const valorNum = Number(valorDigitado.replace(',', '.'));
+  const caixa = (n: number) => cn(etapa === n ? 'anim-subir space-y-4' : 'hidden');
+
   return (
-    <form action={formAction} className="space-y-4">
+    <form
+      ref={formRef}
+      action={formAction}
+      className="space-y-4"
+      onInvalidCapture={(e) => {
+        // Campo inválido numa etapa escondida: leva até ela.
+        const box = (e.target as HTMLElement).closest<HTMLElement>('[data-etapa]');
+        const n = Number(box?.dataset.etapa);
+        if (n && n !== etapa) setEtapa(n);
+      }}
+      onKeyDown={(e) => {
+        const alvo = e.target as HTMLElement;
+        if (e.key === 'Enter' && !ultima && alvo.tagName === 'INPUT' && (alvo as HTMLInputElement).type !== 'checkbox') {
+          e.preventDefault();
+          proxima();
+        }
+      }}
+    >
       <input type="hidden" name="aba" value={aba} />
+
+      {/* progresso */}
+      <div className="-mt-1">
+        <div className="flex items-center gap-1">
+          {etapas.map((e, i) => {
+            const feita = i < idx;
+            const atual = i === idx;
+            const clicavel = e.n <= maxVisitada || i <= idx;
+            return (
+              <button
+                key={e.n}
+                type="button"
+                onClick={() => clicavel && (i < idx ? setEtapa(e.n) : irPara(e.n))}
+                disabled={!clicavel}
+                className={cn('group flex min-w-0 flex-1 flex-col gap-1.5 text-left', !clicavel && 'cursor-default')}
+              >
+                <span className={cn('h-1.5 rounded-full transition-colors duration-300', feita || atual ? 'bg-brand-500' : 'bg-gray-200')} />
+                <span className={cn('truncate text-[11px] font-medium', atual ? 'text-brand-700' : feita ? 'text-gray-600 group-hover:text-brand-600' : 'text-gray-400')}>
+                  {e.emoji} {e.titulo}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div data-etapa="1" className={caixa(1)}>
 
       {transacao ? (
         <p className="text-sm font-medium text-gray-500">{ABA_LABEL[aba]}</p>
@@ -178,6 +282,9 @@ export function TransacaoForm({
         />
       </div>
 
+      </div>
+
+      <div data-etapa="2" className={caixa(2)}>
       {aba === 'transferencia' ? (
         <div>
           <label className="label-field" htmlFor="data">Data</label>
@@ -316,6 +423,9 @@ export function TransacaoForm({
         </div>
       )}
 
+      </div>
+
+      <div data-etapa="3" className={caixa(3)}>
       {aba !== 'transferencia' && (
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -413,6 +523,26 @@ export function TransacaoForm({
         </div>
       )}
 
+      </div>
+
+      <div data-etapa="4" className={caixa(4)}>
+      {!transacao && (
+        <div className="rounded-2xl border border-gray-100 bg-gray-50/80 p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Resumo</p>
+          <p className="mt-1 truncate text-base font-semibold text-gray-900">
+            {(formRef.current?.querySelector<HTMLInputElement>('#descricao')?.value || ABA_LABEL[aba])}
+          </p>
+          <p className={cn('text-xl font-bold tabular-nums', aba === 'receita' ? 'text-positive' : 'text-gray-900')}>
+            {valorNum > 0 ? formatCurrency(valorNum) : '—'}
+          </p>
+          <p className="mt-1 text-xs text-gray-500">
+            vence {dataVencimento.split('-').reverse().join('/')}
+            {pago && ' · paga'}
+            {categoriaNome && ` · ${categoriaNome}`}
+            {subNome && ` › ${subNome}`}
+          </p>
+        </div>
+      )}
       {aba === 'despesa' && !transacao && tipoDespesa === 'variavel' && (
         <div>
           <label className="label-field">Parcelamento</label>
@@ -590,10 +720,34 @@ export function TransacaoForm({
         </div>
       )}
 
+      {aba !== 'transferencia' && !transacao && (
+        <p className="text-xs text-gray-400">Se não for repetir, é só salvar.</p>
+      )}
+      </div>
+
       {state.error && <p className="text-sm text-negative">{state.error}</p>}
 
-      <div className="flex justify-end gap-2 pt-2">
-        <BotaoSalvar label={transacao ? 'Salvar alterações' : 'Salvar Transação'} />
+      <div className="flex items-center gap-2 border-t border-gray-100 pt-4">
+        {idx > 0 && (
+          <button type="button" onClick={anterior} className="btn-secondary">
+            ← Voltar
+          </button>
+        )}
+        <span className="ml-auto text-xs text-gray-400">
+          {idx + 1} de {etapas.length}
+        </span>
+        {ultima ? (
+          <BotaoSalvar label={transacao ? 'Salvar alterações' : 'Salvar Transação'} />
+        ) : (
+          <>
+            {transacao && (
+              <BotaoSalvar label="Salvar" />
+            )}
+            <button type="button" onClick={proxima} className={transacao ? 'btn-secondary' : 'btn-primary'}>
+              Próximo →
+            </button>
+          </>
+        )}
       </div>
     </form>
   );
