@@ -180,7 +180,8 @@ export async function registrarValor(indicadorId: string, valor: number, data?: 
   const { supabase, user } = await usuario();
   if (!user) return { error: 'Sessão expirada.' };
   if (!Number.isFinite(valor)) return { error: 'Valor inválido.' };
-  const registro = data ? { indicador_id: indicadorId, valor, data } : { indicador_id: indicadorId, valor };
+  const registro: { indicador_id: string; valor: number; data?: string } = { indicador_id: indicadorId, valor };
+  if (data) registro.data = data;
   const { error } = await supabase.from('vida_registros').upsert(registro, { onConflict: 'indicador_id,data' });
   if (error) return { error: error.message };
   revalidatePath('/vida/planos');
