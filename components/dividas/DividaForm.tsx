@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import type { Divida, Categoria, Subcategoria, Conta } from '@/types/database';
 import type { DividaFormState } from '@/app/(dashboard)/dividas/actions';
-import { SITUACOES_CREDITO, TIPOS_DIVIDA, valorComDesconto, variacaoOriginalAtual } from '@/lib/dividas';
+import { SITUACOES_CREDITO, TIPOS_DIVIDA, percentualDesconto } from '@/lib/dividas';
 import { formatCurrency } from '@/lib/utils';
 
 function BotaoSalvar({ label }: { label: string }) {
@@ -38,15 +38,15 @@ export function DividaForm({
   }, {});
 
   const [categoriaId, setCategoriaId] = useState(divida?.categoria_id ?? '');
-  const [gerarParcelas, setGerarParcelas] = useState(false);
   const [semVencimento, setSemVencimento] = useState(divida?.sem_vencimento ?? false);
   const subcategoriasFiltradas = subcategorias.filter((s) => s.categoria_id === categoriaId);
   const [valorOriginal, setValorOriginal] = useState(divida?.valor_original != null ? String(divida.valor_original) : '');
-  const [valorAtual, setValorAtual] = useState(divida?.valor_atual != null ? String(divida.valor_atual) : '');
-  const [desconto, setDesconto] = useState(divida?.desconto_pct != null ? String(divida.desconto_pct) : '');
+  const [comJuros, setComJuros] = useState(
+    divida ? String(divida.valor_atual != null ? divida.valor_atual : divida.valor_total) : ''
+  );
+  const [comDesconto, setComDesconto] = useState(divida?.valor_com_desconto != null ? String(divida.valor_com_desconto) : '');
   const n = (v: string) => (v.trim() === '' ? null : Number(v.replace(',', '.')));
-  const comDesconto = valorComDesconto(n(valorAtual), n(desconto));
-  const variacao = variacaoOriginalAtual(n(valorOriginal), n(valorAtual));
+  const pct = percentualDesconto(n(comJuros), n(comDesconto));
 
   return (
     <form action={formAction} className="space-y-4">
@@ -75,37 +75,8 @@ export function DividaForm({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="label-field" htmlFor="valor_total">Valor total</label>
-          <input
-            id="valor_total"
-            name="valor_total"
-            type="number"
-            step="0.01"
-            min="0.01"
-            required
-            defaultValue={divida?.valor_total}
-            className="input-field"
-            placeholder="0,00"
-          />
-        </div>
-        <div>
-          <label className="label-field" htmlFor="parcelas_total">Parcelas</label>
-          <input
-            id="parcelas_total"
-            name="parcelas_total"
-            type="number"
-            min="1"
-            defaultValue={divida?.parcelas_total ?? ''}
-            className="input-field"
-            placeholder="Ex: 12"
-          />
-        </div>
-      </div>
-
       <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Detalhes para negociação</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Tipo e valores da dívida</p>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="label-field" htmlFor="tipo_divida">Tipo da dívida</label>
@@ -146,77 +117,42 @@ export function DividaForm({
             />
           </div>
           <div>
-            <label className="label-field" htmlFor="valor_atual">Valor atual</label>
+            <label className="label-field" htmlFor="valor_total">Valor com juros</label>
             <input
-              id="valor_atual"
-              name="valor_atual"
+              id="valor_total"
+              name="valor_total"
               type="number"
               step="0.01"
-              min="0"
-              value={valorAtual}
-              onChange={(e) => setValorAtual(e.target.value)}
+              min="0.01"
+              required
+              value={comJuros}
+              onChange={(e) => setComJuros(e.target.value)}
               className="input-field"
               placeholder="cobrado hoje"
             />
           </div>
           <div>
-            <label className="label-field" htmlFor="desconto_pct">Desconto (%)</label>
+            <label className="label-field" htmlFor="valor_com_desconto">Valor com desconto</label>
             <input
-              id="desconto_pct"
-              name="desconto_pct"
+              id="valor_com_desconto"
+              name="valor_com_desconto"
               type="number"
               step="0.01"
               min="0"
-              max="100"
-              value={desconto}
-              onChange={(e) => setDesconto(e.target.value)}
+              value={comDesconto}
+              onChange={(e) => setComDesconto(e.target.value)}
               className="input-field"
-              placeholder="ex.: 60"
+              placeholder="proposta"
             />
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="label-field" htmlFor="taxa_juros_mensal">Juros (% ao mês)</label>
-            <input
-              id="taxa_juros_mensal"
-              name="taxa_juros_mensal"
-              type="number"
-              step="0.001"
-              min="0"
-              max="100"
-              defaultValue={divida?.taxa_juros_mensal ?? ''}
-              className="input-field"
-              placeholder="ex.: 2,5 (CET mensal)"
-            />
-          </div>
-          <div>
-            <label className="label-field" htmlFor="parcela_mensal">Parcela mensal</label>
-            <input
-              id="parcela_mensal"
-              name="parcela_mensal"
-              type="number"
-              step="0.01"
-              min="0"
-              defaultValue={divida?.parcela_mensal ?? ''}
-              className="input-field"
-              placeholder="pagamento mínimo"
-            />
-          </div>
-        </div>
-        {(variacao != null || comDesconto != null) && (
-          <div className="space-y-0.5 text-xs">
-            {variacao != null && (
-              <p className={variacao > 0 ? 'text-red-600' : 'text-emerald-700'}>
-                {variacao > 0 ? '📈' : '📉'} O valor atual está {Math.abs(variacao).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% {variacao > 0 ? 'acima' : 'abaixo'} do original.
-              </p>
-            )}
-            {comDesconto != null && n(valorAtual) != null && (
-              <p className="font-semibold text-emerald-700">
-                🤝 Para quitar com desconto: {formatCurrency(comDesconto)} (economia de {formatCurrency(n(valorAtual)! - comDesconto)})
-              </p>
-            )}
-          </div>
+        {pct != null && (
+          <p className="text-xs font-semibold text-emerald-700">
+            🤝 Desconto de {pct.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% · economia de {formatCurrency(n(comJuros)! - n(comDesconto)!)}
+          </p>
+        )}
+        {n(comDesconto) != null && n(comJuros) != null && n(comDesconto)! >= n(comJuros)! && (
+          <p className="text-xs text-amber-700">O valor com desconto deve ser menor que o valor com juros.</p>
         )}
       </div>
 
@@ -316,37 +252,6 @@ export function DividaForm({
           placeholder="Observações sobre esta dívida (opcional)"
         />
       </div>
-
-      {!divida && !semVencimento && (
-        <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-          <div className="flex items-center gap-2">
-            <input
-              id="gerar_parcelas"
-              name="gerar_parcelas"
-              type="checkbox"
-              checked={gerarParcelas}
-              onChange={(e) => setGerarParcelas(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
-            />
-            <label htmlFor="gerar_parcelas" className="text-sm text-gray-700">
-              Gerar as parcelas em Transações
-            </label>
-          </div>
-          <p className="mt-1 text-xs text-gray-400">Cria automaticamente uma transação para cada parcela desta dívida.</p>
-
-          {gerarParcelas && (
-            <div className="mt-3">
-              <label className="label-field" htmlFor="conta_parcelas_id">Conta das parcelas</label>
-              <select id="conta_parcelas_id" name="conta_parcelas_id" required defaultValue="" className="input-field">
-                <option value="">Selecione a conta</option>
-                {contas.map((c) => (
-                  <option key={c.id} value={c.id}>{c.nome}</option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
-      )}
 
       {state.error && <p className="text-sm text-negative">{state.error}</p>}
 

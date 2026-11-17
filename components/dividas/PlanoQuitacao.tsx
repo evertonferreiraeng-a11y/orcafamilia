@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { salvarJurosParcela } from '@/app/(dashboard)/dividas/actions';
 import { rotuloMes, simular, type DividaSim, type Estrategia, type ResultadoSim } from '@/lib/quitacao';
-import { rotuloSituacaoCredito, valorComDesconto } from '@/lib/dividas';
+import { rotuloSituacaoCredito, valoresNegociacao } from '@/lib/dividas';
 import type { Divida } from '@/types/database';
 import { cn } from '@/lib/utils';
 
@@ -19,7 +19,7 @@ export interface DividaPlano {
   parcela: number | null;
   situacao: string;
   situacaoCredito: string | null;
-  valorAtual: number | null;
+  comDesconto: number | null;
   descontoPct: number | null;
 }
 
@@ -37,8 +37,8 @@ export function paraPlano(d: Divida): DividaPlano {
     parcela: d.parcela_mensal != null ? Number(d.parcela_mensal) : null,
     situacao: d.situacao ?? 'ativa',
     situacaoCredito: d.situacao_credito,
-    valorAtual: d.valor_atual != null ? Number(d.valor_atual) : null,
-    descontoPct: d.desconto_pct != null ? Number(d.desconto_pct) : null,
+    comDesconto: valoresNegociacao(d).comDesconto,
+    descontoPct: valoresNegociacao(d).pct,
   };
 }
 
@@ -188,8 +188,12 @@ export function PlanoQuitacao({ dividas: todas, sobraMedia }: { dividas: Divida[
                     {d.parcelasRestantes != null && ` · ${d.parcelasRestantes} parcela(s) restante(s)`}
                     {d.situacao === 'standby' && ' · em standby'}
                     {rotuloSituacaoCredito(d.situacaoCredito) && <span className={cn(['negativada', 'protestada', 'cobranca_judicial'].includes(d.situacaoCredito ?? '') && 'font-semibold text-red-600')}> · {rotuloSituacaoCredito(d.situacaoCredito)}</span>}
-                    {valorComDesconto(d.valorAtual, d.descontoPct) != null && (
-                      <span className="font-semibold text-emerald-700"> · quita à vista por {brl(valorComDesconto(d.valorAtual, d.descontoPct)!)} (−{d.descontoPct!.toLocaleString('pt-BR')}%)</span>
+                    {d.comDesconto != null && (
+                      <span className="font-semibold text-emerald-700">
+                        {' '}
+                        · quita com desconto por {brl(d.comDesconto)}
+                        {d.descontoPct != null && ` (−${d.descontoPct.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%)`}
+                      </span>
                     )}
                   </p>
                 </div>

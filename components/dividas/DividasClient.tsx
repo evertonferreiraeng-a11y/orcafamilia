@@ -25,7 +25,7 @@ import {
 } from '@/app/(dashboard)/dividas/actions';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
 import type { Divida, Categoria, Subcategoria, Conta } from '@/types/database';
-import { SITUACOES_CREDITO, TIPOS_DIVIDA, valorComDesconto, variacaoOriginalAtual, type SituacaoCredito, type TipoDivida } from '@/lib/dividas';
+import { SITUACOES_CREDITO, TIPOS_DIVIDA, valoresNegociacao, type SituacaoCredito, type TipoDivida } from '@/lib/dividas';
 
 type StatusChave = 'pendente' | 'parcial' | 'vencida' | 'quitada';
 type StatusFiltro = 'todos' | StatusChave;
@@ -116,8 +116,9 @@ export function DividasClient({
   const pagoAtivas = ativas.reduce((a, d) => a + Number(d.valor_pago), 0);
   const negativadas = ativas.filter((d) => ['negativada', 'protestada', 'cobranca_judicial'].includes(d.situacao_credito ?? '')).length;
   const comDescontos = ativas
-    .map((d) => ({ atual: d.valor_atual != null ? Number(d.valor_atual) : null, final: valorComDesconto(d.valor_atual, d.desconto_pct) }))
-    .filter((x): x is { atual: number; final: number } => x.atual != null && x.final != null);
+    .map((d) => valoresNegociacao(d))
+    .filter((x) => x.comDesconto != null && x.pct != null)
+    .map((x) => ({ atual: x.comJuros, final: x.comDesconto as number }));
   const totalComDesconto = comDescontos.reduce((a, x) => a + x.final, 0);
   const economiaDescontos = comDescontos.reduce((a, x) => a + (x.atual - x.final), 0);
   const conta = (st: StatusChave) => dividas.filter((d) => statusDivida(d, hoje) === st).length;
@@ -214,10 +215,8 @@ export function DividasClient({
             const status = statusDivida(d, hoje);
             const tipo = d.tipo_divida && d.tipo_divida in TIPOS_DIVIDA ? TIPOS_DIVIDA[d.tipo_divida as TipoDivida] : null;
             const sitCred = d.situacao_credito && d.situacao_credito in SITUACOES_CREDITO ? SITUACOES_CREDITO[d.situacao_credito as SituacaoCredito] : null;
-            const valorAtual = d.valor_atual != null ? Number(d.valor_atual) : null;
             const valorOriginal = d.valor_original != null ? Number(d.valor_original) : null;
-            const comDesconto = valorComDesconto(valorAtual, d.desconto_pct != null ? Number(d.desconto_pct) : null);
-            const variacao = variacaoOriginalAtual(valorOriginal, valorAtual);
+            const neg = valoresNegociacao(d);
 
             return (
               <div
@@ -260,6 +259,7 @@ export function DividasClient({
                   </p>
                 )}
 
+                {Number(d.valor_pago) > 0 && (
                 <div className="mt-3 flex items-center justify-between text-sm">
                   <div>
                     <p className="text-gray-400">Total</p>
@@ -270,35 +270,31 @@ export function DividasClient({
                     <p className="font-semibold text-negative">{formatCurrency(saldoDevedor)}</p>
                   </div>
                 </div>
-
-                {(valorOriginal != null || valorAtual != null || comDesconto != null) && (
-                  <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-gray-50 p-2.5 text-xs">
-                    <div>
-                      <p className="text-gray-400">Original</p>
-                      <p className="font-semibold tabular-nums text-gray-700">{valorOriginal != null ? formatCurrency(valorOriginal) : '—'}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-400">Atual</p>
-                      <p className="font-semibold tabular-nums text-gray-900">{valorAtual != null ? formatCurrency(valorAtual) : '—'}</p>
-                      {variacao != null && (
-                        <p className={cn('text-[10px] font-semibold', variacao > 0 ? 'text-red-600' : 'text-emerald-600')}>
-                          {variacao > 0 ? '▲' : '▼'} {Math.abs(variacao).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}% vs original
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-gray-400">Com desconto</p>
-                      {comDesconto != null ? (
-                        <>
-                          <p className="font-bold tabular-nums text-emerald-700">{formatCurrency(comDesconto)}</p>
-                          <p className="text-[10px] font-semibold text-emerald-600">−{Number(d.desconto_pct).toLocaleString('pt-BR')}%</p>
-                        </>
-                      ) : (
-                        <p className="font-semibold text-gray-400">—</p>
-                      )}
-                    </div>
-                  </div>
                 )}
+
+                <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-gray-50 p-2.5 text-xs">
+                  <div>
+                    <p className="text-gray-400">Original</p>
+                    <p className="font-semibold tabular-nums text-gray-700">{valorOriginal != null ? formatCurrency(valorOriginal) : '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400">Com juros</p>
+                    <p className="font-semibold tabular-nums text-gray-900">{formatCurrency(neg.comJuros)}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400">Com desconto</p>
+                    {neg.comDesconto != null ? (
+                      <>
+                        <p className="font-bold tabular-nums text-emerald-700">{formatCurrency(neg.comDesconto)}</p>
+                        {neg.pct != null && (
+                          <p className="text-[10px] font-semibold text-emerald-600">−{neg.pct.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% de desconto</p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="font-semibold text-gray-400">—</p>
+                    )}
+                  </div>
+                </div>
 
                 <div className="mt-4 flex items-center gap-3">
                   <div className="min-w-0 flex-1">

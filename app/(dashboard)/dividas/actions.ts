@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createServerSupabase } from '@/lib/supabase-server';
+import type { Divida } from '@/types/database';
 
 export interface DividaFormState {
   error?: string;
@@ -16,7 +17,10 @@ function parseFormData(formData: FormData) {
     categoria_id: String(formData.get('categoria_id') || '') || null,
     subcategoria_id: String(formData.get('subcategoria_id') || '') || null,
     valor_total: Number(formData.get('valor_total') || 0),
-    parcelas_total: formData.get('parcelas_total') ? Number(formData.get('parcelas_total')) : null,
+    // Campo opcional: o cadastro simples não envia parcelas (não sobrescreve o que já existe).
+    ...(formData.has('parcelas_total')
+      ? { parcelas_total: formData.get('parcelas_total') ? Number(formData.get('parcelas_total')) : null }
+      : {}),
     sem_vencimento: semVencimento,
     data_vencimento: semVencimento ? null : String(formData.get('data_vencimento') || ''),
     situacao,
@@ -27,7 +31,7 @@ function parseFormData(formData: FormData) {
 const TIPOS = ['cartao_credito', 'limite_conta', 'emprestimo', 'consignado', 'financiamento', 'crediario', 'acordo', 'outros'];
 const SITUACOES = ['em_dia', 'atrasada', 'negativada', 'protestada', 'cobranca_judicial', 'em_acordo'];
 
-/** Detalhes de negociação (migração 0026). */
+/** Detalhes de negociação (migração 0026). Só inclui os campos que o formulário enviou. */
 function parseDetalhes(formData: FormData) {
   const num = (k: string) => {
     const v = String(formData.get(k) ?? '').trim();
@@ -35,23 +39,37 @@ function parseDetalhes(formData: FormData) {
     const n = Number(v.replace(',', '.'));
     return Number.isFinite(n) ? n : null;
   };
-  const tipo = String(formData.get('tipo_divida') || '');
-  const sit = String(formData.get('situacao_credito') || '');
-  const desconto = num('desconto_pct');
-  return {
-    valor_original: num('valor_original'),
-    valor_atual: num('valor_atual'),
-    tipo_divida: TIPOS.includes(tipo) ? tipo : null,
-    situacao_credito: SITUACOES.includes(sit) ? sit : null,
-    desconto_pct: desconto == null ? null : Math.max(0, Math.min(100, desconto)),
-    taxa_juros_mensal: num('taxa_juros_mensal'),
-    parcela_mensal: num('parcela_mensal'),
-  };
+  const d: Partial<
+    Pick<
+      Divida,
+      'valor_original' | 'valor_atual' | 'valor_com_desconto' | 'tipo_divida' | 'situacao_credito' | 'desconto_pct' | 'taxa_juros_mensal' | 'parcela_mensal'
+    >
+  > = {};
+  if (formData.has('valor_original')) d.valor_original = num('valor_original');
+  if (formData.has('tipo_divida')) {
+    const tipo = String(formData.get('tipo_divida') || '');
+    d.tipo_divida = TIPOS.includes(tipo) ? tipo : null;
+  }
+  if (formData.has('situacao_credito')) {
+    const sit = String(formData.get('situacao_credito') || '');
+    d.situacao_credito = SITUACOES.includes(sit) ? sit : null;
+  }
+  if (formData.has('taxa_juros_mensal')) d.taxa_juros_mensal = num('taxa_juros_mensal');
+  if (formData.has('parcela_mensal')) d.parcela_mensal = num('parcela_mensal');
+  // "Valor com juros" é o próprio valor da dívida (valor_total); guardamos também em valor_atual.
+  const comJuros = num('valor_total');
+  if (comJuros != null) d.valor_atual = comJuros;
+  if (formData.has('valor_com_desconto')) {
+    const desc = num('valor_com_desconto');
+    d.valor_com_desconto = desc;
+    d.desconto_pct = desc != null && comJuros && comJuros > 0 && desc < comJuros ? Math.round((1 - desc / comJuros) * 10000) / 100 : null;
+  }
+  return d;
 }
 
 /** Erro de coluna inexistente = migração 0026 ainda não aplicada. */
 function faltaMigracaoDetalhes(msg: string | undefined): boolean {
-  return !!msg && /(valor_original|valor_atual|tipo_divida|situacao_credito|desconto_pct|taxa_juros_mensal|parcela_mensal)/.test(msg);
+  return !!msg && /(valor_original|valor_atual|valor_com_desconto|tipo_divida|situacao_credito|desconto_pct|taxa_juros_mensal|parcela_mensal)/.test(msg);
 }
 const AVISO_MIGRACAO =
   'A dívida foi salva, mas tipo, situação, valor original/atual e desconto precisam da migração 0026_dividas_detalhes.sql no Supabase.';

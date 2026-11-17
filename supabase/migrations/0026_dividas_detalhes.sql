@@ -1,4 +1,5 @@
 -- ============================================
+-- (Pode rodar de novo com segurança: tudo usa IF NOT EXISTS.)
 -- DIVIDAS: detalhes para negociação
 -- valor original, valor atual (cobrado hoje), tipo da dívida,
 -- situação no crédito (ex.: negativada), % de desconto sobre o valor atual,
@@ -9,6 +10,7 @@ alter table dividas add column if not exists valor_atual numeric(12,2);
 alter table dividas add column if not exists tipo_divida text;
 alter table dividas add column if not exists situacao_credito text;
 alter table dividas add column if not exists desconto_pct numeric(5,2);
+alter table dividas add column if not exists valor_com_desconto numeric(12,2);
 alter table dividas add column if not exists taxa_juros_mensal numeric(6,3);
 alter table dividas add column if not exists parcela_mensal numeric(12,2);
 

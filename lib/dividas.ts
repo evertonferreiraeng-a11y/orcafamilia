@@ -29,14 +29,25 @@ export function rotuloSituacaoCredito(s: string | null | undefined): string | nu
   return s && s in SITUACOES_CREDITO ? SITUACOES_CREDITO[s as SituacaoCredito].rotulo : null;
 }
 
-/** Valor para quitar com o desconto informado (sobre o valor atual). */
-export function valorComDesconto(valorAtual: number | null | undefined, descontoPct: number | null | undefined): number | null {
-  if (valorAtual == null || descontoPct == null || descontoPct <= 0) return null;
-  return Math.round(Number(valorAtual) * (1 - Number(descontoPct) / 100) * 100) / 100;
+/** % de desconto do valor com desconto sobre o valor com juros. */
+export function percentualDesconto(comJuros: number | null | undefined, comDesconto: number | null | undefined): number | null {
+  if (comJuros == null || comDesconto == null || Number(comJuros) <= 0 || Number(comDesconto) >= Number(comJuros)) return null;
+  return (1 - Number(comDesconto) / Number(comJuros)) * 100;
 }
 
-/** Quanto a dívida cresceu (+) ou caiu (−) do valor original para o atual, em %. */
-export function variacaoOriginalAtual(original: number | null | undefined, atual: number | null | undefined): number | null {
-  if (original == null || atual == null || Number(original) <= 0) return null;
-  return ((Number(atual) - Number(original)) / Number(original)) * 100;
+/** Valores de negociação de uma dívida: com juros (o valor da dívida) e com desconto. */
+export function valoresNegociacao(d: {
+  valor_total: number;
+  valor_atual?: number | null;
+  valor_com_desconto?: number | null;
+  desconto_pct?: number | null;
+}): { comJuros: number; comDesconto: number | null; pct: number | null } {
+  const comJuros = d.valor_atual != null ? Number(d.valor_atual) : Number(d.valor_total);
+  const comDesconto =
+    d.valor_com_desconto != null
+      ? Number(d.valor_com_desconto)
+      : d.desconto_pct != null && Number(d.desconto_pct) > 0
+      ? Math.round(comJuros * (1 - Number(d.desconto_pct) / 100) * 100) / 100
+      : null;
+  return { comJuros, comDesconto, pct: percentualDesconto(comJuros, comDesconto) };
 }

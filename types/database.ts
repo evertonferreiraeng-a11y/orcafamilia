@@ -130,6 +130,7 @@ export type Divida = {
   tipo_divida: string | null;
   situacao_credito: string | null;
   desconto_pct: number | null;
+  valor_com_desconto: number | null;
   taxa_juros_mensal: number | null;
   parcela_mensal: number | null;
 };
