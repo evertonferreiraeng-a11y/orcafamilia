@@ -24,6 +24,38 @@ function parseFormData(formData: FormData) {
   };
 }
 
+const TIPOS = ['cartao_credito', 'limite_conta', 'emprestimo', 'consignado', 'financiamento', 'crediario', 'acordo', 'outros'];
+const SITUACOES = ['em_dia', 'atrasada', 'negativada', 'protestada', 'cobranca_judicial', 'em_acordo'];
+
+/** Detalhes de negociação (migração 0026). */
+function parseDetalhes(formData: FormData) {
+  const num = (k: string) => {
+    const v = String(formData.get(k) ?? '').trim();
+    if (!v) return null;
+    const n = Number(v.replace(',', '.'));
+    return Number.isFinite(n) ? n : null;
+  };
+  const tipo = String(formData.get('tipo_divida') || '');
+  const sit = String(formData.get('situacao_credito') || '');
+  const desconto = num('desconto_pct');
+  return {
+    valor_original: num('valor_original'),
+    valor_atual: num('valor_atual'),
+    tipo_divida: TIPOS.includes(tipo) ? tipo : null,
+    situacao_credito: SITUACOES.includes(sit) ? sit : null,
+    desconto_pct: desconto == null ? null : Math.max(0, Math.min(100, desconto)),
+    taxa_juros_mensal: num('taxa_juros_mensal'),
+    parcela_mensal: num('parcela_mensal'),
+  };
+}
+
+/** Erro de coluna inexistente = migração 0026 ainda não aplicada. */
+function faltaMigracaoDetalhes(msg: string | undefined): boolean {
+  return !!msg && /(valor_original|valor_atual|tipo_divida|situacao_credito|desconto_pct|taxa_juros_mensal|parcela_mensal)/.test(msg);
+}
+const AVISO_MIGRACAO =
+  'A dívida foi salva, mas tipo, situação, valor original/atual e desconto precisam da migração 0026_dividas_detalhes.sql no Supabase.';
+
 function adicionarMeses(dataStr: string, meses: number): string {
   const [ano, mes, dia] = dataStr.split('-').map(Number);
   const data = new Date(ano, mes - 1 + meses, dia);
@@ -54,11 +86,17 @@ export async function criarDivida(_prevState: DividaFormState, formData: FormDat
     return { error: 'Selecione a conta para gerar as parcelas em Transações.' };
   }
 
-  const { data: dividaCriada, error } = await supabase
+  const detalhes = parseDetalhes(formData);
+  let avisoMigracao = false;
+  let { data: dividaCriada, error } = await supabase
     .from('dividas')
-    .insert({ user_id: user.id, ...dados })
+    .insert({ user_id: user.id, ...dados, ...detalhes })
     .select('id')
     .single();
+  if (error && faltaMigracaoDetalhes(error.message)) {
+    ({ data: dividaCriada, error } = await supabase.from('dividas').insert({ user_id: user.id, ...dados }).select('id').single());
+    avisoMigracao = Object.values(detalhes).some((v) => v != null);
+  }
   if (error || !dividaCriada) return { error: error?.message ?? 'Não foi possível criar a dívida.' };
 
   if (gerarParcelas && dados.data_vencimento) {
@@ -98,7 +136,7 @@ export async function criarDivida(_prevState: DividaFormState, formData: FormDat
 
   revalidatePath('/dividas');
   revalidatePath('/dashboard');
-  return {};
+  return avisoMigracao ? { error: AVISO_MIGRACAO } : {};
 }
 
 export async function atualizarDivida(
@@ -120,11 +158,17 @@ export async function atualizarDivida(
     return { error: 'Preencha o vencimento ou marque "Sem vencimento definido".' };
   }
 
-  const { error } = await supabase.from('dividas').update(dados).eq('id', id).eq('user_id', user.id);
+  const detalhes = parseDetalhes(formData);
+  let { error } = await supabase.from('dividas').update({ ...dados, ...detalhes }).eq('id', id).eq('user_id', user.id);
+  let avisoMigracao = false;
+  if (error && faltaMigracaoDetalhes(error.message)) {
+    ({ error } = await supabase.from('dividas').update(dados).eq('id', id).eq('user_id', user.id));
+    avisoMigracao = Object.values(detalhes).some((v) => v != null);
+  }
   if (error) return { error: error.message };
 
   revalidatePath('/dividas');
-  return {};
+  return avisoMigracao ? { error: AVISO_MIGRACAO } : {};
 }
 
 export async function registrarPagamentoDivida(
@@ -267,4 +311,19 @@ export async function excluirDivida(id: string): Promise<void> {
   await supabase.from('dividas').delete().eq('id', id).eq('user_id', user.id);
   revalidatePath('/dividas');
   revalidatePath('/dashboard');
+}
+
+/** Juros e parcela usados no plano de quitação (salvos ao editar na aba do plano). */
+export async function salvarJurosParcela(id: string, taxa: number | null, parcela: number | null): Promise<{ error?: string }> {
+  const supabase = createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Sessão expirada.' };
+  if (taxa != null && (taxa < 0 || taxa > 100)) return { error: 'Juros inválidos.' };
+  if (parcela != null && parcela < 0) return { error: 'Parcela inválida.' };
+  const { error } = await supabase.from('dividas').update({ taxa_juros_mensal: taxa, parcela_mensal: parcela }).eq('id', id).eq('user_id', user.id);
+  if (error) return { error: faltaMigracaoDetalhes(error.message) ? 'Rode a migração 0026_dividas_detalhes.sql no Supabase para salvar juros e parcela.' : error.message };
+  revalidatePath('/dividas');
+  return {};
 }

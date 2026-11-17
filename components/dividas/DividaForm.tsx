@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import type { Divida, Categoria, Subcategoria, Conta } from '@/types/database';
 import type { DividaFormState } from '@/app/(dashboard)/dividas/actions';
+import { SITUACOES_CREDITO, TIPOS_DIVIDA, valorComDesconto, variacaoOriginalAtual } from '@/lib/dividas';
+import { formatCurrency } from '@/lib/utils';
 
 function BotaoSalvar({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -39,6 +41,12 @@ export function DividaForm({
   const [gerarParcelas, setGerarParcelas] = useState(false);
   const [semVencimento, setSemVencimento] = useState(divida?.sem_vencimento ?? false);
   const subcategoriasFiltradas = subcategorias.filter((s) => s.categoria_id === categoriaId);
+  const [valorOriginal, setValorOriginal] = useState(divida?.valor_original != null ? String(divida.valor_original) : '');
+  const [valorAtual, setValorAtual] = useState(divida?.valor_atual != null ? String(divida.valor_atual) : '');
+  const [desconto, setDesconto] = useState(divida?.desconto_pct != null ? String(divida.desconto_pct) : '');
+  const n = (v: string) => (v.trim() === '' ? null : Number(v.replace(',', '.')));
+  const comDesconto = valorComDesconto(n(valorAtual), n(desconto));
+  const variacao = variacaoOriginalAtual(n(valorOriginal), n(valorAtual));
 
   return (
     <form action={formAction} className="space-y-4">
@@ -94,6 +102,122 @@ export function DividaForm({
             placeholder="Ex: 12"
           />
         </div>
+      </div>
+
+      <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Detalhes para negociação</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label-field" htmlFor="tipo_divida">Tipo da dívida</label>
+            <select id="tipo_divida" name="tipo_divida" defaultValue={divida?.tipo_divida ?? ''} className="input-field">
+              <option value="">Não informado</option>
+              {Object.entries(TIPOS_DIVIDA).map(([k, t]) => (
+                <option key={k} value={k}>
+                  {t.emoji} {t.rotulo}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label-field" htmlFor="situacao_credito">Situação no crédito</label>
+            <select id="situacao_credito" name="situacao_credito" defaultValue={divida?.situacao_credito ?? ''} className="input-field">
+              <option value="">Não informada</option>
+              {Object.entries(SITUACOES_CREDITO).map(([k, t]) => (
+                <option key={k} value={k}>
+                  {t.rotulo}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label className="label-field" htmlFor="valor_original">Valor original</label>
+            <input
+              id="valor_original"
+              name="valor_original"
+              type="number"
+              step="0.01"
+              min="0"
+              value={valorOriginal}
+              onChange={(e) => setValorOriginal(e.target.value)}
+              className="input-field"
+              placeholder="0,00"
+            />
+          </div>
+          <div>
+            <label className="label-field" htmlFor="valor_atual">Valor atual</label>
+            <input
+              id="valor_atual"
+              name="valor_atual"
+              type="number"
+              step="0.01"
+              min="0"
+              value={valorAtual}
+              onChange={(e) => setValorAtual(e.target.value)}
+              className="input-field"
+              placeholder="cobrado hoje"
+            />
+          </div>
+          <div>
+            <label className="label-field" htmlFor="desconto_pct">Desconto (%)</label>
+            <input
+              id="desconto_pct"
+              name="desconto_pct"
+              type="number"
+              step="0.01"
+              min="0"
+              max="100"
+              value={desconto}
+              onChange={(e) => setDesconto(e.target.value)}
+              className="input-field"
+              placeholder="ex.: 60"
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label-field" htmlFor="taxa_juros_mensal">Juros (% ao mês)</label>
+            <input
+              id="taxa_juros_mensal"
+              name="taxa_juros_mensal"
+              type="number"
+              step="0.001"
+              min="0"
+              max="100"
+              defaultValue={divida?.taxa_juros_mensal ?? ''}
+              className="input-field"
+              placeholder="ex.: 2,5 (CET mensal)"
+            />
+          </div>
+          <div>
+            <label className="label-field" htmlFor="parcela_mensal">Parcela mensal</label>
+            <input
+              id="parcela_mensal"
+              name="parcela_mensal"
+              type="number"
+              step="0.01"
+              min="0"
+              defaultValue={divida?.parcela_mensal ?? ''}
+              className="input-field"
+              placeholder="pagamento mínimo"
+            />
+          </div>
+        </div>
+        {(variacao != null || comDesconto != null) && (
+          <div className="space-y-0.5 text-xs">
+            {variacao != null && (
+              <p className={variacao > 0 ? 'text-red-600' : 'text-emerald-700'}>
+                {variacao > 0 ? '📈' : '📉'} O valor atual está {Math.abs(variacao).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% {variacao > 0 ? 'acima' : 'abaixo'} do original.
+              </p>
+            )}
+            {comDesconto != null && n(valorAtual) != null && (
+              <p className="font-semibold text-emerald-700">
+                🤝 Para quitar com desconto: {formatCurrency(comDesconto)} (economia de {formatCurrency(n(valorAtual)! - comDesconto)})
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3">

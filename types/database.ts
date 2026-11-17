@@ -124,6 +124,14 @@ export type Divida = {
   observacoes: string | null;
   status: StatusDivida;
   criado_em: string;
+  /* detalhes de negociação (migração 0026) */
+  valor_original: number | null;
+  valor_atual: number | null;
+  tipo_divida: string | null;
+  situacao_credito: string | null;
+  desconto_pct: number | null;
+  taxa_juros_mensal: number | null;
+  parcela_mensal: number | null;
 };
 
 export type PagamentoDivida = {

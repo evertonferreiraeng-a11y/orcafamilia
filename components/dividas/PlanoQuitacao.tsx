@@ -1,12 +1,46 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import Link from 'next/link';
-import { salvarParamsDivida, salvarPlano } from '@/app/(dashboard)/vida/actions';
-import { mesFuturo, rotuloMes, simular, type DividaSim, type Estrategia, type ResultadoSim } from '@/lib/vida/dividas';
-import type { DividaMentor } from '@/lib/vida/financas';
-import type { PropostaPlano } from '@/lib/vida/planos';
+import { salvarJurosParcela } from '@/app/(dashboard)/dividas/actions';
+import { rotuloMes, simular, type DividaSim, type Estrategia, type ResultadoSim } from '@/lib/quitacao';
+import { rotuloSituacaoCredito, valorComDesconto } from '@/lib/dividas';
+import type { Divida } from '@/types/database';
 import { cn } from '@/lib/utils';
+
+/** Dívida ativa no formato usado pelo plano de quitação. */
+export interface DividaPlano {
+  id: string;
+  nome: string;
+  credor: string | null;
+  restante: number;
+  parcelasRestantes: number | null;
+  parcelaEstimada: number | null;
+  taxa: number | null;
+  parcela: number | null;
+  situacao: string;
+  situacaoCredito: string | null;
+  valorAtual: number | null;
+  descontoPct: number | null;
+}
+
+export function paraPlano(d: Divida): DividaPlano {
+  const restante = Math.max(0, Number(d.valor_total) - Number(d.valor_pago));
+  const parcelasRestantes = d.parcelas_total ? Math.max(0, d.parcelas_total - (d.parcelas_pagas ?? 0)) : null;
+  return {
+    id: d.id,
+    nome: d.descricao,
+    credor: d.credor,
+    restante,
+    parcelasRestantes,
+    parcelaEstimada: parcelasRestantes ? restante / parcelasRestantes : null,
+    taxa: d.taxa_juros_mensal != null ? Number(d.taxa_juros_mensal) : null,
+    parcela: d.parcela_mensal != null ? Number(d.parcela_mensal) : null,
+    situacao: d.situacao ?? 'ativa',
+    situacaoCredito: d.situacao_credito,
+    valorAtual: d.valor_atual != null ? Number(d.valor_atual) : null,
+    descontoPct: d.desconto_pct != null ? Number(d.desconto_pct) : null,
+  };
+}
 
 const brl = (v: number, dec = 0) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: dec, maximumFractionDigits: dec });
 const num = (s: string) => {
@@ -55,7 +89,8 @@ function Grafico({ serie, quitacoes }: { serie: number[]; quitacoes: { nome: str
   );
 }
 
-export function SimuladorDividas({ dividas, sobraMedia }: { dividas: DividaMentor[]; sobraMedia: number | null }) {
+export function PlanoQuitacao({ dividas: todas, sobraMedia }: { dividas: Divida[]; sobraMedia: number | null }) {
+  const dividas = todas.filter((d) => d.status !== 'quitada').map(paraPlano).filter((d) => d.restante > 0.005);
   const [params, setParams] = useState<Record<string, { taxa: string; parcela: string; incluir: boolean }>>(() =>
     Object.fromEntries(
       dividas.map((d) => [
@@ -90,79 +125,32 @@ export function SimuladorDividas({ dividas, sobraMedia }: { dividas: DividaMento
   const nomePor = new Map(sim.map((d) => [d.id, d]));
   const economiaVsMinimo = res.minimo.meses != null && r.meses != null ? res.minimo.jurosTotal - r.jurosTotal : null;
 
-  const [salvando, setSalvando] = useState(false);
-  const [planoSalvo, setPlanoSalvo] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
   async function salvarParam(id: string) {
     const p = params[id];
-    const t = await salvarParamsDivida(id, num(p.taxa), num(p.parcela));
+    const t = await salvarJurosParcela(id, num(p.taxa), num(p.parcela));
     if (!t.error) {
       setSalvoId(id);
       setTimeout(() => setSalvoId((x) => (x === id ? null : x)), 1500);
     } else setErro(t.error);
   }
 
-  async function salvarComoPlano() {
-    if (r.meses == null) return;
-    setSalvando(true);
-    setErro(null);
-    const ordem = r.ordem.map((id) => nomePor.get(id)!).filter(Boolean);
-    const q = new Map<string, number>(r.quitacoes.map((x) => [x.id, x.mes]));
-    const fimMes = (n: number) => {
-      const [a, m] = mesFuturo(n).split('-').map(Number);
-      return `${a}-${String(m).padStart(2, '0')}-${String(new Date(a, m, 0).getDate()).padStart(2, '0')}`;
-    };
-    const plano: PropostaPlano = {
-      titulo: 'Sair das dívidas',
-      pilar: 5,
-      objetivo: `Quitar ${brl(sim.reduce((s, d) => s + d.saldo, 0))} em dívidas até ${rotuloMes(r.meses)}, pagando ${brl(orcamento)} por mês.`,
-      resumo:
-        `Estratégia ${NOMES[estrategia].titulo}: pagar a parcela mínima de todas e colocar todo o valor extra na prioridade. ` +
-        `Quando uma dívida acaba, a parcela dela vai para a próxima. Juros estimados no total: ${brl(r.jurosTotal)}.` +
-        (semJuros ? ` Atenção: ${semJuros} dívida(s) sem taxa de juros informada (simulação otimista).` : ''),
-      prazo: fimMes(r.meses),
-      etapas: [
-        { titulo: `Separar ${brl(orcamento)} por mês para as dívidas (assim que o salário cair)`, detalhe: null, prazo: null },
-        ...ordem.map((d, i) => ({
-          titulo: `${i + 1}º: quitar ${d.nome}`,
-          detalhe: `${brl(d.saldo)} hoje${d.taxa ? ` · ${d.taxa.toLocaleString('pt-BR')}% a.m.` : ''}${i === 0 ? ' · recebe todo o valor extra agora' : ''}`,
-          prazo: q.get(d.id) != null ? fimMes(q.get(d.id)!) : null,
-        })),
-        { titulo: 'Não fazer novas dívidas no cartão/crediário enquanto o plano estiver ativo', detalhe: null, prazo: null },
-      ],
-      indicadores: [
-        { nome: 'Dívida em aberto', unidade: 'R$', meta: 0, inicial: null, direcao: 'descer', fonte: 'dividas_restante' },
-        { nome: 'Sobra do mês', unidade: 'R$', meta: Math.max(0, Math.round(orcamento - minimos)), inicial: null, direcao: 'subir', fonte: 'sobra_mes' },
-      ],
-    };
-    const resp = await salvarPlano(plano, 'dividas');
-    setSalvando(false);
-    if (resp.error) setErro(resp.error);
-    else setPlanoSalvo(true);
-  }
-
   if (!dividas.length) {
     return (
       <div className="card p-8 text-center">
         <span className="text-5xl">🎉</span>
-        <p className="mt-2 text-lg font-semibold text-gray-900">Nenhuma dívida ativa cadastrada</p>
-        <p className="text-sm text-gray-500">Se você tem dívidas, cadastre em Orçamento → Dívidas para simular a quitação aqui.</p>
-        <Link href="/dividas" className="btn-primary mt-4 inline-flex">
-          Abrir Dívidas
-        </Link>
+        <p className="mt-2 text-lg font-semibold text-gray-900">Nenhuma dívida em aberto</p>
+        <p className="text-sm text-gray-500">Cadastre suas dívidas na aba “Minhas dívidas” para simular a quitação.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">🧾 Sair das dívidas</h1>
-        <p className="text-sm text-gray-500">
-          Suas dívidas reais do app Dívidas. Informe os juros e a parcela de cada uma para ver a melhor ordem de pagamento. Os valores ficam salvos (só para você).
-        </p>
-      </div>
+      <p className="text-sm text-gray-500">
+        Informe os juros e a parcela de cada dívida para ver a melhor ordem de pagamento. Os valores ficam salvos na própria dívida.
+      </p>
 
       {/* dívidas */}
       <section className="card overflow-hidden p-0">
@@ -199,6 +187,10 @@ export function SimuladorDividas({ dividas, sobraMedia }: { dividas: DividaMento
                     {d.credor ?? 'sem credor'}
                     {d.parcelasRestantes != null && ` · ${d.parcelasRestantes} parcela(s) restante(s)`}
                     {d.situacao === 'standby' && ' · em standby'}
+                    {rotuloSituacaoCredito(d.situacaoCredito) && <span className={cn(['negativada', 'protestada', 'cobranca_judicial'].includes(d.situacaoCredito ?? '') && 'font-semibold text-red-600')}> · {rotuloSituacaoCredito(d.situacaoCredito)}</span>}
+                    {valorComDesconto(d.valorAtual, d.descontoPct) != null && (
+                      <span className="font-semibold text-emerald-700"> · quita à vista por {brl(valorComDesconto(d.valorAtual, d.descontoPct)!)} (−{d.descontoPct!.toLocaleString('pt-BR')}%)</span>
+                    )}
                   </p>
                 </div>
                 <p className="col-start-2 text-sm font-bold tabular-nums text-gray-900 md:col-start-auto md:text-right">{brl(d.restante, 2)}</p>
@@ -361,29 +353,9 @@ export function SimuladorDividas({ dividas, sobraMedia }: { dividas: DividaMento
             )}
           </section>
 
-          <section className="flex flex-wrap items-center gap-3 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-500 px-5 py-4 text-white">
-            <span className="min-w-0 flex-1 text-sm">
-              <b>Transformar em plano:</b> cria o plano “Sair das dívidas” com uma etapa por dívida (com prazos) e acompanha a dívida em aberto automaticamente.
-            </span>
-            {planoSalvo ? (
-              <Link href="/vida/planos" className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-violet-700">
-                ✅ Ver em Planos →
-              </Link>
-            ) : (
-              <button type="button" onClick={salvarComoPlano} disabled={salvando} className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-violet-700 disabled:opacity-60">
-                {salvando ? 'Salvando...' : '💾 Salvar como plano'}
-              </button>
-            )}
-            <Link
-              href={`/vida/conversas?pilar=5&texto=${encodeURIComponent('Simulei a quitação das minhas dívidas em "Sair das dívidas". Analise os números do app e me diga se a estratégia faz sentido, o que renegociar e como cortar gastos para acelerar.')}`}
-              className="rounded-xl bg-white/15 px-4 py-2 text-sm font-semibold ring-1 ring-inset ring-white/30"
-            >
-              💬 Analisar com o mentor
-            </Link>
-          </section>
         </>
       )}
-      {erro && <p className="text-sm text-negative">{erro.includes('vida_') ? 'Falta rodar a migração 0025 no Supabase.' : erro}</p>}
+      {erro && <p className="text-sm text-negative">{erro}</p>}
       <p className="text-center text-[11px] text-gray-400">Simulação educativa com juros compostos mensais; não substitui orientação financeira profissional nem a proposta oficial do credor.</p>
     </div>
   );

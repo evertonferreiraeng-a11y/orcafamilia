@@ -1,7 +1,6 @@
 import { createServerSupabase } from '@/lib/supabase-server';
 import { carregarEstoque } from '@/lib/estoque/carregar';
 import { carregarCasa } from '@/lib/casa/carregar';
-import { PILARES } from '@/lib/vida/pilares';
 import { nomeTarefa, ordemTarefas, statusTarefa, textoPrazoTarefa } from '@/lib/casa/calc';
 import { alertaLote, estoqueAtual, fmtMoeda, itensParaComprar, percentualReserva, soma, statusProduto } from '@/lib/estoque/calc';
 import { PortalInicio, type AlertaPortal, type ResumoPortal } from '@/components/portal/PortalInicio';
@@ -44,7 +43,7 @@ export default async function InicioPage() {
   const em7 = somarDias(hoje, 7);
   const ha90 = somarDias(hoje, -90);
 
-  const [{ data: perfil }, estoque, casa, mesTx, pendentes, vidaAv, vidaConv] = await Promise.all([
+  const [{ data: perfil }, estoque, casa, mesTx, pendentes] = await Promise.all([
     supabase.from('perfis').select('nome').eq('id', user.id).maybeSingle(),
     carregarEstoque(supabase).catch(() => null), // migração 0019 ainda não aplicada
     carregarCasa(supabase).catch(() => null), // migração 0020 ainda não aplicada
@@ -57,8 +56,6 @@ export default async function InicioPage() {
       .eq('tipo', 'despesa')
       .eq('pago', false)
       .gte('data', ha90),
-    supabase.from('vida_avaliacoes').select('pilar, nota').eq('mes', inicioMes), // privado (RLS por usuário)
-    supabase.from('vida_conversas').select('titulo, atualizado_em').order('atualizado_em', { ascending: false }).limit(1),
   ]);
 
   const alertas: AlertaPortal[] = [];
@@ -139,26 +136,6 @@ export default async function InicioPage() {
     if (semData.length) alertas.push({ app: 'casa', nivel: 'info', texto: `${plural(semData.length, 'manutenção', 'manutenções')} sem data`, detalhe: 'informe a última vez', href: '/casa/manutencoes?status=semdata' });
   }
 
-  /* Mentor de Vida (privado) — erro = migração 0024 ainda não aplicada */
-  let resumoVida: ResumoPortal['vida'] = null;
-  if (!vidaAv.error && !vidaConv.error) {
-    const notas = (vidaAv.data ?? []).filter((a) => a.nota != null).map((a) => ({ pilar: a.pilar, nota: Number(a.nota) }));
-    const { count } = await supabase.from('vida_conversas').select('id', { count: 'exact', head: true });
-    const ultima = vidaConv.data?.[0];
-    resumoVida = {
-      media: notas.length ? Math.round((notas.reduce((s, a) => s + a.nota, 0) / notas.length) * 10) / 10 : null,
-      avaliados: notas.length,
-      conversas: count ?? 0,
-      foco: [...notas]
-        .sort((a, b) => a.nota - b.nota)
-        .slice(0, 2)
-        .map((a) => ({ emoji: PILARES[a.pilar - 1].emoji, nome: PILARES[a.pilar - 1].curto, nota: a.nota })),
-      ultima: ultima
-        ? { titulo: ultima.titulo, quando: new Date(ultima.atualizado_em).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' }) }
-        : null,
-    };
-  }
-
   const ordem = { urgente: 0, atencao: 1, info: 2 } as const;
   alertas.sort((a, b) => ordem[a.nivel] - ordem[b.nivel]);
 
@@ -170,7 +147,6 @@ export default async function InicioPage() {
     orcamento,
     estoque: resumoEstoque,
     casa: resumoCasa,
-    vida: resumoVida,
     alertas,
   };
 

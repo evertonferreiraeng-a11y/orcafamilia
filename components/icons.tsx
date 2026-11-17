@@ -59,8 +59,6 @@ import {
   WifiOff,
   Heart,
   House,
-  Compass,
-  MessagesSquare,
   Wrench,
   Plug,
   History,
@@ -140,8 +138,6 @@ export const IconLife = withDefaultStroke(Heart);
 
 // App Casa
 export const IconCasa = withDefaultStroke(House);
-export const IconMentor = withDefaultStroke(Compass);
-export const IconConversas = withDefaultStroke(MessagesSquare);
 export const IconFerramenta = withDefaultStroke(Wrench);
 export const IconEquipamento = withDefaultStroke(Plug);
 export const IconHistorico = withDefaultStroke(History);

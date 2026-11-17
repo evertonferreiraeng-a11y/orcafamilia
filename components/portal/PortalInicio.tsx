@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import {
   IconCasa,
-  IconMentor,
   IconChevronRight,
   IconEstoque,
   IconTrendDown,
@@ -14,7 +13,7 @@ import {
 /* ------------------------------------------------------------------ */
 /* Dados (calculados no servidor em app/(dashboard)/inicio/page.tsx)   */
 /* ------------------------------------------------------------------ */
-export type AppPortal = 'orcamento' | 'estoque' | 'casa' | 'vida';
+export type AppPortal = 'orcamento' | 'estoque' | 'casa';
 export type AlertaPortal = { app: AppPortal; nivel: 'urgente' | 'atencao' | 'info'; texto: string; detalhe?: string; href: string };
 
 export type ResumoPortal = {
@@ -25,8 +24,6 @@ export type ResumoPortal = {
   orcamento: { receitas: number; despesas: number; saldo: number; aPagar: number; aPagarValor: number; atrasadas: number; atrasadasValor: number } | null;
   estoque: { reserva: number; litros: number; litrosMeta: number; vencendo: number; comprar: number; semEstoque: number } | null;
   casa: { vencidas: number; breve: number; emDia: number; semData: number; pausadas: number; proxima: { titulo: string; data: string } | null } | null;
-  /** Mentor de Vida — privado: só os dados do próprio usuário. */
-  vida: { media: number | null; avaliados: number; conversas: number; foco: { emoji: string; nome: string; nota: number }[]; ultima: { titulo: string; quando: string } | null } | null;
   alertas: AlertaPortal[];
 };
 
@@ -91,24 +88,6 @@ const TEMA = {
       { href: '/casa/manutencoes', rotulo: 'Manutenções preventivas' },
       { href: '/casa/historico', rotulo: 'Histórico' },
       { href: '/casa/prestadores', rotulo: 'Prestadores' },
-    ],
-  },
-  vida: {
-    nome: 'Mentor de Vida',
-    curto: 'Vida',
-    descricao: 'Seus 10 pilares, conversas e evolução · privado',
-    href: '/vida',
-    Icone: IconMentor,
-    topo: 'from-violet-50 via-white to-white',
-    faixa: 'from-indigo-500 via-violet-500 to-fuchsia-500',
-    icone: 'bg-violet-600 text-white shadow-[0_6px_16px_-4px_rgb(124_58_237/0.55)]',
-    marca: 'text-violet-600',
-    botao: 'bg-violet-600 hover:bg-violet-700 focus-visible:outline-violet-600',
-    chip: 'bg-violet-50 text-violet-700',
-    atalhos: [
-      { href: '/vida/conversas', rotulo: 'Conversas' },
-      { href: '/vida/planos', rotulo: 'Planos' },
-      { href: '/vida/dividas', rotulo: 'Sair das dívidas' },
     ],
   },
 } as const;
@@ -315,53 +294,6 @@ function CardCasa({ r }: { r: ResumoPortal['casa'] }) {
   );
 }
 
-function CardVida({ r }: { r: ResumoPortal['vida'] }) {
-  if (!r) {
-    return (
-      <CardApp app="vida">
-        <Vazio>App ainda não configurado no banco (migração 0024).</Vazio>
-      </CardApp>
-    );
-  }
-  return (
-    <CardApp app="vida" destaque={<Pilula tom="neutro">🔒 só você</Pilula>}>
-      <div className="flex items-center gap-4">
-        <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl bg-violet-50">
-          <span className="text-2xl font-bold tabular-nums text-violet-700">{r.media == null ? '—' : r.media.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</span>
-          <span className="text-[9px] font-semibold uppercase tracking-wide text-violet-500">média</span>
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{r.avaliados}/10 pilares avaliados</p>
-          {r.foco.length > 0 ? (
-            <p className="mt-0.5 text-sm text-gray-700">
-              Foco agora:{' '}
-              {r.foco.map((f, i) => (
-                <span key={f.nome}>
-                  {i > 0 && ', '}
-                  {f.emoji} <b>{f.nome}</b> <span className="text-gray-400">({f.nota.toLocaleString('pt-BR')})</span>
-                </span>
-              ))}
-            </p>
-          ) : (
-            <p className="mt-0.5 text-sm text-gray-500">Converse com o mentor para montar seu diagnóstico.</p>
-          )}
-        </div>
-      </div>
-      <div className="mt-3 rounded-2xl bg-gray-50 px-3.5 py-2.5">
-        {r.ultima ? (
-          <Link href="/vida/conversas" className="block truncate text-sm text-gray-700 hover:text-violet-700">
-            💬 <span className="text-xs text-gray-400">{r.ultima.quando}</span> · {r.ultima.titulo}
-          </Link>
-        ) : (
-          <Link href="/vida/conversas" className="text-sm font-medium text-violet-700 hover:underline">
-            🩺 Começar o diagnóstico →
-          </Link>
-        )}
-      </div>
-    </CardApp>
-  );
-}
-
 /* ---------------------------- página ---------------------------- */
 export function PortalInicio({ resumo }: { resumo: ResumoPortal }) {
   const { alertas } = resumo;
@@ -444,13 +376,12 @@ export function PortalInicio({ resumo }: { resumo: ResumoPortal }) {
       <section>
         <div className="mb-3 flex items-baseline justify-between">
           <h2 className="text-sm font-semibold text-gray-900">Seus apps</h2>
-          <p className="hidden text-xs text-gray-400 sm:block">Login e família compartilhados · Mentor de Vida é só seu</p>
+          <p className="hidden text-xs text-gray-400 sm:block">Login, família e dados compartilhados entre todos</p>
         </div>
-        <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-4">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           <CardOrcamento r={resumo.orcamento} mes={resumo.mesExtenso} />
           <CardEstoque r={resumo.estoque} />
           <CardCasa r={resumo.casa} />
-          <CardVida r={resumo.vida} />
         </div>
       </section>
     </div>
