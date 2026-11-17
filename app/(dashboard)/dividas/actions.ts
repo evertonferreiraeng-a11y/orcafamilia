@@ -8,23 +8,48 @@ export interface DividaFormState {
   error?: string;
 }
 
+function numero(formData: FormData, k: string): number | null {
+  const v = String(formData.get(k) ?? '').trim();
+  if (!v) return null;
+  const n = Number(v.replace(',', '.'));
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Standby = só no radar (sem vencimento/parcelas).
+ * Ativa = acompanhando o pagamento: valor a pagar (acordo), parcelas, valor da parcela e vencimento.
+ * As transações são lançadas manualmente pelo usuário (nada é gerado aqui).
+ */
 function parseFormData(formData: FormData) {
-  const semVencimento = formData.get('sem_vencimento') === 'on';
   const situacao: 'ativa' | 'standby' = String(formData.get('situacao') || 'ativa') === 'standby' ? 'standby' : 'ativa';
+  // "Valor com juros" (valor_atual); formulários antigos mandavam só valor_total.
+  const comJuros = numero(formData, 'valor_atual') ?? numero(formData, 'valor_total') ?? 0;
+  const valorPagar = situacao === 'ativa' ? numero(formData, 'valor_pagar') : null;
+  const vencimento = situacao === 'ativa' ? String(formData.get('data_vencimento') || '') || null : null;
+  const parcelas = situacao === 'ativa' && formData.has('parcelas_total') ? numero(formData, 'parcelas_total') : undefined;
   return {
     descricao: String(formData.get('descricao') || '').trim(),
     credor: String(formData.get('credor') || '').trim() || null,
     categoria_id: String(formData.get('categoria_id') || '') || null,
     subcategoria_id: String(formData.get('subcategoria_id') || '') || null,
-    valor_total: Number(formData.get('valor_total') || 0),
-    // Campo opcional: o cadastro simples não envia parcelas (não sobrescreve o que já existe).
-    ...(formData.has('parcelas_total')
-      ? { parcelas_total: formData.get('parcelas_total') ? Number(formData.get('parcelas_total')) : null }
-      : {}),
-    sem_vencimento: semVencimento,
-    data_vencimento: semVencimento ? null : String(formData.get('data_vencimento') || ''),
+    // valor acompanhado nos pagamentos: o do acordo (ativa) ou o valor com juros (standby)
+    valor_total: valorPagar ?? comJuros,
+    ...(parcelas !== undefined ? { parcelas_total: parcelas ? Math.round(parcelas) : null } : {}),
+    sem_vencimento: !vencimento,
+    data_vencimento: vencimento,
     situacao,
     observacoes: String(formData.get('observacoes') || '').trim() || null,
+  };
+}
+
+/** Parcelas já pagas informadas no formulário (só quando o usuário mexeu no campo). */
+function parsePagas(formData: FormData, valorTotal: number, parcelasTotal: number | null | undefined): Partial<Pick<Divida, 'parcelas_pagas' | 'valor_pago'>> {
+  if (!formData.has('parcelas_pagas')) return {};
+  const pagas = Math.max(0, Math.round(numero(formData, 'parcelas_pagas') ?? 0));
+  const parcela = numero(formData, 'parcela_mensal') ?? (parcelasTotal ? valorTotal / parcelasTotal : null);
+  return {
+    parcelas_pagas: parcelasTotal ? Math.min(pagas, parcelasTotal) : pagas,
+    ...(parcela != null ? { valor_pago: Math.min(valorTotal, Math.round(pagas * parcela * 100) / 100) } : {}),
   };
 }
 
@@ -57,7 +82,7 @@ function parseDetalhes(formData: FormData) {
   if (formData.has('taxa_juros_mensal')) d.taxa_juros_mensal = num('taxa_juros_mensal');
   if (formData.has('parcela_mensal')) d.parcela_mensal = num('parcela_mensal');
   // "Valor com juros" é o próprio valor da dívida (valor_total); guardamos também em valor_atual.
-  const comJuros = num('valor_total');
+  const comJuros = num('valor_atual') ?? num('valor_total');
   if (comJuros != null) d.valor_atual = comJuros;
   if (formData.has('valor_com_desconto')) {
     const desc = num('valor_com_desconto');
@@ -89,10 +114,7 @@ export async function criarDivida(_prevState: DividaFormState, formData: FormDat
 
   const dados = parseFormData(formData);
   if (!dados.descricao || !dados.valor_total) {
-    return { error: 'Preencha descrição e valor total.' };
-  }
-  if (!dados.sem_vencimento && !dados.data_vencimento) {
-    return { error: 'Preencha o vencimento ou marque "Sem vencimento definido".' };
+    return { error: 'Preencha a descrição e o valor com juros.' };
   }
 
   const gerarParcelas = formData.get('gerar_parcelas') === 'on';
@@ -108,11 +130,15 @@ export async function criarDivida(_prevState: DividaFormState, formData: FormDat
   let avisoMigracao = false;
   let { data: dividaCriada, error } = await supabase
     .from('dividas')
-    .insert({ user_id: user.id, ...dados, ...detalhes })
+    .insert({ user_id: user.id, ...dados, ...parsePagas(formData, dados.valor_total, dados.parcelas_total), ...detalhes })
     .select('id')
     .single();
   if (error && faltaMigracaoDetalhes(error.message)) {
-    ({ data: dividaCriada, error } = await supabase.from('dividas').insert({ user_id: user.id, ...dados }).select('id').single());
+    ({ data: dividaCriada, error } = await supabase
+      .from('dividas')
+      .insert({ user_id: user.id, ...dados, ...parsePagas(formData, dados.valor_total, dados.parcelas_total) })
+      .select('id')
+      .single());
     avisoMigracao = Object.values(detalhes).some((v) => v != null);
   }
   if (error || !dividaCriada) return { error: error?.message ?? 'Não foi possível criar a dívida.' };
@@ -170,17 +196,15 @@ export async function atualizarDivida(
 
   const dados = parseFormData(formData);
   if (!dados.descricao || !dados.valor_total) {
-    return { error: 'Preencha descrição e valor total.' };
-  }
-  if (!dados.sem_vencimento && !dados.data_vencimento) {
-    return { error: 'Preencha o vencimento ou marque "Sem vencimento definido".' };
+    return { error: 'Preencha a descrição e o valor com juros.' };
   }
 
   const detalhes = parseDetalhes(formData);
-  let { error } = await supabase.from('dividas').update({ ...dados, ...detalhes }).eq('id', id).eq('user_id', user.id);
+  const pagas = parsePagas(formData, dados.valor_total, dados.parcelas_total);
+  let { error } = await supabase.from('dividas').update({ ...dados, ...pagas, ...detalhes }).eq('id', id).eq('user_id', user.id);
   let avisoMigracao = false;
   if (error && faltaMigracaoDetalhes(error.message)) {
-    ({ error } = await supabase.from('dividas').update(dados).eq('id', id).eq('user_id', user.id));
+    ({ error } = await supabase.from('dividas').update({ ...dados, ...pagas }).eq('id', id).eq('user_id', user.id));
     avisoMigracao = Object.values(detalhes).some((v) => v != null);
   }
   if (error) return { error: error.message };

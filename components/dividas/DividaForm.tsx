@@ -38,7 +38,7 @@ export function DividaForm({
   }, {});
 
   const [categoriaId, setCategoriaId] = useState(divida?.categoria_id ?? '');
-  const [semVencimento, setSemVencimento] = useState(divida?.sem_vencimento ?? false);
+  const [situacao, setSituacao] = useState<'ativa' | 'standby'>(divida?.situacao ?? 'standby');
   const subcategoriasFiltradas = subcategorias.filter((s) => s.categoria_id === categoriaId);
   const [valorOriginal, setValorOriginal] = useState(divida?.valor_original != null ? String(divida.valor_original) : '');
   const [comJuros, setComJuros] = useState(
@@ -47,6 +47,24 @@ export function DividaForm({
   const [comDesconto, setComDesconto] = useState(divida?.valor_com_desconto != null ? String(divida.valor_com_desconto) : '');
   const n = (v: string) => (v.trim() === '' ? null : Number(v.replace(',', '.')));
   const pct = percentualDesconto(n(comJuros), n(comDesconto));
+
+  // Acompanhamento do pagamento (só quando ativa)
+  const valorPagarInicial = divida && divida.situacao === 'ativa' ? String(divida.valor_total) : '';
+  const [valorPagar, setValorPagar] = useState(valorPagarInicial);
+  const [parcelas, setParcelas] = useState(divida?.parcelas_total != null ? String(divida.parcelas_total) : '');
+  const [valorParcela, setValorParcela] = useState(divida?.parcela_mensal != null ? String(divida.parcela_mensal) : '');
+  const [parcelaEditada, setParcelaEditada] = useState(divida?.parcela_mensal != null);
+  const [pagas, setPagas] = useState(divida?.parcelas_pagas != null ? String(divida.parcelas_pagas) : '0');
+  const [pagasEditadas, setPagasEditadas] = useState(false);
+  const totalPagarNum = n(valorPagar) ?? n(comDesconto) ?? n(comJuros);
+  const parcelaCalculada = totalPagarNum && n(parcelas) ? Math.round((totalPagarNum / n(parcelas)!) * 100) / 100 : null;
+  const parcelaExibida = parcelaEditada ? valorParcela : parcelaCalculada != null ? String(parcelaCalculada) : '';
+
+  function escolherSituacao(nova: 'ativa' | 'standby') {
+    setSituacao(nova);
+    // ao ativar, sugere pagar o valor com desconto (ou com juros)
+    if (nova === 'ativa' && !valorPagar) setValorPagar(comDesconto || comJuros);
+  }
 
   return (
     <form action={formAction} className="space-y-4">
@@ -117,10 +135,10 @@ export function DividaForm({
             />
           </div>
           <div>
-            <label className="label-field" htmlFor="valor_total">Valor com juros</label>
+            <label className="label-field" htmlFor="valor_atual">Valor com juros</label>
             <input
-              id="valor_total"
-              name="valor_total"
+              id="valor_atual"
+              name="valor_atual"
               type="number"
               step="0.01"
               min="0.01"
@@ -198,48 +216,119 @@ export function DividaForm({
         Usadas para categorizar automaticamente as transações geradas ao registrar pagamentos.
       </p>
 
-      <div className="flex items-center gap-2">
-        <input
-          id="sem_vencimento"
-          name="sem_vencimento"
-          type="checkbox"
-          checked={semVencimento}
-          onChange={(e) => setSemVencimento(e.target.checked)}
-          className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
-        />
-        <label htmlFor="sem_vencimento" className="text-sm text-gray-700">
-          Sem vencimento definido (só para ficar no radar)
-        </label>
+      <div>
+        <label className="label-field">Situação</label>
+        <input type="hidden" name="situacao" value={situacao} />
+        <div className="grid grid-cols-2 gap-2">
+          {(
+            [
+              ['standby', '📡 Em standby', 'só no radar'],
+              ['ativa', '💳 Ativa', 'estou pagando'],
+            ] as const
+          ).map(([id, rotulo, sub]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => escolherSituacao(id)}
+              className={
+                situacao === id
+                  ? 'rounded-xl border-2 border-brand-500 bg-brand-50 px-4 py-2 text-left'
+                  : 'rounded-xl border-2 border-transparent bg-gray-100 px-4 py-2 text-left hover:bg-gray-200/70'
+              }
+            >
+              <span className={situacao === id ? 'block text-sm font-semibold text-brand-700' : 'block text-sm font-medium text-gray-700'}>{rotulo}</span>
+              <span className="block text-[11px] text-gray-500">{sub}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {!semVencimento && (
-        <div>
-          <label className="label-field" htmlFor="data_vencimento">Próximo vencimento</label>
-          <input
-            id="data_vencimento"
-            name="data_vencimento"
-            type="date"
-            required
-            defaultValue={divida?.data_vencimento ?? undefined}
-            className="input-field"
-          />
+      {situacao === 'ativa' && (
+        <div className="anim-subir space-y-3 rounded-xl border border-brand-100 bg-brand-50/40 p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-brand-700">Acompanhamento do pagamento</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label-field" htmlFor="valor_pagar">Valor a pagar (acordo)</label>
+              <input
+                id="valor_pagar"
+                name="valor_pagar"
+                type="number"
+                step="0.01"
+                min="0.01"
+                required
+                value={valorPagar}
+                onChange={(e) => setValorPagar(e.target.value)}
+                className="input-field"
+                placeholder="total a pagar"
+              />
+            </div>
+            <div>
+              <label className="label-field" htmlFor="data_vencimento">Próximo vencimento</label>
+              <input
+                id="data_vencimento"
+                name="data_vencimento"
+                type="date"
+                defaultValue={divida?.data_vencimento ?? undefined}
+                className="input-field"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="label-field" htmlFor="parcelas_total">Parcelas</label>
+              <input
+                id="parcelas_total"
+                name="parcelas_total"
+                type="number"
+                min="1"
+                value={parcelas}
+                onChange={(e) => setParcelas(e.target.value)}
+                className="input-field"
+                placeholder="ex.: 12"
+              />
+            </div>
+            <div>
+              <label className="label-field" htmlFor="parcela_mensal">Valor da parcela</label>
+              <input
+                id="parcela_mensal"
+                name="parcela_mensal"
+                type="number"
+                step="0.01"
+                min="0"
+                value={parcelaExibida}
+                onChange={(e) => {
+                  setParcelaEditada(true);
+                  setValorParcela(e.target.value);
+                }}
+                className="input-field"
+                placeholder="calculado"
+              />
+            </div>
+            <div>
+              <label className="label-field" htmlFor="parcelas_pagas">Já pagas</label>
+              <input
+                id="parcelas_pagas"
+                {...(pagasEditadas ? { name: 'parcelas_pagas' } : {})}
+                type="number"
+                min="0"
+                value={pagas}
+                onChange={(e) => {
+                  setPagasEditadas(true);
+                  setPagas(e.target.value);
+                }}
+                className="input-field"
+              />
+            </div>
+          </div>
+          {totalPagarNum != null && n(parcelas) != null && (
+            <p className="text-xs text-gray-600">
+              {n(parcelas)}× de {formatCurrency(n(parcelaExibida) ?? 0)}
+              {n(pagas) ? ` · ${n(pagas)} paga(s), faltam ${Math.max(0, n(parcelas)! - n(pagas)!)}` : ''}
+              {' · '}as transações você lança manualmente.
+            </p>
+          )}
         </div>
       )}
-
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="label-field" htmlFor="situacao">Situação</label>
-          <select
-            id="situacao"
-            name="situacao"
-            defaultValue={divida?.situacao ?? 'ativa'}
-            className="input-field"
-          >
-            <option value="ativa">Ativa</option>
-            <option value="standby">Em standby</option>
-          </select>
-        </div>
-      </div>
 
       <div>
         <label className="label-field" htmlFor="observacoes">Observações</label>
