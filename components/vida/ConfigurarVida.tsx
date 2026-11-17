@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 /** Passo a passo quando falta a migração ou a chave da API. */
-export function ConfigurarVida({ faltaBanco, faltaChave }: { faltaBanco: boolean; faltaChave: boolean }) {
+export function ConfigurarVida({ faltaBanco, faltaChave, migracao = '0024_vida.sql' }: { faltaBanco: boolean; faltaChave: boolean; migracao?: string }) {
   return (
     <div className="card space-y-4 p-6">
       <div className="flex items-center gap-3">
@@ -16,7 +16,7 @@ export function ConfigurarVida({ faltaBanco, faltaChave }: { faltaBanco: boolean
           <li className="rounded-2xl bg-gray-50 p-4">
             <p className="font-semibold text-gray-900">1. Criar as tabelas no Supabase</p>
             <p className="mt-1">
-              No painel do Supabase, abra <b>SQL Editor</b>, cole o conteúdo do arquivo <code className="rounded bg-white px-1">supabase/migrations/0024_vida.sql</code> do repositório e
+              No painel do Supabase, abra <b>SQL Editor</b>, cole o conteúdo do arquivo <code className="rounded bg-white px-1">supabase/migrations/{migracao}</code> do repositório e
               clique em <b>Run</b>. As tabelas são privadas: só o seu login enxerga.
             </p>
           </li>

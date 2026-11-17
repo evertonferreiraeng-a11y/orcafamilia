@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase-server';
-import { chaveConfigurada, conversarStream, montarSistema, painelEmTexto, type MensagemIA } from '@/lib/vida/ia';
+import { chaveConfigurada, conversarStream, montarSistema, painelEmTexto, planosEmTexto, type MensagemIA } from '@/lib/vida/ia';
+import { carregarFinancas, financasEmTexto } from '@/lib/vida/financas';
 import { INSTRUCOES_PADRAO } from '@/lib/vida/instrucoes';
 import { mesRef } from '@/lib/vida/pilares';
 
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
   if (erroMsg) return NextResponse.json({ error: erroMsg.message }, { status: 500 });
 
   const mes = mesRef();
-  const [{ data: historico }, { data: ctx }, { data: painel }] = await Promise.all([
+  const [{ data: historico }, { data: ctx }, { data: painel }, financas, { data: planos }, { data: etapas }, { data: inds }, { data: regs }] = await Promise.all([
     supabase
       .from('vida_mensagens')
       .select('papel, conteudo, criado_em')
@@ -51,7 +52,25 @@ export async function POST(req: Request) {
       .limit(LIMITE_HISTORICO),
     supabase.from('vida_contexto').select('texto').maybeSingle(),
     supabase.from('vida_avaliacoes').select('*').eq('mes', mes),
+    carregarFinancas(supabase, user.id).catch(() => null),
+    supabase.from('vida_planos').select('id, titulo, status, prazo, objetivo').neq('status', 'concluido').order('atualizado_em', { ascending: false }).limit(10),
+    supabase.from('vida_etapas').select('plano_id, titulo, feita, prazo, ordem').order('ordem'),
+    supabase.from('vida_indicadores').select('id, plano_id, nome, unidade, meta'),
+    supabase.from('vida_registros').select('indicador_id, valor, data').order('data', { ascending: false }).limit(500),
   ]);
+  const tituloPlano = new Map((planos ?? []).map((p) => [p.id, p.titulo]));
+  const textoPlanos = planos
+    ? planosEmTexto(
+        planos,
+        (etapas ?? []).filter((e) => tituloPlano.has(e.plano_id)).map((e) => ({ ...e, plano_titulo: tituloPlano.get(e.plano_id)! })),
+        (inds ?? [])
+          .filter((i) => tituloPlano.has(i.plano_id))
+          .map((i) => {
+            const ultimo = (regs ?? []).find((r) => r.indicador_id === i.id);
+            return { plano_titulo: tituloPlano.get(i.plano_id)!, nome: i.nome, unidade: i.unidade, meta: i.meta, ultimo: ultimo ? Number(ultimo.valor) : null };
+          })
+      )
+    : undefined;
 
   // A API exige começar por 'user' e alternar papéis: junta mensagens seguidas do mesmo papel.
   const msgs: MensagemIA[] = [];
@@ -66,6 +85,8 @@ export async function POST(req: Request) {
     instrucoes: ctx?.texto?.trim() || INSTRUCOES_PADRAO,
     painel: painelEmTexto(painel ?? [], mes),
     pilarFoco: pilar,
+    financas: financas ? financasEmTexto(financas) : undefined,
+    planos: textoPlanos,
     hoje: new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' }),
   });
 

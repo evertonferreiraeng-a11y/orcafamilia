@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { carregarMensagens, excluirConversa, renomearConversa } from '@/app/(dashboard)/vida/actions';
 import { TextoFormatado } from '@/components/vida/TextoFormatado';
+import { PropostaPlanoCard } from '@/components/vida/PropostaPlanoCard';
+import { extrairPlanos } from '@/lib/vida/planos';
 import { PILARES, pilarPorNumero } from '@/lib/vida/pilares';
 import { cn } from '@/lib/utils';
 
@@ -14,6 +16,7 @@ const SUGESTOES_INICIO = [
   { emoji: '🩺', texto: 'Vamos começar o diagnóstico da minha vida. Me faça a primeira pergunta.' },
   { emoji: '🎯', texto: 'Quais deveriam ser minhas 5 prioridades agora? Me pergunte o que precisar.' },
   { emoji: '🗓️', texto: 'Me ajude a montar uma semana equilibrada e sustentável.' },
+  { emoji: '🧾', texto: 'Quero um plano para sair das dívidas. Use os números do app e me diga por onde começar.' },
   { emoji: '😮‍💨', texto: 'Estou sobrecarregado hoje. Quero conversar sobre isso.' },
 ];
 
@@ -272,7 +275,17 @@ export function ChatVida({
                     <span className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-50 text-base">🧭</span>
                     <div className="min-w-0 flex-1 rounded-2xl rounded-tl-md bg-gray-50 px-4 py-3">
                       {m.conteudo ? (
-                        <TextoFormatado texto={m.conteudo} />
+                        <div className="space-y-3">
+                          {extrairPlanos(m.conteudo).map((parte, k) =>
+                            parte.tipo === 'texto' ? (
+                              parte.conteudo.trim() ? <TextoFormatado key={k} texto={parte.conteudo} /> : null
+                            ) : parte.tipo === 'plano' ? (
+                              <PropostaPlanoCard key={k} plano={parte.plano} />
+                            ) : (
+                              <p key={k} className="animate-pulse rounded-xl bg-violet-50 px-3 py-2 text-xs font-medium text-violet-700">🗂️ Montando o plano...</p>
+                            )
+                          )}
+                        </div>
                       ) : (
                         <span className="inline-flex gap-1 py-1" aria-label="Pensando">
                           <span className="h-2 w-2 animate-bounce rounded-full bg-gray-300 [animation-delay:-0.3s]" />

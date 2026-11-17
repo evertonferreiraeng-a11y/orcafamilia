@@ -127,6 +127,8 @@ export const APPS: Record<AppId, { nome: string; curto: string; href: string; ic
         items: [
           { href: '/vida', label: 'Painel dos 10 pilares', icon: IconDashboard, exato: true },
           { href: '/vida/conversas', label: 'Conversas', icon: IconConversas },
+          { href: '/vida/planos', label: 'Planos', icon: IconMetas },
+          { href: '/vida/dividas', label: 'Sair das dívidas', icon: IconDividas },
           { href: '/vida/ajustes', label: 'Ajustes do mentor', icon: IconAjustes },
         ],
       },

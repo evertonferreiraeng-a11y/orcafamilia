@@ -5,7 +5,7 @@ import { chaveConfigurada } from '@/lib/vida/ia';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ConversasVidaPage({ searchParams }: { searchParams: { c?: string; pilar?: string } }) {
+export default async function ConversasVidaPage({ searchParams }: { searchParams: { c?: string; pilar?: string; texto?: string } }) {
   const supabase = createServerSupabase();
   const { data: conversas, error } = await supabase
     .from('vida_conversas')
@@ -30,6 +30,7 @@ export default async function ConversasVidaPage({ searchParams }: { searchParams
       mensagensIniciais={mensagens}
       chaveOk={chaveConfigurada()}
       pilarInicial={pilar >= 1 && pilar <= 10 ? pilar : null}
+      textoInicial={ativa ? undefined : searchParams.texto?.slice(0, 2000)}
     />
   );
 }

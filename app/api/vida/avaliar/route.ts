@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { createServerSupabase } from '@/lib/supabase-server';
 import { chaveConfigurada, montarSistema, painelEmTexto, perguntar } from '@/lib/vida/ia';
 import { INSTRUCOES_PADRAO } from '@/lib/vida/instrucoes';
+import { carregarFinancas, financasEmTexto } from '@/lib/vida/financas';
 import { PILARES, mesRef } from '@/lib/vida/pilares';
 
 export const dynamic = 'force-dynamic';
@@ -18,7 +19,7 @@ type ItemIA = {
   indicador: string | null;
 };
 
-const PEDIDO = `Com base SOMENTE no que foi dito nas conversas abaixo e no painel atual, atualize o painel dos 10 pilares deste mês.
+const PEDIDO = `Com base SOMENTE no que foi dito nas conversas abaixo, no painel atual e nos dados financeiros reais do app, atualize o painel dos 10 pilares deste mês.
 
 Regras:
 - Não invente. Se não houver informação suficiente sobre um pilar, use null nos campos (inclusive na nota).
@@ -58,9 +59,11 @@ export async function POST() {
     .map(([id, linhas]) => `### Conversa: ${tituloDe.get(id) ?? 'sem título'}\n${linhas.join('\n')}`)
     .join('\n\n');
 
+  const fin = await carregarFinancas(supabase, user.id).catch(() => null);
   const sistema = montarSistema({
     instrucoes: ctx?.texto?.trim() || INSTRUCOES_PADRAO,
     painel: painelEmTexto(painel ?? [], mes),
+    financas: fin ? financasEmTexto(fin) : undefined,
     hoje: new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
   });
 

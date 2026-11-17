@@ -404,6 +404,63 @@ export type VidaAvaliacao = {
   atualizado_em: string;
 };
 
+export type VidaPlano = {
+  id: string;
+  user_id: string;
+  pilar: number | null;
+  titulo: string;
+  objetivo: string | null;
+  resumo: string | null;
+  prazo: string | null;
+  status: 'ativo' | 'pausado' | 'concluido';
+  origem: 'manual' | 'ia' | 'dividas';
+  criado_em: string;
+  atualizado_em: string;
+};
+
+export type VidaEtapa = {
+  id: string;
+  plano_id: string;
+  user_id: string;
+  ordem: number;
+  titulo: string;
+  detalhe: string | null;
+  prazo: string | null;
+  feita: boolean;
+  feita_em: string | null;
+};
+
+export type FonteIndicador = 'manual' | 'dividas_restante' | 'sobra_mes' | 'cofre_saldo';
+
+export type VidaIndicador = {
+  id: string;
+  plano_id: string;
+  user_id: string;
+  nome: string;
+  unidade: string;
+  meta: number | null;
+  inicial: number | null;
+  direcao: 'subir' | 'descer';
+  fonte: FonteIndicador;
+  ordem: number;
+};
+
+export type VidaRegistro = {
+  id: string;
+  indicador_id: string;
+  user_id: string;
+  data: string;
+  valor: number;
+};
+
+export type VidaDividaParams = {
+  divida_id: string;
+  user_id: string;
+  taxa_mensal: number | null;
+  parcela: number | null;
+  atualizado_em: string;
+};
+
 type Relationship = {
   foreignKeyName: string;
   columns: string[];
@@ -605,6 +662,11 @@ export interface Database {
       vida_conversas: TableDef<VidaConversa>;
       vida_mensagens: TableDef<VidaMensagem>;
       vida_avaliacoes: TableDef<VidaAvaliacao>;
+      vida_planos: TableDef<VidaPlano>;
+      vida_etapas: TableDef<VidaEtapa>;
+      vida_indicadores: TableDef<VidaIndicador>;
+      vida_registros: TableDef<VidaRegistro>;
+      vida_dividas_params: TableDef<VidaDividaParams>;
     };
     Views: Record<string, never>;
     Functions: {

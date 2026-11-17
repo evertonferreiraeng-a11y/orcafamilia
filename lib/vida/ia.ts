@@ -1,5 +1,6 @@
 // Usado só no servidor (rotas /api/vida): a chave da API nunca vai para o navegador.
 import { INSTRUCOES_FIXAS } from '@/lib/vida/instrucoes';
+import { INSTRUCOES_PLANOS } from '@/lib/vida/planos';
 import { PILARES } from '@/lib/vida/pilares';
 import type { VidaAvaliacao } from '@/types/database';
 
@@ -36,7 +37,7 @@ export function painelEmTexto(avaliacoes: VidaAvaliacao[], mes: string): string 
   return `Painel de ${nomeMes(mes)}:\n${linhas.join('\n')}`;
 }
 
-export function montarSistema(opts: { instrucoes: string; painel: string; pilarFoco?: number | null; hoje: string }): string {
+export function montarSistema(opts: { instrucoes: string; painel: string; pilarFoco?: number | null; hoje: string; financas?: string; planos?: string }): string {
   const foco = opts.pilarFoco ? PILARES.find((p) => p.n === opts.pilarFoco) : null;
   return [
     INSTRUCOES_FIXAS,
@@ -45,6 +46,9 @@ export function montarSistema(opts: { instrucoes: string; painel: string; pilarF
     opts.instrucoes,
     '--- PAINEL ATUAL ---',
     opts.painel,
+    opts.financas ? `--- FINANÇAS (dados do app) ---\n${opts.financas}` : '',
+    opts.planos ? `--- PLANOS SALVOS ---\n${opts.planos}` : '',
+    INSTRUCOES_PLANOS,
     foco ? `--- FOCO DESTA CONVERSA ---\nEsta conversa é sobre o pilar ${foco.n}. ${foco.nome}. Mantenha o foco nele, mas aponte conexões com outros pilares quando forem relevantes.` : '',
   ]
     .filter(Boolean)
@@ -141,4 +145,28 @@ export async function perguntar(sistema: string, mensagens: MensagemIA[], maxTok
     .filter((b: { type: string }) => b.type === 'text')
     .map((b: { text: string }) => b.text)
     .join('');
+}
+
+/** Planos salvos em texto (para a IA acompanhar e cobrar). */
+export function planosEmTexto(
+  planos: { titulo: string; status: string; prazo: string | null; objetivo: string | null }[],
+  etapas: { plano_titulo: string; titulo: string; feita: boolean; prazo: string | null }[],
+  indicadores: { plano_titulo: string; nome: string; unidade: string; meta: number | null; ultimo: number | null }[]
+): string {
+  if (!planos.length) return 'Nenhum plano salvo ainda.';
+  return planos
+    .map((p) => {
+      const ets = etapas.filter((e) => e.plano_titulo === p.titulo);
+      const feitas = ets.filter((e) => e.feita).length;
+      const pend = ets.filter((e) => !e.feita).slice(0, 4).map((e) => `${e.titulo}${e.prazo ? ` (até ${e.prazo})` : ''}`);
+      const inds = indicadores.filter((i) => i.plano_titulo === p.titulo).map((i) => `${i.nome}: ${i.ultimo ?? '—'}${i.unidade ? ` ${i.unidade}` : ''} (meta ${i.meta ?? '—'})`);
+      return [
+        `• ${p.titulo} [${p.status}]${p.prazo ? ` prazo ${p.prazo}` : ''}${p.objetivo ? ` — ${p.objetivo}` : ''}`,
+        ets.length ? `  etapas: ${feitas}/${ets.length} feitas${pend.length ? `; próximas: ${pend.join('; ')}` : ''}` : '',
+        inds.length ? `  indicadores: ${inds.join('; ')}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n');
+    })
+    .join('\n');
 }

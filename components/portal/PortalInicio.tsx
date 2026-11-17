@@ -107,8 +107,8 @@ const TEMA = {
     chip: 'bg-violet-50 text-violet-700',
     atalhos: [
       { href: '/vida/conversas', rotulo: 'Conversas' },
-      { href: '/vida', rotulo: 'Painel' },
-      { href: '/vida/ajustes', rotulo: 'Ajustes' },
+      { href: '/vida/planos', rotulo: 'Planos' },
+      { href: '/vida/dividas', rotulo: 'Sair das dívidas' },
     ],
   },
 } as const;

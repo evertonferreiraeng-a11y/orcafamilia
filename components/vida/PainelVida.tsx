@@ -108,6 +108,9 @@ export function PainelVida({
           <Link href="/vida/conversas" className="inline-flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-sm font-semibold text-violet-700 shadow-soft transition hover:bg-violet-50">
             💬 Conversar com o mentor
           </Link>
+          <Link href="/vida/planos" className="inline-flex items-center gap-1.5 rounded-xl bg-white/15 px-3.5 py-2 text-sm font-semibold text-white ring-1 ring-inset ring-white/25 transition hover:bg-white/25">
+            🗂️ Meus planos
+          </Link>
           {ehMesAtual && (
             <button
               type="button"
