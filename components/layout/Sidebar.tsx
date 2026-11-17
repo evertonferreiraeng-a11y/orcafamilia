@@ -31,11 +31,13 @@ import {
   IconFerramenta,
   IconHistorico,
   IconContato,
+  IconMentor,
+  IconConversas,
 } from '@/components/icons';
 
 type NavItem = { href: string; label: string; icon: (p: SVGProps<SVGSVGElement>) => React.ReactElement; exato?: boolean };
 type NavGroup = { label: string; items: NavItem[] };
-export type AppId = 'orcamento' | 'estoque' | 'casa';
+export type AppId = 'orcamento' | 'estoque' | 'casa' | 'vida';
 
 /** Apps disponíveis no portal. Para adicionar um novo app, inclua-o aqui e no portal (/inicio). */
 export const APPS: Record<AppId, { nome: string; curto: string; href: string; icon: NavItem['icon']; grupos: NavGroup[] }> = {
@@ -114,6 +116,22 @@ export const APPS: Record<AppId, { nome: string; curto: string; href: string; ic
       },
     ],
   },
+  vida: {
+    nome: 'Mentor de Vida',
+    curto: 'Vida',
+    href: '/vida',
+    icon: IconMentor,
+    grupos: [
+      {
+        label: 'Mentor de Vida · privado',
+        items: [
+          { href: '/vida', label: 'Painel dos 10 pilares', icon: IconDashboard, exato: true },
+          { href: '/vida/conversas', label: 'Conversas', icon: IconConversas },
+          { href: '/vida/ajustes', label: 'Ajustes do mentor', icon: IconAjustes },
+        ],
+      },
+    ],
+  },
 };
 
 /** Itens comuns a todos os apps (família, cadastro e ajustes da conta). */
@@ -130,6 +148,7 @@ export function appDaRota(pathname: string): AppId | null {
   if (pathname === '/inicio' || pathname.startsWith('/inicio/')) return null;
   if (pathname === '/estoque' || pathname.startsWith('/estoque/')) return 'estoque';
   if (pathname === '/casa' || pathname.startsWith('/casa/')) return 'casa';
+  if (pathname === '/vida' || pathname.startsWith('/vida/')) return 'vida';
   return 'orcamento';
 }
 
@@ -137,6 +156,7 @@ function gruposDaRota(pathname: string): NavGroup[] {
   const app = appDaRota(pathname);
   if (app === 'estoque') return APPS.estoque.grupos;
   if (app === 'casa') return APPS.casa.grupos;
+  if (app === 'vida') return APPS.vida.grupos;
   if (app === 'orcamento') return [...APPS.orcamento.grupos, GRUPO_GERAL];
   return []; // tela inicial dos apps: só o seletor de apps
 }
@@ -180,7 +200,7 @@ function SeletorApps({ pathname, onNavigate }: { pathname: string; onNavigate?: 
         <IconApps className="h-5 w-5" />
         Início – todos os apps
       </Link>
-      <div className="grid grid-cols-3 gap-1 rounded-xl bg-gray-100 p-1">
+      <div className="grid grid-cols-4 gap-1 rounded-xl bg-gray-100 p-1">
         {(Object.keys(APPS) as AppId[]).map((id) => {
           const A = APPS[id];
           const ativo = atual === id;

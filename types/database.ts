@@ -364,6 +364,46 @@ export type EstoqueListaItem = {
   criado_em: string;
 };
 
+/* ---------- Mentor de Vida (privado por usuário) ---------- */
+export type VidaContexto = {
+  user_id: string;
+  texto: string;
+  atualizado_em: string;
+};
+
+export type VidaConversa = {
+  id: string;
+  user_id: string;
+  titulo: string;
+  pilar: number | null;
+  criado_em: string;
+  atualizado_em: string;
+};
+
+export type VidaMensagem = {
+  id: string;
+  conversa_id: string;
+  user_id: string;
+  papel: 'user' | 'assistant';
+  conteudo: string;
+  criado_em: string;
+};
+
+export type VidaAvaliacao = {
+  id: string;
+  user_id: string;
+  mes: string;
+  pilar: number;
+  nota: number | null;
+  situacao: string | null;
+  problema: string | null;
+  objetivo: string | null;
+  proxima_acao: string | null;
+  indicador: string | null;
+  origem: 'manual' | 'ia';
+  atualizado_em: string;
+};
+
 type Relationship = {
   foreignKeyName: string;
   columns: string[];
@@ -561,6 +601,10 @@ export interface Database {
       casa_itens: TableDef<CasaItem>;
       casa_tarefas: TableDef<CasaTarefa>;
       casa_execucoes: TableDef<CasaExecucao>;
+      vida_contexto: TableDef<VidaContexto>;
+      vida_conversas: TableDef<VidaConversa>;
+      vida_mensagens: TableDef<VidaMensagem>;
+      vida_avaliacoes: TableDef<VidaAvaliacao>;
     };
     Views: Record<string, never>;
     Functions: {
