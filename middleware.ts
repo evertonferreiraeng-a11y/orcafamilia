@@ -2,6 +2,8 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 const PUBLIC_PATHS = ['/login', '/criar-conta'];
+/** Abertas para todos, com ou sem login (ex.: link de acompanhamento do JP). */
+const OPEN_PATHS = ['/convidados/'];
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -33,6 +35,8 @@ export async function middleware(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (OPEN_PATHS.some((path) => request.nextUrl.pathname.startsWith(path))) return response;
 
   const isPublicPath = PUBLIC_PATHS.some((path) => request.nextUrl.pathname.startsWith(path));
 

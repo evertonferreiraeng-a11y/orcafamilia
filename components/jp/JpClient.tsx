@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
-import { IconCheck, IconEdit, IconEnviado, IconJp, IconPlanilha, IconPlus, IconSearch, IconTrash } from '@/components/icons';
+import { IconCheck, IconCompartilhar, IconCopiar, IconEdit, IconEnviado, IconPlanilha, IconPlus, IconSearch, IconTrash, IconWhatsApp } from '@/components/icons';
+import { ResumoJpTopo } from '@/components/jp/ResumoJpTopo';
 import { createBrowserSupabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { RESPOSTAS, agruparConvites, lerPlanilhaColada, resumoJp, type LinhaImportada } from '@/lib/jp';
@@ -34,6 +35,7 @@ export function JpClient({ inicial, filtroResposta, filtroEnviado }: { inicial: 
   const [editando, setEditando] = useState<JpConvidado | 'novo' | null>(null);
   const [conviteNovo, setConviteNovo] = useState('');
   const [importando, setImportando] = useState(false);
+  const [compartilhando, setCompartilhando] = useState(false);
 
   const resumo = resumoJp(lista);
   const nomesConvites = useMemo(() => agruparConvites(lista).map((g) => g.convite), [lista]);
@@ -70,50 +72,9 @@ export function JpClient({ inicial, filtroResposta, filtroEnviado }: { inicial: 
     setLista((l) => l.filter((x) => x.id !== c.id));
   }
 
-  const pct = (n: number) => (resumo.pessoas ? (n / resumo.pessoas) * 100 : 0);
-
   return (
     <div className="mx-auto w-full max-w-[1800px] space-y-5">
-      {/* Cabeçalho */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-rose-600 via-rose-500 to-pink-400 px-6 py-6 text-white shadow-elevated sm:px-8">
-        <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/10" />
-        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex items-center gap-3">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-inset ring-white/25">
-              <IconJp className="h-6 w-6" />
-            </span>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">JP</h1>
-              <p className="text-sm text-white/85">
-                {resumo.pessoas} convidados em {resumo.convites} convites
-              </p>
-            </div>
-          </div>
-          <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6 lg:min-w-[640px] xl:min-w-[900px]">
-            {[
-              { rotulo: 'Convites enviados', valor: resumo.convitesEnviados, sub: `de ${resumo.convites} famílias` },
-              { rotulo: 'Faltam enviar', valor: resumo.convitesNaoEnviados, sub: `${resumo.naoEnviados} ${resumo.naoEnviados === 1 ? 'pessoa' : 'pessoas'}` },
-              { rotulo: 'Vão comparecer', valor: resumo.sim, sub: 'pessoas confirmadas' },
-              { rotulo: 'Não vão', valor: resumo.nao, sub: `${resumo.pendente} sem resposta` },
-              { rotulo: 'Famílias que vão', valor: resumo.familiasVao, sub: `${resumo.familiasSemResposta} sem resposta`, destaque: true },
-              { rotulo: 'Brindes', valor: resumo.familiasVao, sub: '1 por família', destaque: true },
-            ].map((x) => (
-              <div key={x.rotulo} className={cn('rounded-2xl px-3 py-2.5 ring-1 ring-inset', x.destaque ? 'bg-white/25 ring-white/30' : 'bg-white/10 ring-white/15')}>
-                <dt className="truncate text-[11px] font-medium text-white/80">{x.rotulo}</dt>
-                <dd className="text-xl font-bold tabular-nums">{x.valor}</dd>
-                <dd className="truncate text-[11px] text-white/70">{x.sub}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-        {resumo.pessoas > 0 && (
-          <div className="relative mt-5 flex h-2.5 overflow-hidden rounded-full bg-white/20" title="Sim · Não · Pendente">
-            <span className="h-full bg-emerald-300" style={{ width: `${pct(resumo.sim)}%` }} />
-            <span className="h-full bg-red-300" style={{ width: `${pct(resumo.nao)}%` }} />
-            <span className="h-full bg-amber-200" style={{ width: `${pct(resumo.pendente)}%` }} />
-          </div>
-        )}
-      </section>
+      <ResumoJpTopo resumo={resumo} acao={<button type="button" onClick={() => setCompartilhando(true)} className="inline-flex items-center gap-1.5 rounded-xl bg-white/15 px-3 py-1.5 text-xs font-semibold text-white ring-1 ring-inset ring-white/25 hover:bg-white/25"><IconCompartilhar className="h-3.5 w-3.5" /> Link para acompanhar</button>} />
 
       {erro && (
         <button type="button" onClick={() => setErro('')} className="w-full rounded-xl bg-red-50 px-4 py-2.5 text-left text-sm font-medium text-negative">
@@ -263,6 +224,8 @@ export function JpClient({ inicial, filtroResposta, filtroEnviado }: { inicial: 
           }}
         />
       )}
+
+      {compartilhando && <CompartilharModal onFechar={() => setCompartilhando(false)} />}
 
       {importando && (
         <ImportarModal
@@ -466,6 +429,104 @@ function ImportarModal({
             {salvando ? 'Importando…' : `Importar ${linhas.length || ''}`.trim()}
           </button>
         </div>
+      </div>
+    </Modal>
+  );
+}
+
+/* ---------------------------- link de acompanhamento ---------------------------- */
+const novoToken = () => `${crypto.randomUUID()}${crypto.randomUUID()}`.replace(/-/g, '').slice(0, 40);
+
+function CompartilharModal({ onFechar }: { onFechar: () => void }) {
+  const supabase = useMemo(() => createBrowserSupabase(), []);
+  const [token, setToken] = useState<string | null>(null);
+  const [carregado, setCarregado] = useState(false);
+  const [ocupado, setOcupado] = useState(false);
+  const [copiado, setCopiado] = useState(false);
+  const [erro, setErro] = useState('');
+
+  useEffect(() => {
+    supabase
+      .from('jp_compartilhamento')
+      .select('token')
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) setErro(error.message.includes('jp_compartilhamento') ? 'Rode a migração supabase/migrations/0029_jp_compartilhar.sql no Supabase para ativar o link.' : error.message);
+        setToken(data?.token ?? null);
+        setCarregado(true);
+      });
+  }, [supabase]);
+
+  const url = token ? `${window.location.origin}/convidados/${token}` : '';
+
+  async function gerar(trocar: boolean) {
+    if (trocar && !window.confirm('Trocar o link? O link antigo para de funcionar.')) return;
+    setOcupado(true);
+    setErro('');
+    const t = novoToken();
+    const { error } = trocar
+      ? await supabase.from('jp_compartilhamento').update({ token: t }).neq('token', '')
+      : await supabase.from('jp_compartilhamento').insert({ token: t });
+    setOcupado(false);
+    if (error) return setErro(`Não foi possível gerar o link: ${error.message}`);
+    setToken(t);
+    setCopiado(false);
+  }
+
+  async function desativar() {
+    if (!window.confirm('Desativar o link? Quem tiver o link não conseguirá mais abrir a lista.')) return;
+    setOcupado(true);
+    const { error } = await supabase.from('jp_compartilhamento').delete().neq('token', '');
+    setOcupado(false);
+    if (error) return setErro(`Não foi possível desativar: ${error.message}`);
+    setToken(null);
+  }
+
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiado(true);
+    } catch {
+      setErro('Não deu para copiar automaticamente. Selecione o link e copie.');
+    }
+  }
+
+  return (
+    <Modal open onClose={onFechar} title="Link para acompanhar">
+      <div className="space-y-4">
+        <p className="text-sm text-gray-600">
+          Quem abrir este link vê <b>só o JP</b> (números e lista de convidados), sem login e <b>sem poder alterar nada</b>. Os outros apps do Life não aparecem.
+        </p>
+        {!carregado ? (
+          <p className="text-sm text-gray-400">Carregando…</p>
+        ) : token ? (
+          <>
+            <input className="input-field select-all bg-gray-50 text-xs text-gray-700" readOnly value={url} onFocus={(e) => e.currentTarget.select()} />
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className="btn-primary" onClick={copiar}>
+                {copiado ? <IconCheck className="h-4 w-4" /> : <IconCopiar className="h-4 w-4" />} {copiado ? 'Copiado' : 'Copiar link'}
+              </button>
+              <a className="btn-secondary" href={`https://wa.me/?text=${encodeURIComponent(`Lista de convidados do JP (só para acompanhar): ${url}`)}`} target="_blank" rel="noreferrer">
+                <IconWhatsApp className="h-4 w-4" /> Enviar pelo WhatsApp
+              </a>
+            </div>
+            <div className="flex flex-wrap gap-3 border-t border-gray-100 pt-3 text-xs">
+              <button type="button" className="font-medium text-gray-500 hover:text-gray-800" disabled={ocupado} onClick={() => gerar(true)}>
+                Trocar link
+              </button>
+              <button type="button" className="font-medium text-red-500 hover:text-red-700" disabled={ocupado} onClick={desativar}>
+                Desativar link
+              </button>
+            </div>
+          </>
+        ) : (
+          !erro && (
+            <button type="button" className="btn-primary" disabled={ocupado} onClick={() => gerar(false)}>
+              <IconCompartilhar className="h-4 w-4" /> {ocupado ? 'Gerando…' : 'Criar link'}
+            </button>
+          )
+        )}
+        {erro && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-negative">{erro}</p>}
       </div>
     </Modal>
   );

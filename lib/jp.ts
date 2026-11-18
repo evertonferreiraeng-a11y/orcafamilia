@@ -22,9 +22,10 @@ export type ResumoJp = {
 };
 
 /** Agrupa as pessoas pelo nome do convite, mantendo a ordem da lista. */
-export function agruparConvites(lista: JpConvidado[]) {
-  const mapa = new Map<string, JpConvidado[]>();
-  for (const c of [...lista].sort((a, b) => a.ordem - b.ordem || a.criado_em.localeCompare(b.criado_em))) {
+type ItemGrupo = Pick<JpConvidado, 'convite' | 'nome' | 'ordem'> & { criado_em?: string };
+export function agruparConvites<T extends ItemGrupo>(lista: T[]) {
+  const mapa = new Map<string, T[]>();
+  for (const c of [...lista].sort((a, b) => a.ordem - b.ordem || (a.criado_em ?? '').localeCompare(b.criado_em ?? ''))) {
     const chave = c.convite.trim() || c.nome;
     const g = mapa.get(chave);
     if (g) g.push(c);

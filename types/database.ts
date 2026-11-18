@@ -496,6 +496,9 @@ export type JpConvidado = {
   atualizado_em: string;
 };
 
+export type JpCompartilhamento = { familia_id: string; token: string; criado_em: string };
+export type JpConvidadoPublico = Pick<JpConvidado, 'convite' | 'nome' | 'enviado' | 'resposta' | 'ordem'>;
+
 type TableDef<Row, Relationships extends Relationship[] = []> = {
   Row: Row;
   Insert: Partial<Row>;
@@ -683,6 +686,7 @@ export interface Database {
       casa_config: TableDef<CasaConfig>;
       casa_prestadores: TableDef<CasaPrestador>;
       jp_convidados: TableDef<JpConvidado>;
+      jp_compartilhamento: TableDef<JpCompartilhamento>;
       casa_itens: TableDef<CasaItem>;
       casa_tarefas: TableDef<CasaTarefa>;
       casa_execucoes: TableDef<CasaExecucao>;
@@ -747,6 +751,7 @@ export interface Database {
         Returns: undefined;
       };
       casa_inicializar: { Args: Record<string, never>; Returns: boolean };
+      jp_lista_publica: { Args: { p_token: string }; Returns: JpConvidadoPublico[] };
       casa_registrar_execucao: {
         Args: {
           p_tarefa: string;

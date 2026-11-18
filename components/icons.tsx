@@ -66,6 +66,8 @@ import {
   MessageCircle,
   Ticket,
   Send,
+  Share2,
+  Copy,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -147,3 +149,5 @@ export const IconContato = withDefaultStroke(Contact);
 export const IconWhatsApp = withDefaultStroke(MessageCircle);
 export const IconJp = withDefaultStroke(Ticket);
 export const IconEnviado = withDefaultStroke(Send);
+export const IconCompartilhar = withDefaultStroke(Share2);
+export const IconCopiar = withDefaultStroke(Copy);
