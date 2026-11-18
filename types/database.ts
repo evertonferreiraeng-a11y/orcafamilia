@@ -478,6 +478,25 @@ type Relationship = {
   referencedColumns: string[];
 };
 
+// ============================================
+// LIFE · JP (lista de convidados)
+// ============================================
+export type RespostaJp = 'sim' | 'nao' | 'pendente';
+
+export type JpConvidado = {
+  id: string;
+  familia_id: string;
+  convite: string;
+  nome: string;
+  telefone: string | null;
+  enviado: boolean;
+  resposta: RespostaJp;
+  obs: string | null;
+  ordem: number;
+  criado_em: string;
+  atualizado_em: string;
+};
+
 type TableDef<Row, Relationships extends Relationship[] = []> = {
   Row: Row;
   Insert: Partial<Row>;
@@ -664,6 +683,7 @@ export interface Database {
       estoque_lista: TableDef<EstoqueListaItem>;
       casa_config: TableDef<CasaConfig>;
       casa_prestadores: TableDef<CasaPrestador>;
+      jp_convidados: TableDef<JpConvidado>;
       casa_itens: TableDef<CasaItem>;
       casa_tarefas: TableDef<CasaTarefa>;
       casa_execucoes: TableDef<CasaExecucao>;

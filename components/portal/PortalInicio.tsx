@@ -8,12 +8,13 @@ import {
   IconWallet,
   IconAlerta,
   IconCheck,
+  IconJp,
 } from '@/components/icons';
 
 /* ------------------------------------------------------------------ */
 /* Dados (calculados no servidor em app/(dashboard)/inicio/page.tsx)   */
 /* ------------------------------------------------------------------ */
-export type AppPortal = 'orcamento' | 'estoque' | 'casa';
+export type AppPortal = 'orcamento' | 'estoque' | 'casa' | 'jp';
 export type AlertaPortal = { app: AppPortal; nivel: 'urgente' | 'atencao' | 'info'; texto: string; detalhe?: string; href: string };
 
 export type ResumoPortal = {
@@ -24,6 +25,7 @@ export type ResumoPortal = {
   orcamento: { receitas: number; despesas: number; saldo: number; aPagar: number; aPagarValor: number; atrasadas: number; atrasadasValor: number } | null;
   estoque: { reserva: number; litros: number; litrosMeta: number; vencendo: number; comprar: number; semEstoque: number } | null;
   casa: { vencidas: number; breve: number; emDia: number; semData: number; pausadas: number; proxima: { titulo: string; data: string } | null } | null;
+  jp: { pessoas: number; convites: number; enviados: number; naoEnviados: number; convitesNaoEnviados: number; sim: number; nao: number; pendente: number } | null;
   alertas: AlertaPortal[];
 };
 
@@ -88,6 +90,24 @@ const TEMA = {
       { href: '/casa/manutencoes', rotulo: 'Manutenções preventivas' },
       { href: '/casa/historico', rotulo: 'Histórico' },
       { href: '/casa/prestadores', rotulo: 'Prestadores' },
+    ],
+  },
+  jp: {
+    nome: 'JP',
+    curto: 'JP',
+    descricao: 'Lista de convidados e confirmações',
+    href: '/jp',
+    Icone: IconJp,
+    topo: 'from-rose-50 via-white to-white',
+    faixa: 'from-rose-500 to-pink-400',
+    icone: 'bg-rose-500 text-white shadow-[0_6px_16px_-4px_rgb(244_63_94/0.55)]',
+    marca: 'text-rose-600',
+    botao: 'bg-rose-500 hover:bg-rose-600 focus-visible:outline-rose-500',
+    chip: 'bg-rose-50 text-rose-700',
+    atalhos: [
+      { href: '/jp?resposta=pendente', rotulo: 'Sem resposta' },
+      { href: '/jp?enviado=nao', rotulo: 'Convites não enviados' },
+      { href: '/jp?resposta=sim', rotulo: 'Confirmados' },
     ],
   },
 } as const;
@@ -294,6 +314,69 @@ function CardCasa({ r }: { r: ResumoPortal['casa'] }) {
   );
 }
 
+function CardJp({ r }: { r: ResumoPortal['jp'] }) {
+  if (!r) {
+    return (
+      <CardApp app="jp">
+        <Vazio>App ainda não configurado no banco (migração 0027).</Vazio>
+      </CardApp>
+    );
+  }
+  if (r.pessoas === 0) {
+    return (
+      <CardApp app="jp">
+        <Link href="/jp" className="block rounded-2xl border border-dashed border-rose-200 px-4 py-6 text-center text-sm font-medium text-rose-700 hover:bg-rose-50/50">
+          Importe a planilha de convidados →
+        </Link>
+      </CardApp>
+    );
+  }
+  const partes = [
+    { n: r.sim, cor: 'bg-emerald-500', rotulo: 'Sim' },
+    { n: r.nao, cor: 'bg-red-400', rotulo: 'Não' },
+    { n: r.pendente, cor: 'bg-amber-400', rotulo: 'Pendente' },
+  ];
+  const pctEnviados = r.pessoas > 0 ? (r.enviados / r.pessoas) * 100 : 0;
+  return (
+    <CardApp app="jp" destaque={r.pendente === 0 ? <Pilula tom="ok">Todos responderam</Pilula> : <Pilula tom="neutro">{r.pendente} sem resposta</Pilula>}>
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Confirmados</p>
+      <p className="text-3xl font-bold tracking-tight tabular-nums text-gray-900">
+        {r.sim} <span className="text-base font-medium text-gray-400">de {r.pessoas} convidados</span>
+      </p>
+      <div className="mt-3 flex h-2 gap-0.5 overflow-hidden rounded-full bg-gray-100">
+        {partes.filter((p) => p.n > 0).map((p) => <span key={p.rotulo} className={`h-full ${p.cor}`} style={{ width: `${(p.n / r.pessoas) * 100}%` }} />)}
+      </div>
+      <div className="mt-2.5 grid grid-cols-3 gap-2">
+        {partes.map((p) => (
+          <div key={p.rotulo} className="min-w-0">
+            <p className="flex items-center gap-1.5 truncate text-[11px] text-gray-500">
+              <span className={`h-2 w-2 shrink-0 rounded-full ${p.cor}`} />
+              {p.rotulo}
+            </p>
+            <p className="text-lg font-bold tabular-nums text-gray-900">{p.n}</p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 rounded-2xl bg-gray-50 px-3.5 py-2.5">
+        <div className="mb-1 flex items-baseline justify-between text-xs">
+          <span className="font-semibold uppercase tracking-wide text-gray-400">Convites enviados</span>
+          <span className="tabular-nums text-gray-600">
+            <b className="text-gray-900">{r.enviados}</b> de {r.pessoas}
+          </span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-rose-100">
+          <span className="block h-full rounded-full bg-rose-500" style={{ width: `${pctEnviados}%` }} />
+        </div>
+        {r.convitesNaoEnviados > 0 && (
+          <Link href="/jp?enviado=nao" className="mt-1.5 block truncate text-xs font-medium text-rose-700 hover:underline">
+            {r.convitesNaoEnviados} {r.convitesNaoEnviados === 1 ? 'convite falta enviar' : 'convites faltam enviar'} →
+          </Link>
+        )}
+      </div>
+    </CardApp>
+  );
+}
+
 /* ---------------------------- página ---------------------------- */
 export function PortalInicio({ resumo }: { resumo: ResumoPortal }) {
   const { alertas } = resumo;
@@ -378,10 +461,11 @@ export function PortalInicio({ resumo }: { resumo: ResumoPortal }) {
           <h2 className="text-sm font-semibold text-gray-900">Seus apps</h2>
           <p className="hidden text-xs text-gray-400 sm:block">Login, família e dados compartilhados entre todos</p>
         </div>
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           <CardOrcamento r={resumo.orcamento} mes={resumo.mesExtenso} />
           <CardEstoque r={resumo.estoque} />
           <CardCasa r={resumo.casa} />
+          <CardJp r={resumo.jp} />
         </div>
       </section>
     </div>

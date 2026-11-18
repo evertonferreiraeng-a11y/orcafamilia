@@ -64,6 +64,8 @@ import {
   History,
   Contact,
   MessageCircle,
+  Ticket,
+  Send,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -143,3 +145,5 @@ export const IconEquipamento = withDefaultStroke(Plug);
 export const IconHistorico = withDefaultStroke(History);
 export const IconContato = withDefaultStroke(Contact);
 export const IconWhatsApp = withDefaultStroke(MessageCircle);
+export const IconJp = withDefaultStroke(Ticket);
+export const IconEnviado = withDefaultStroke(Send);

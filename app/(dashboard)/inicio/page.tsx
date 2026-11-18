@@ -3,6 +3,7 @@ import { carregarEstoque } from '@/lib/estoque/carregar';
 import { carregarCasa } from '@/lib/casa/carregar';
 import { nomeTarefa, ordemTarefas, statusTarefa, textoPrazoTarefa } from '@/lib/casa/calc';
 import { alertaLote, estoqueAtual, fmtMoeda, itensParaComprar, percentualReserva, soma, statusProduto } from '@/lib/estoque/calc';
+import { resumoJp } from '@/lib/jp';
 import { PortalInicio, type AlertaPortal, type ResumoPortal } from '@/components/portal/PortalInicio';
 
 export const metadata = { title: 'Início – Apps da família' };
@@ -43,7 +44,7 @@ export default async function InicioPage() {
   const em7 = somarDias(hoje, 7);
   const ha90 = somarDias(hoje, -90);
 
-  const [{ data: perfil }, estoque, casa, mesTx, pendentes] = await Promise.all([
+  const [{ data: perfil }, estoque, casa, mesTx, pendentes, jpLista] = await Promise.all([
     supabase.from('perfis').select('nome').eq('id', user.id).maybeSingle(),
     carregarEstoque(supabase).catch(() => null), // migração 0019 ainda não aplicada
     carregarCasa(supabase).catch(() => null), // migração 0020 ainda não aplicada
@@ -56,6 +57,7 @@ export default async function InicioPage() {
       .eq('tipo', 'despesa')
       .eq('pago', false)
       .gte('data', ha90),
+    supabase.from('jp_convidados').select('convite, nome, enviado, resposta').range(0, 4999), // migração 0027
   ]);
 
   const alertas: AlertaPortal[] = [];
@@ -136,6 +138,11 @@ export default async function InicioPage() {
     if (semData.length) alertas.push({ app: 'casa', nivel: 'info', texto: `${plural(semData.length, 'manutenção', 'manutenções')} sem data`, detalhe: 'informe a última vez', href: '/casa/manutencoes?status=semdata' });
   }
 
+  /* JP */
+  const resumoJpPortal: ResumoPortal['jp'] = jpLista.error ? null : resumoJp(jpLista.data ?? []);
+  if (resumoJpPortal?.convitesNaoEnviados)
+    alertas.push({ app: 'jp', nivel: 'info', texto: `${plural(resumoJpPortal.convitesNaoEnviados, 'convite JP não enviado', 'convites JP não enviados')}`, href: '/jp?enviado=nao' });
+
   const ordem = { urgente: 0, atencao: 1, info: 2 } as const;
   alertas.sort((a, b) => ordem[a.nivel] - ordem[b.nivel]);
 
@@ -147,6 +154,7 @@ export default async function InicioPage() {
     orcamento,
     estoque: resumoEstoque,
     casa: resumoCasa,
+    jp: resumoJpPortal,
     alertas,
   };
 
