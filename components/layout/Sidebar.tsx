@@ -123,7 +123,10 @@ export const APPS: Record<AppId, { nome: string; curto: string; href: string; ic
     grupos: [
       {
         label: 'JP',
-        items: [{ href: '/jp', label: 'Lista de convidados', icon: IconJp, exato: true }],
+        items: [
+          { href: '/jp', label: 'Lista de convidados', icon: IconJp, exato: true },
+          { href: '/jp/compras', label: 'Lista de compras', icon: IconCarrinho },
+        ],
       },
     ],
   },

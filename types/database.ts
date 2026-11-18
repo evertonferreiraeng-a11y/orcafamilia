@@ -496,6 +496,23 @@ export type JpConvidado = {
   atualizado_em: string;
 };
 
+export type JpCompra = {
+  id: string;
+  familia_id: string;
+  item: string;
+  categoria: string;
+  quantidade: number;
+  unidade: string;
+  valor_unitario: number;
+  valor_pago: number | null;
+  comprado: boolean;
+  loja: string | null;
+  responsavel: string | null;
+  obs: string | null;
+  ordem: number;
+  criado_em: string;
+  atualizado_em: string;
+};
 export type JpCompartilhamento = { familia_id: string; token: string; criado_em: string };
 export type JpConvidadoPublico = Pick<JpConvidado, 'convite' | 'nome' | 'enviado' | 'resposta' | 'ordem'>;
 
@@ -687,6 +704,7 @@ export interface Database {
       casa_prestadores: TableDef<CasaPrestador>;
       jp_convidados: TableDef<JpConvidado>;
       jp_compartilhamento: TableDef<JpCompartilhamento>;
+      jp_compras: TableDef<JpCompra>;
       casa_itens: TableDef<CasaItem>;
       casa_tarefas: TableDef<CasaTarefa>;
       casa_execucoes: TableDef<CasaExecucao>;

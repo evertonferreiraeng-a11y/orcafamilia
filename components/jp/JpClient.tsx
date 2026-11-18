@@ -5,6 +5,7 @@ import { Modal } from '@/components/ui/Modal';
 import { IconCheck, IconCompartilhar, IconCopiar, IconEdit, IconEnviado, IconPlanilha, IconPlus, IconSearch, IconTrash, IconWhatsApp } from '@/components/icons';
 import { ResumoJpTopo } from '@/components/jp/ResumoJpTopo';
 import { MolduraJp } from '@/components/jp/Decoracao';
+import { JpAbas } from '@/components/jp/JpAbas';
 import { fonteSerif } from '@/lib/jpFontes';
 import { createBrowserSupabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
@@ -80,6 +81,7 @@ export function JpClient({ inicial, filtroResposta, filtroEnviado }: { inicial: 
   return (
     <MolduraJp className={cn('mx-auto w-full max-w-[1800px] rounded-[32px] px-3 py-4 sm:px-6 sm:py-6', fonteSerif.className)}>
     <div className="space-y-5">
+      <JpAbas atual="convidados" />
       <ResumoJpTopo
         resumo={resumo}
         acao={

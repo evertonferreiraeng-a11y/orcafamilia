@@ -107,7 +107,7 @@ const TEMA = {
     atalhos: [
       { href: '/jp?resposta=pendente', rotulo: 'Sem resposta' },
       { href: '/jp?enviado=nao', rotulo: 'Convites não enviados' },
-      { href: '/jp?resposta=sim', rotulo: 'Confirmados' },
+      { href: '/jp/compras', rotulo: 'Lista de compras' },
     ],
   },
 } as const;
