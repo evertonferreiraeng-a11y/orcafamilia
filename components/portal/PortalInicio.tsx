@@ -95,15 +95,15 @@ const TEMA = {
   jp: {
     nome: 'JP',
     curto: 'JP',
-    descricao: 'Lista de convidados e confirmações',
+    descricao: 'Batizado · convidados e confirmações',
     href: '/jp',
     Icone: IconJp,
-    topo: 'from-rose-50 via-white to-white',
-    faixa: 'from-rose-500 to-pink-400',
-    icone: 'bg-rose-500 text-white shadow-[0_6px_16px_-4px_rgb(244_63_94/0.55)]',
-    marca: 'text-rose-600',
-    botao: 'bg-rose-500 hover:bg-rose-600 focus-visible:outline-rose-500',
-    chip: 'bg-rose-50 text-rose-700',
+    topo: 'from-[#eef3f9] via-[#faf7f0] to-white',
+    faixa: 'from-[#3f6aa6] via-[#9db4d3] to-[#e3c47c]',
+    icone: 'bg-[#3f6aa6] text-white shadow-[0_6px_16px_-4px_rgb(63_106_166/0.55)]',
+    marca: 'text-[#3f6aa6]',
+    botao: 'bg-[#3f6aa6] hover:bg-[#335a92] focus-visible:outline-[#3f6aa6]',
+    chip: 'bg-[#eaf0f8] text-[#3f6aa6]',
     atalhos: [
       { href: '/jp?resposta=pendente', rotulo: 'Sem resposta' },
       { href: '/jp?enviado=nao', rotulo: 'Convites não enviados' },
@@ -325,16 +325,16 @@ function CardJp({ r }: { r: ResumoPortal['jp'] }) {
   if (r.pessoas === 0) {
     return (
       <CardApp app="jp">
-        <Link href="/jp" className="block rounded-2xl border border-dashed border-rose-200 px-4 py-6 text-center text-sm font-medium text-rose-700 hover:bg-rose-50/50">
+        <Link href="/jp" className="block rounded-2xl border border-dashed border-[#cfdcee] px-4 py-6 text-center text-sm font-medium text-[#3f6aa6] hover:bg-[#f1f5fb]">
           Importe a planilha de convidados →
         </Link>
       </CardApp>
     );
   }
   const partes = [
-    { n: r.sim, cor: 'bg-emerald-500', rotulo: 'Sim' },
-    { n: r.nao, cor: 'bg-red-400', rotulo: 'Não' },
-    { n: r.pendente, cor: 'bg-amber-400', rotulo: 'Pendente' },
+    { n: r.sim, cor: 'bg-[#3f6aa6]', rotulo: 'Sim' },
+    { n: r.nao, cor: 'bg-[#c9a3a3]', rotulo: 'Não' },
+    { n: r.pendente, cor: 'bg-[#e3c47c]', rotulo: 'Pendente' },
   ];
   const pctEnviados = r.convites > 0 ? (r.convitesEnviados / r.convites) * 100 : 0;
   return (
@@ -344,7 +344,7 @@ function CardJp({ r }: { r: ResumoPortal['jp'] }) {
         {r.sim} <span className="text-base font-medium text-gray-400">de {r.pessoas} convidados</span>
       </p>
       <p className="text-sm text-gray-600">
-        <b className="text-rose-600">{r.familiasVao} {r.familiasVao === 1 ? 'família vai' : 'famílias vão'}</b> · {r.familiasVao} {r.familiasVao === 1 ? 'brinde' : 'brindes'}
+        <b className="text-[#3f6aa6]">{r.familiasVao} {r.familiasVao === 1 ? 'família vai' : 'famílias vão'}</b> · {r.familiasVao} {r.familiasVao === 1 ? 'brinde' : 'brindes'}
       </p>
       <div className="mt-3 flex h-2 gap-0.5 overflow-hidden rounded-full bg-gray-100">
         {partes.filter((p) => p.n > 0).map((p) => <span key={p.rotulo} className={`h-full ${p.cor}`} style={{ width: `${(p.n / r.pessoas) * 100}%` }} />)}
@@ -367,11 +367,11 @@ function CardJp({ r }: { r: ResumoPortal['jp'] }) {
             <b className="text-gray-900">{r.convitesEnviados}</b> de {r.convites} famílias
           </span>
         </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-rose-100">
-          <span className="block h-full rounded-full bg-rose-500" style={{ width: `${pctEnviados}%` }} />
+        <div className="h-1.5 overflow-hidden rounded-full bg-[#e6edf6]">
+          <span className="block h-full rounded-full bg-[#3f6aa6]" style={{ width: `${pctEnviados}%` }} />
         </div>
         {r.convitesNaoEnviados > 0 && (
-          <Link href="/jp?enviado=nao" className="mt-1.5 block truncate text-xs font-medium text-rose-700 hover:underline">
+          <Link href="/jp?enviado=nao" className="mt-1.5 block truncate text-xs font-medium text-[#8a6a1e] hover:underline">
             {r.convitesNaoEnviados} {r.convitesNaoEnviados === 1 ? 'convite falta enviar' : 'convites faltam enviar'} →
           </Link>
         )}

@@ -105,3 +105,24 @@ export function lerPlanilhaColada(texto: string): LinhaImportada[] {
   }
   return linhas;
 }
+
+/* ---------------- evento (dados do convite) ---------------- */
+export const EVENTO_JP = {
+  titulo: 'Meu Batizado',
+  data: '2026-12-06',
+  dataTexto: '06/12 (Domingo)',
+  hora: '8h30',
+  local: 'Igreja Matriz',
+  cidade: 'Salto/SP',
+  festa: 'Churrasco na chácara',
+  endereco: 'Estrada do Lajeado, 14720',
+  lembrete: 'Não esqueça seu kit churrasco e suas bebidas!',
+  confirmarAte: '2026-11-27',
+  confirmarAteTexto: '27/11',
+};
+
+/** Dias de hoje (fuso de São Paulo) até a data ISO. */
+export function diasAte(iso: string) {
+  const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+  return Math.round((Date.parse(`${iso}T12:00:00Z`) - Date.parse(`${hoje}T12:00:00Z`)) / 86_400_000);
+}

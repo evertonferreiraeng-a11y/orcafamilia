@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { IconCheck, IconCompartilhar, IconCopiar, IconEdit, IconEnviado, IconPlanilha, IconPlus, IconSearch, IconTrash, IconWhatsApp } from '@/components/icons';
 import { ResumoJpTopo } from '@/components/jp/ResumoJpTopo';
+import { MolduraJp } from '@/components/jp/Decoracao';
+import { fonteSerif } from '@/lib/jpFontes';
 import { createBrowserSupabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { RESPOSTAS, agruparConvites, lerPlanilhaColada, resumoJp, type LinhaImportada } from '@/lib/jp';
@@ -12,11 +14,14 @@ import type { JpConvidado, RespostaJp } from '@/types/database';
 type FiltroResposta = RespostaJp | 'todos';
 type FiltroEnviado = 'sim' | 'nao' | 'todos';
 
-const COR_RESPOSTA: Record<RespostaJp, { ativo: string; ponto: string; barra: string }> = {
-  sim: { ativo: 'bg-emerald-600 text-white', ponto: 'bg-emerald-500', barra: 'bg-emerald-500' },
-  nao: { ativo: 'bg-red-500 text-white', ponto: 'bg-red-500', barra: 'bg-red-400' },
-  pendente: { ativo: 'bg-amber-400 text-gray-900', ponto: 'bg-amber-400', barra: 'bg-amber-300' },
+const COR_RESPOSTA: Record<RespostaJp, { ativo: string; ponto: string }> = {
+  sim: { ativo: 'bg-[#3f6aa6] text-white shadow-sm', ponto: 'bg-[#3f6aa6]' },
+  nao: { ativo: 'bg-[#c58f8f] text-white shadow-sm', ponto: 'bg-[#c9a3a3]' },
+  pendente: { ativo: 'bg-[#e3c47c] text-[#5a4410] shadow-sm', ponto: 'bg-[#e3c47c]' },
 };
+const BTN_AZUL = 'inline-flex items-center justify-center gap-2 rounded-full bg-[#3f6aa6] px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#335a92] disabled:opacity-50';
+const BTN_CLARO = 'inline-flex items-center justify-center gap-2 rounded-full border border-[#cfdcee] bg-white px-4 py-2 text-sm font-medium text-[#3f6aa6] transition-colors hover:bg-[#f1f5fb]';
+const INPUT_JP = 'w-full rounded-full border border-[#d5e0ee] bg-white/90 px-4 py-2 text-sm text-[#2f5288] placeholder:text-[#9db0cb] focus:border-[#3f6aa6] focus:outline-none focus:ring-1 focus:ring-[#3f6aa6]';
 
 const normalizar = (t: string) =>
   t
@@ -73,8 +78,16 @@ export function JpClient({ inicial, filtroResposta, filtroEnviado }: { inicial: 
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1800px] space-y-5">
-      <ResumoJpTopo resumo={resumo} acao={<button type="button" onClick={() => setCompartilhando(true)} className="inline-flex items-center gap-1.5 rounded-xl bg-white/15 px-3 py-1.5 text-xs font-semibold text-white ring-1 ring-inset ring-white/25 hover:bg-white/25"><IconCompartilhar className="h-3.5 w-3.5" /> Link para acompanhar</button>} />
+    <MolduraJp className={cn('mx-auto w-full max-w-[1800px] rounded-[32px] px-3 py-4 sm:px-6 sm:py-6', fonteSerif.className)}>
+    <div className="space-y-5">
+      <ResumoJpTopo
+        resumo={resumo}
+        acao={
+          <button type="button" onClick={() => setCompartilhando(true)} className={cn(BTN_CLARO, 'px-3 py-1.5 text-xs')}>
+            <IconCompartilhar className="h-3.5 w-3.5" /> Link para acompanhar
+          </button>
+        }
+      />
 
       {erro && (
         <button type="button" onClick={() => setErro('')} className="w-full rounded-xl bg-red-50 px-4 py-2.5 text-left text-sm font-medium text-negative">
@@ -85,34 +98,34 @@ export function JpClient({ inicial, filtroResposta, filtroEnviado }: { inicial: 
       {/* Filtros e ações */}
       <section className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <label className="relative flex-1">
-          <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input className="input-field pl-9" placeholder="Buscar convidado ou convite" value={busca} onChange={(e) => setBusca(e.target.value)} />
+          <IconSearch className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9db0cb]" />
+          <input className={cn(INPUT_JP, 'pl-10')} placeholder="Buscar convidado ou convite" value={busca} onChange={(e) => setBusca(e.target.value)} />
         </label>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex rounded-xl bg-gray-100 p-1 text-xs font-semibold">
+          <div className="flex rounded-full border border-[#d5e0ee] bg-white/90 p-1 text-xs font-semibold">
             {([{ id: 'todos', rotulo: 'Todos' }, ...RESPOSTAS] as { id: FiltroResposta; rotulo: string }[]).map((r) => (
               <button
                 key={r.id}
                 type="button"
                 onClick={() => setFResposta(r.id)}
-                className={cn('rounded-lg px-3 py-1.5 transition-colors', fResposta === r.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-800')}
+                className={cn('rounded-full px-3 py-1.5 transition-colors', fResposta === r.id ? 'bg-[#3f6aa6] text-white shadow-sm' : 'text-[#5d7aa3] hover:text-[#2f5288]')}
               >
                 {r.rotulo}
-                {r.id !== 'todos' && <span className="ml-1 tabular-nums text-gray-400">{resumo[r.id]}</span>}
+                {r.id !== 'todos' && <span className="ml-1 tabular-nums opacity-70">{resumo[r.id]}</span>}
               </button>
             ))}
           </div>
-          <select className="input-field w-auto py-2 text-xs" value={fEnviado} onChange={(e) => setFEnviado(e.target.value as FiltroEnviado)} aria-label="Convite enviado">
+          <select className={cn(INPUT_JP, 'w-auto text-xs')} value={fEnviado} onChange={(e) => setFEnviado(e.target.value as FiltroEnviado)} aria-label="Convite enviado">
             <option value="todos">Convite: todos</option>
             <option value="sim">Convite enviado</option>
             <option value="nao">Convite não enviado ({resumo.naoEnviados})</option>
           </select>
-          <button type="button" className="btn-secondary" onClick={() => setImportando(true)}>
+          <button type="button" className={BTN_CLARO} onClick={() => setImportando(true)}>
             <IconPlanilha className="h-4 w-4" /> Importar planilha
           </button>
           <button
             type="button"
-            className="btn-primary"
+            className={BTN_AZUL}
             onClick={() => {
               setConviteNovo('');
               setEditando('novo');
@@ -125,15 +138,15 @@ export function JpClient({ inicial, filtroResposta, filtroEnviado }: { inicial: 
 
       {/* Lista */}
       {lista.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-gray-200 bg-white px-6 py-12 text-center">
-          <p className="text-base font-semibold text-gray-900">A lista está vazia</p>
-          <p className="mt-1 text-sm text-gray-500">Importe a planilha do Excel ou adicione os convidados um a um.</p>
-          <button type="button" className="btn-primary mt-4" onClick={() => setImportando(true)}>
+        <div className="rounded-3xl border border-dashed border-[#cfdcee] bg-white/80 px-6 py-12 text-center">
+          <p className="text-base font-semibold text-[#2f5288]">A lista está vazia</p>
+          <p className="mt-1 text-sm italic text-[#7c93b5]">Importe a planilha do Excel ou adicione os convidados um a um.</p>
+          <button type="button" className={cn(BTN_AZUL, 'mt-4')} onClick={() => setImportando(true)}>
             <IconPlanilha className="h-4 w-4" /> Importar planilha
           </button>
         </div>
       ) : grupos.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-500">Nenhum convidado com esses filtros.</p>
+        <p className="rounded-2xl border border-dashed border-[#cfdcee] bg-white/70 px-4 py-8 text-center text-sm italic text-[#7c93b5]">Nenhum convidado com esses filtros.</p>
       ) : (
         <div className="grid items-start gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {grupos.map((g) => {
@@ -141,11 +154,11 @@ export function JpClient({ inicial, filtroResposta, filtroEnviado }: { inicial: 
             const ids = g.pessoas.map((p) => p.id);
             const confirmados = g.pessoas.filter((p) => p.resposta === 'sim').length;
             return (
-              <article key={g.convite} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-card">
-                <header className="flex items-center gap-3 border-b border-gray-100 bg-gray-50/70 px-4 py-3">
+              <article key={g.convite} className="overflow-hidden rounded-3xl border border-[#dfe7f2] bg-white/90 shadow-[0_8px_30px_-22px_rgba(44,79,134,0.5)]">
+                <header className="flex items-center gap-3 border-b border-[#e6edf6] bg-gradient-to-b from-[#f5f8fc] to-white px-4 py-3">
                   <div className="min-w-0 flex-1">
-                    <h3 className="truncate text-sm font-semibold text-gray-900">{g.convite}</h3>
-                    <p className="truncate text-xs text-gray-500">
+                    <h3 className="truncate text-base font-semibold italic text-[#2f5288]">{g.convite}</h3>
+                    <p className="truncate text-xs text-[#8aa0bf]">
                       {g.pessoas.length} {g.pessoas.length === 1 ? 'pessoa' : 'pessoas'} · {confirmados} confirmada(s)
                     </p>
                   </div>
@@ -154,8 +167,8 @@ export function JpClient({ inicial, filtroResposta, filtroEnviado }: { inicial: 
                     onClick={() => atualizar(ids, { enviado: !todosEnviados })}
                     title={todosEnviados ? 'Convite enviado (clique para desfazer)' : 'Marcar convite como enviado'}
                     className={cn(
-                      'inline-flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors',
-                      todosEnviados ? 'bg-sky-50 text-sky-700 hover:bg-sky-100' : 'bg-white text-gray-500 ring-1 ring-inset ring-gray-200 hover:text-gray-800'
+                      'inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-semibold transition-colors',
+                      todosEnviados ? 'bg-[#eaf0f8] text-[#3f6aa6] hover:bg-[#dfe8f4]' : 'bg-[#fbf3df] text-[#8a6a1e] ring-1 ring-inset ring-[#ecd9a8] hover:bg-[#f7ebcb]'
                     )}
                   >
                     {todosEnviados ? <IconCheck className="h-3.5 w-3.5" /> : <IconEnviado className="h-3.5 w-3.5" />}
@@ -168,38 +181,38 @@ export function JpClient({ inicial, filtroResposta, filtroEnviado }: { inicial: 
                       setConviteNovo(g.convite);
                       setEditando('novo');
                     }}
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#9db0cb] transition-colors hover:bg-[#eef3f9] hover:text-[#3f6aa6]"
                   >
                     <IconPlus className="h-4 w-4" />
                   </button>
                 </header>
-                <ul className="divide-y divide-gray-50">
+                <ul className="divide-y divide-[#eef2f8]">
                   {g.visiveis.map((p) => (
                     <li key={p.id} className="flex items-center gap-2 px-4 py-2.5">
                       <span className={cn('h-2 w-2 shrink-0 rounded-full', COR_RESPOSTA[p.resposta].ponto)} />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-gray-900">{p.nome}</p>
-                        <p className="truncate text-[11px] text-gray-400">
+                        <p className="truncate text-sm text-[#2f5288]">{p.nome}</p>
+                        <p className="truncate text-[11px] italic text-[#9db0cb]">
                           {p.enviado ? 'Convite enviado' : 'Convite não enviado'}
                           {p.obs ? ` · ${p.obs}` : ''}
                         </p>
                       </div>
-                      <div className="flex shrink-0 rounded-lg bg-gray-100 p-0.5 text-[11px] font-semibold">
+                      <div className="flex shrink-0 rounded-full border border-[#e1e9f3] bg-[#f6f9fc] p-0.5 text-[11px] font-semibold">
                         {RESPOSTAS.map((r) => (
                           <button
                             key={r.id}
                             type="button"
                             onClick={() => p.resposta !== r.id && atualizar([p.id], { resposta: r.id })}
-                            className={cn('rounded-md px-2 py-1 transition-colors', p.resposta === r.id ? COR_RESPOSTA[r.id].ativo : 'text-gray-500 hover:text-gray-800')}
+                            className={cn('rounded-full px-2.5 py-1 transition-colors', p.resposta === r.id ? COR_RESPOSTA[r.id].ativo : 'text-[#8aa0bf] hover:text-[#2f5288]')}
                           >
                             {r.id === 'pendente' ? '?' : r.rotulo}
                           </button>
                         ))}
                       </div>
-                      <button type="button" onClick={() => setEditando(p)} className="rounded-lg p-1.5 text-gray-300 hover:bg-gray-100 hover:text-gray-600" aria-label="Editar">
+                      <button type="button" onClick={() => setEditando(p)} className="rounded-full p-1.5 text-[#c2cfe1] hover:bg-[#eef3f9] hover:text-[#3f6aa6]" aria-label="Editar">
                         <IconEdit className="h-4 w-4" />
                       </button>
-                      <button type="button" onClick={() => excluir(p)} className="rounded-lg p-1.5 text-gray-300 hover:bg-red-50 hover:text-negative" aria-label="Excluir">
+                      <button type="button" onClick={() => excluir(p)} className="rounded-full p-1.5 text-[#c2cfe1] hover:bg-red-50 hover:text-negative" aria-label="Excluir">
                         <IconTrash className="h-4 w-4" />
                       </button>
                     </li>
@@ -240,6 +253,7 @@ export function JpClient({ inicial, filtroResposta, filtroEnviado }: { inicial: 
         />
       )}
     </div>
+    </MolduraJp>
   );
 }
 
@@ -318,7 +332,7 @@ function ConvidadoModal({
                 key={r.id}
                 type="button"
                 onClick={() => setResposta(r.id)}
-                className={cn('flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition-colors', resposta === r.id ? COR_RESPOSTA[r.id].ativo : 'bg-gray-100 text-gray-600 hover:bg-gray-200')}
+                className={cn('flex-1 rounded-full px-3 py-2 text-sm font-semibold transition-colors', resposta === r.id ? COR_RESPOSTA[r.id].ativo : 'bg-[#f1f5fb] text-[#5d7aa3] hover:bg-[#e6edf6]')}
               >
                 {r.rotulo}
               </button>
@@ -331,10 +345,10 @@ function ConvidadoModal({
         </div>
         {erro && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-negative">{erro}</p>}
         <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
-          <button type="button" className="btn-secondary" onClick={onFechar}>
+          <button type="button" className={BTN_CLARO} onClick={onFechar}>
             Cancelar
           </button>
-          <button type="submit" className="btn-primary" disabled={salvando}>
+          <button type="submit" className={BTN_AZUL} disabled={salvando}>
             {salvando ? 'Salvando…' : 'Salvar'}
           </button>
         </div>
@@ -422,10 +436,10 @@ function ImportarModal({
         )}
         {erro && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-negative">{erro}</p>}
         <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
-          <button type="button" className="btn-secondary" onClick={onFechar}>
+          <button type="button" className={BTN_CLARO} onClick={onFechar}>
             Cancelar
           </button>
-          <button type="button" className="btn-primary" disabled={salvando || !linhas.length} onClick={importar}>
+          <button type="button" className={BTN_AZUL} disabled={salvando || !linhas.length} onClick={importar}>
             {salvando ? 'Importando…' : `Importar ${linhas.length || ''}`.trim()}
           </button>
         </div>
@@ -503,10 +517,10 @@ function CompartilharModal({ onFechar }: { onFechar: () => void }) {
           <>
             <input className="input-field select-all bg-gray-50 text-xs text-gray-700" readOnly value={url} onFocus={(e) => e.currentTarget.select()} />
             <div className="flex flex-wrap gap-2">
-              <button type="button" className="btn-primary" onClick={copiar}>
+              <button type="button" className={BTN_AZUL} onClick={copiar}>
                 {copiado ? <IconCheck className="h-4 w-4" /> : <IconCopiar className="h-4 w-4" />} {copiado ? 'Copiado' : 'Copiar link'}
               </button>
-              <a className="btn-secondary" href={`https://wa.me/?text=${encodeURIComponent(`Lista de convidados do JP (só para acompanhar): ${url}`)}`} target="_blank" rel="noreferrer">
+              <a className={BTN_CLARO} href={`https://wa.me/?text=${encodeURIComponent(`Lista de convidados do JP (só para acompanhar): ${url}`)}`} target="_blank" rel="noreferrer">
                 <IconWhatsApp className="h-4 w-4" /> Enviar pelo WhatsApp
               </a>
             </div>
@@ -521,7 +535,7 @@ function CompartilharModal({ onFechar }: { onFechar: () => void }) {
           </>
         ) : (
           !erro && (
-            <button type="button" className="btn-primary" disabled={ocupado} onClick={() => gerar(false)}>
+            <button type="button" className={BTN_AZUL} disabled={ocupado} onClick={() => gerar(false)}>
               <IconCompartilhar className="h-4 w-4" /> {ocupado ? 'Gerando…' : 'Criar link'}
             </button>
           )
