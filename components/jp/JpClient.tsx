@@ -89,16 +89,19 @@ export function JpClient({ inicial, filtroResposta, filtroEnviado }: { inicial: 
               </p>
             </div>
           </div>
-          <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:min-w-[560px]">
+          <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6 lg:min-w-[640px] xl:min-w-[900px]">
             {[
-              { rotulo: 'Confirmados', valor: resumo.sim },
-              { rotulo: 'Não vão', valor: resumo.nao },
-              { rotulo: 'Sem resposta', valor: resumo.pendente },
-              { rotulo: 'Convites enviados', valor: `${resumo.enviados}/${resumo.pessoas}` },
+              { rotulo: 'Convites enviados', valor: resumo.convitesEnviados, sub: `de ${resumo.convites} famílias` },
+              { rotulo: 'Faltam enviar', valor: resumo.convitesNaoEnviados, sub: `${resumo.naoEnviados} ${resumo.naoEnviados === 1 ? 'pessoa' : 'pessoas'}` },
+              { rotulo: 'Vão comparecer', valor: resumo.sim, sub: 'pessoas confirmadas' },
+              { rotulo: 'Não vão', valor: resumo.nao, sub: `${resumo.pendente} sem resposta` },
+              { rotulo: 'Famílias que vão', valor: resumo.familiasVao, sub: `${resumo.familiasSemResposta} sem resposta`, destaque: true },
+              { rotulo: 'Brindes', valor: resumo.familiasVao, sub: '1 por família', destaque: true },
             ].map((x) => (
-              <div key={x.rotulo} className="rounded-2xl bg-white/10 px-3 py-2.5 ring-1 ring-inset ring-white/15">
-                <dt className="truncate text-[11px] font-medium text-white/75">{x.rotulo}</dt>
+              <div key={x.rotulo} className={cn('rounded-2xl px-3 py-2.5 ring-1 ring-inset', x.destaque ? 'bg-white/25 ring-white/30' : 'bg-white/10 ring-white/15')}>
+                <dt className="truncate text-[11px] font-medium text-white/80">{x.rotulo}</dt>
                 <dd className="text-xl font-bold tabular-nums">{x.valor}</dd>
+                <dd className="truncate text-[11px] text-white/70">{x.sub}</dd>
               </div>
             ))}
           </dl>

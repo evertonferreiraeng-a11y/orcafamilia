@@ -11,7 +11,11 @@ export type ResumoJp = {
   convites: number;
   enviados: number; // pessoas com convite enviado
   naoEnviados: number;
-  convitesNaoEnviados: number; // convites (grupos) com alguém sem convite enviado
+  convitesEnviados: number; // convites (famílias) com todos marcados como enviado
+  convitesNaoEnviados: number; // convites (famílias) com alguém sem convite enviado
+  familiasVao: number; // convites com pelo menos uma pessoa confirmada (1 brinde por família)
+  familiasNaoVao: number; // convites em que todos responderam não
+  familiasSemResposta: number; // nenhuma confirmação ainda e alguém pendente
   sim: number;
   nao: number;
   pendente: number;
@@ -30,11 +34,17 @@ export function agruparConvites(lista: JpConvidado[]) {
 }
 
 export function resumoJp(lista: Pick<JpConvidado, 'convite' | 'nome' | 'enviado' | 'resposta'>[]): ResumoJp {
-  const grupos = new Map<string, boolean>(); // convite -> todos enviados?
+  const grupos = new Map<string, { enviados: boolean; respostas: RespostaJp[] }>();
   for (const c of lista) {
     const chave = c.convite.trim() || c.nome;
-    grupos.set(chave, (grupos.get(chave) ?? true) && c.enviado);
+    const g = grupos.get(chave) ?? { enviados: true, respostas: [] };
+    g.enviados = g.enviados && c.enviado;
+    g.respostas.push(c.resposta);
+    grupos.set(chave, g);
   }
+  const gs = [...grupos.values()];
+  const vao = gs.filter((g) => g.respostas.includes('sim')).length;
+  const naoVao = gs.filter((g) => g.respostas.every((r) => r === 'nao')).length;
   const conta = (r: RespostaJp) => lista.filter((c) => c.resposta === r).length;
   const enviados = lista.filter((c) => c.enviado).length;
   return {
@@ -42,7 +52,11 @@ export function resumoJp(lista: Pick<JpConvidado, 'convite' | 'nome' | 'enviado'
     convites: grupos.size,
     enviados,
     naoEnviados: lista.length - enviados,
-    convitesNaoEnviados: [...grupos.values()].filter((ok) => !ok).length,
+    convitesEnviados: gs.filter((g) => g.enviados).length,
+    convitesNaoEnviados: gs.filter((g) => !g.enviados).length,
+    familiasVao: vao,
+    familiasNaoVao: naoVao,
+    familiasSemResposta: gs.length - vao - naoVao,
     sim: conta('sim'),
     nao: conta('nao'),
     pendente: conta('pendente'),

@@ -25,7 +25,7 @@ export type ResumoPortal = {
   orcamento: { receitas: number; despesas: number; saldo: number; aPagar: number; aPagarValor: number; atrasadas: number; atrasadasValor: number } | null;
   estoque: { reserva: number; litros: number; litrosMeta: number; vencendo: number; comprar: number; semEstoque: number } | null;
   casa: { vencidas: number; breve: number; emDia: number; semData: number; pausadas: number; proxima: { titulo: string; data: string } | null } | null;
-  jp: { pessoas: number; convites: number; enviados: number; naoEnviados: number; convitesNaoEnviados: number; sim: number; nao: number; pendente: number } | null;
+  jp: { pessoas: number; convites: number; enviados: number; naoEnviados: number; convitesEnviados: number; convitesNaoEnviados: number; familiasVao: number; familiasNaoVao: number; familiasSemResposta: number; sim: number; nao: number; pendente: number } | null;
   alertas: AlertaPortal[];
 };
 
@@ -336,12 +336,15 @@ function CardJp({ r }: { r: ResumoPortal['jp'] }) {
     { n: r.nao, cor: 'bg-red-400', rotulo: 'Não' },
     { n: r.pendente, cor: 'bg-amber-400', rotulo: 'Pendente' },
   ];
-  const pctEnviados = r.pessoas > 0 ? (r.enviados / r.pessoas) * 100 : 0;
+  const pctEnviados = r.convites > 0 ? (r.convitesEnviados / r.convites) * 100 : 0;
   return (
     <CardApp app="jp" destaque={r.pendente === 0 ? <Pilula tom="ok">Todos responderam</Pilula> : <Pilula tom="neutro">{r.pendente} sem resposta</Pilula>}>
       <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Confirmados</p>
       <p className="text-3xl font-bold tracking-tight tabular-nums text-gray-900">
         {r.sim} <span className="text-base font-medium text-gray-400">de {r.pessoas} convidados</span>
+      </p>
+      <p className="text-sm text-gray-600">
+        <b className="text-rose-600">{r.familiasVao} {r.familiasVao === 1 ? 'família vai' : 'famílias vão'}</b> · {r.familiasVao} {r.familiasVao === 1 ? 'brinde' : 'brindes'}
       </p>
       <div className="mt-3 flex h-2 gap-0.5 overflow-hidden rounded-full bg-gray-100">
         {partes.filter((p) => p.n > 0).map((p) => <span key={p.rotulo} className={`h-full ${p.cor}`} style={{ width: `${(p.n / r.pessoas) * 100}%` }} />)}
@@ -361,7 +364,7 @@ function CardJp({ r }: { r: ResumoPortal['jp'] }) {
         <div className="mb-1 flex items-baseline justify-between text-xs">
           <span className="font-semibold uppercase tracking-wide text-gray-400">Convites enviados</span>
           <span className="tabular-nums text-gray-600">
-            <b className="text-gray-900">{r.enviados}</b> de {r.pessoas}
+            <b className="text-gray-900">{r.convitesEnviados}</b> de {r.convites} famílias
           </span>
         </div>
         <div className="h-1.5 overflow-hidden rounded-full bg-rose-100">
