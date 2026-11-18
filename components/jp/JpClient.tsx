@@ -125,7 +125,7 @@ export function JpClient({ inicial, filtroResposta, filtroEnviado }: { inicial: 
       <section className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <label className="relative flex-1">
           <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input className="input-field pl-9" placeholder="Buscar convidado, convite ou telefone" value={busca} onChange={(e) => setBusca(e.target.value)} />
+          <input className="input-field pl-9" placeholder="Buscar convidado ou convite" value={busca} onChange={(e) => setBusca(e.target.value)} />
         </label>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex rounded-xl bg-gray-100 p-1 text-xs font-semibold">
@@ -188,7 +188,6 @@ export function JpClient({ inicial, filtroResposta, filtroEnviado }: { inicial: 
                     <h3 className="truncate text-sm font-semibold text-gray-900">{g.convite}</h3>
                     <p className="truncate text-xs text-gray-500">
                       {g.pessoas.length} {g.pessoas.length === 1 ? 'pessoa' : 'pessoas'} · {confirmados} confirmada(s)
-                      {tel ? ` · ${tel}` : ''}
                     </p>
                   </div>
                   <button
@@ -234,7 +233,6 @@ export function JpClient({ inicial, filtroResposta, filtroEnviado }: { inicial: 
                         <p className="truncate text-sm font-medium text-gray-900">{p.nome}</p>
                         <p className="truncate text-[11px] text-gray-400">
                           {p.enviado ? 'Convite enviado' : 'Convite não enviado'}
-                          {p.telefone && p.telefone !== tel ? ` · ${p.telefone}` : ''}
                           {p.obs ? ` · ${p.obs}` : ''}
                         </p>
                       </div>
