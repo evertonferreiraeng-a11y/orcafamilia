@@ -63,31 +63,8 @@ export function resumoJp(lista: Pick<JpConvidado, 'convite' | 'nome' | 'enviado'
   };
 }
 
-/* ---------------- telefone / WhatsApp ---------------- */
-export function soDigitos(t: string | null | undefined) {
-  return (t ?? '').replace(/\D/g, '');
-}
-
-/** Formata como (11) 98443-2868. Devolve null para vazio ou "-". */
-export function formatarTelefone(t: string | number | null | undefined): string | null {
-  const bruto = String(t ?? '').trim();
-  if (!bruto || bruto === '-') return null;
-  let d = soDigitos(bruto);
-  if (d.length > 11 && d.startsWith('55')) d = d.slice(2);
-  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
-  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
-  return bruto;
-}
-
-export function linkWhatsApp(telefone: string | null | undefined, mensagem?: string) {
-  let d = soDigitos(telefone);
-  if (d.length < 10) return null;
-  if (d.length <= 11) d = `55${d}`;
-  return `https://wa.me/${d}${mensagem ? `?text=${encodeURIComponent(mensagem)}` : ''}`;
-}
-
 /* ---------------- importação (colar do Excel) ---------------- */
-export type LinhaImportada = { convite: string; nome: string; telefone: string | null; enviado: boolean; resposta: RespostaJp };
+export type LinhaImportada = { convite: string; nome: string; enviado: boolean; resposta: RespostaJp };
 
 const norm = (t: string) =>
   t
@@ -105,7 +82,7 @@ function lerResposta(t: string): RespostaJp {
 
 /**
  * Lê as células copiadas do Excel (colunas A a E):
- * Nome do convite | Telefone | Nome do convidado | Convite (Sim/Não) | Situação (Sim/Não/Pendente).
+ * Nome do convite | Telefone (ignorado) | Nome do convidado | Convite (Sim/Não) | Situação (Sim/Não/Pendente).
  * Quando o nome do convite fica em branco, a pessoa entra no convite da linha de cima.
  */
 export function lerPlanilhaColada(texto: string): LinhaImportada[] {
@@ -114,14 +91,13 @@ export function lerPlanilhaColada(texto: string): LinhaImportada[] {
   for (const bruta of texto.replace(/\r/g, '').split('\n')) {
     if (!bruta.trim()) continue;
     const c = bruta.split('\t').map((x) => x.trim());
-    const [convite = '', telefone = '', nome = '', enviado = '', situacao = ''] = c;
+    const [convite = '', , nome = '', enviado = '', situacao = ''] = c;
     if (norm(nome).startsWith('nome dos convidados') || norm(convite).startsWith('nome do convite')) continue; // cabeçalho
     if (!nome) continue;
     if (convite) conviteAtual = convite;
     linhas.push({
       convite: conviteAtual || nome,
       nome,
-      telefone: formatarTelefone(telefone),
       enviado: lerResposta(enviado) === 'sim',
       resposta: lerResposta(situacao),
     });

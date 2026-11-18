@@ -488,7 +488,6 @@ export type JpConvidado = {
   familia_id: string;
   convite: string;
   nome: string;
-  telefone: string | null;
   enviado: boolean;
   resposta: RespostaJp;
   obs: string | null;

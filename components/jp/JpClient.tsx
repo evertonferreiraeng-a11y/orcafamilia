@@ -2,10 +2,10 @@
 
 import { useMemo, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
-import { IconCheck, IconEdit, IconEnviado, IconJp, IconPlanilha, IconPlus, IconSearch, IconTrash, IconWhatsApp } from '@/components/icons';
+import { IconCheck, IconEdit, IconEnviado, IconJp, IconPlanilha, IconPlus, IconSearch, IconTrash } from '@/components/icons';
 import { createBrowserSupabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
-import { RESPOSTAS, agruparConvites, formatarTelefone, lerPlanilhaColada, linkWhatsApp, resumoJp, type LinhaImportada } from '@/lib/jp';
+import { RESPOSTAS, agruparConvites, lerPlanilhaColada, resumoJp, type LinhaImportada } from '@/lib/jp';
 import type { JpConvidado, RespostaJp } from '@/types/database';
 
 type FiltroResposta = RespostaJp | 'todos';
@@ -47,7 +47,7 @@ export function JpClient({ inicial, filtroResposta, filtroEnviado }: { inicial: 
           (p) =>
             (fResposta === 'todos' || p.resposta === fResposta) &&
             (fEnviado === 'todos' || p.enviado === (fEnviado === 'sim')) &&
-            (!q || normalizar(`${g.convite} ${p.nome} ${p.telefone ?? ''}`).includes(q))
+            (!q || normalizar(`${g.convite} ${p.nome}`).includes(q))
         ),
       }))
       .filter((g) => g.visiveis.length > 0);
@@ -176,8 +176,6 @@ export function JpClient({ inicial, filtroResposta, filtroEnviado }: { inicial: 
       ) : (
         <div className="grid items-start gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {grupos.map((g) => {
-            const tel = g.pessoas.find((p) => p.telefone)?.telefone ?? null;
-            const wa = linkWhatsApp(tel);
             const todosEnviados = g.pessoas.every((p) => p.enviado);
             const ids = g.pessoas.map((p) => p.id);
             const confirmados = g.pessoas.filter((p) => p.resposta === 'sim').length;
@@ -202,17 +200,6 @@ export function JpClient({ inicial, filtroResposta, filtroEnviado }: { inicial: 
                     {todosEnviados ? <IconCheck className="h-3.5 w-3.5" /> : <IconEnviado className="h-3.5 w-3.5" />}
                     {todosEnviados ? 'Enviado' : 'Enviar'}
                   </button>
-                  {wa && (
-                    <a
-                      href={wa}
-                      target="_blank"
-                      rel="noreferrer"
-                      title="Abrir no WhatsApp"
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 transition-colors hover:bg-emerald-100"
-                    >
-                      <IconWhatsApp className="h-4 w-4" />
-                    </a>
-                  )}
                   <button
                     type="button"
                     title="Adicionar pessoa neste convite"
@@ -312,7 +299,6 @@ function ConvidadoModal({
   const supabase = useMemo(() => createBrowserSupabase(), []);
   const [nome, setNome] = useState(convidado?.nome ?? '');
   const [convite, setConvite] = useState(convidado?.convite ?? conviteInicial);
-  const [telefone, setTelefone] = useState(convidado?.telefone ?? '');
   const [enviado, setEnviado] = useState(convidado?.enviado ?? false);
   const [resposta, setResposta] = useState<RespostaJp>(convidado?.resposta ?? 'pendente');
   const [obs, setObs] = useState(convidado?.obs ?? '');
@@ -327,7 +313,6 @@ function ConvidadoModal({
     const dados = {
       nome: nome.trim(),
       convite: convite.trim() || nome.trim(),
-      telefone: formatarTelefone(telefone),
       enviado,
       resposta,
       obs: obs.trim() || null,
@@ -347,7 +332,7 @@ function ConvidadoModal({
           <label className="label-field">Nome do convidado</label>
           <input className="input-field" value={nome} onChange={(e) => setNome(e.target.value)} autoFocus />
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div>
           <div>
             <label className="label-field">Convite (família / grupo)</label>
             <input className="input-field" list="jp-convites" value={convite} onChange={(e) => setConvite(e.target.value)} placeholder="Ex.: Poliana e família" />
@@ -356,10 +341,6 @@ function ConvidadoModal({
                 <option key={c} value={c} />
               ))}
             </datalist>
-          </div>
-          <div>
-            <label className="label-field">Telefone</label>
-            <input className="input-field" value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="(11) 99999-9999" inputMode="tel" />
           </div>
         </div>
         <label className="flex items-center gap-2 text-sm text-gray-700">
@@ -449,14 +430,14 @@ function ImportarModal({
     <Modal open onClose={onFechar} title="Importar planilha" wide>
       <div className="space-y-4">
         <p className="text-sm text-gray-600">
-          No Excel, selecione as colunas <b>A a E</b> (Nome do convite, Telefone, Nome dos convidados, Convite, Situação), copie com <b>Ctrl+C</b> e cole abaixo.
+          No Excel, selecione as colunas <b>A a E</b> (Nome do convite, Telefone, Nome dos convidados, Convite, Situação), copie com <b>Ctrl+C</b> e cole abaixo. Os telefones são ignorados.
           Linhas sem nome do convite entram no convite da linha de cima.
         </p>
         <textarea
           className="input-field h-48 font-mono text-xs"
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
-          placeholder={'Poliana e familia\t11984432868\tPoliana Queiroz\tSim\tSim\n\t11914898051\tMaria Pessoa\tSim\tPendente'}
+          placeholder={'Poliana e familia\t\tPoliana Queiroz\tSim\tSim\n\t\tMaria Pessoa\tSim\tPendente'}
           autoFocus
         />
         {linhas.length > 0 && (

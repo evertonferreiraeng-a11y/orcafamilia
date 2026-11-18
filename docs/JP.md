@@ -14,9 +14,10 @@ Usa o mesmo login e a mesma família dos outros apps do Life.
 
 - Resumo: confirmados, não vão, sem resposta e convites enviados, com barra sim/não/pendente.
 - Convidados agrupados por convite. Em cada convite: **Enviar/Enviado** (marca o grupo todo),
-  botão do **WhatsApp** (primeiro telefone do grupo) e **+** para incluir alguém no convite.
+  e **+** para incluir alguém no convite.
 - Em cada pessoa: **Sim / Não / ?** muda a resposta na hora; editar e excluir.
-- Filtros por resposta e por convite enviado, e busca por nome, convite ou telefone.
+- Filtros por resposta e por convite enviado, e busca por nome ou convite.
+- Telefones não são guardados (a coluna foi removida na migração 0028; na importação são ignorados).
   Também abrem por URL: `/jp?resposta=pendente`, `/jp?enviado=nao`.
 
 ## Início
